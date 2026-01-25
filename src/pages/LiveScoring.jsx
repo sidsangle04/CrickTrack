@@ -249,21 +249,24 @@ export default function LiveScoring() {
     const newTotalWickets = (currentInnings.total_wickets || 0) + (deliveryData.is_wicket ? 1 : 0);
     const newTotalBalls = (currentInnings.total_balls || 0) + (isLegal ? 1 : 0);
 
-    await base44.entities.Innings.update(currentInnings.id, {
+    const inningsUpdate = {
       total_runs: newTotalRuns,
       total_wickets: newTotalWickets,
       total_balls: newTotalBalls,
       total_overs: Math.floor(newTotalBalls / 6),
       current_ball_in_over: newBallInOver,
       current_over_number: newOverNumber,
-      current_striker_id: newStrikerId,
-      current_non_striker_id: newNonStrikerId,
       extras_wide: (currentInnings.extras_wide || 0) + (deliveryData.wide_runs || 0),
       extras_no_ball: (currentInnings.extras_no_ball || 0) + (deliveryData.no_ball_runs || 0),
       extras_byes: (currentInnings.extras_byes || 0) + (deliveryData.bye_runs || 0),
       extras_leg_byes: (currentInnings.extras_leg_byes || 0) + (deliveryData.leg_bye_runs || 0),
       status: 'in_progress'
-    });
+    };
+    
+    if (newStrikerId) inningsUpdate.current_striker_id = newStrikerId;
+    if (newNonStrikerId) inningsUpdate.current_non_striker_id = newNonStrikerId;
+
+    await base44.entities.Innings.update(currentInnings.id, inningsUpdate);
 
     await refetchAll();
 

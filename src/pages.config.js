@@ -1,19 +1,19 @@
-import Home from './pages/Home';
-import TeamManagement from './pages/TeamManagement';
-import MatchSetup from './pages/MatchSetup';
-import LiveScoring from './pages/LiveScoring';
-import Scorecard from './pages/Scorecard';
 import Analytics from './pages/Analytics';
+import Home from './pages/Home';
+import LiveScoring from './pages/LiveScoring';
+import MatchSetup from './pages/MatchSetup';
+import Scorecard from './pages/Scorecard';
+import TeamManagement from './pages/TeamManagement';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "Home": Home,
-    "TeamManagement": TeamManagement,
-    "MatchSetup": MatchSetup,
-    "LiveScoring": LiveScoring,
-    "Scorecard": Scorecard,
     "Analytics": Analytics,
+    "Home": Home,
+    "LiveScoring": LiveScoring,
+    "MatchSetup": MatchSetup,
+    "Scorecard": Scorecard,
+    "TeamManagement": TeamManagement,
 }
 
 export const pagesConfig = {
