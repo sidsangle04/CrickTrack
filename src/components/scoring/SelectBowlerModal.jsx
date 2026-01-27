@@ -50,7 +50,6 @@ export default function SelectBowlerModal({
                 onClick={() => {
                   if (canBowlNow && !isLast) {
                     onSelect(playerId);
-                    onClose();
                   }
                 }}
                 disabled={!canBowlNow || isLast}

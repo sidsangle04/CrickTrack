@@ -30,7 +30,6 @@ export default function SelectBatterModal({
                 key={batter.player_id}
                 onClick={() => {
                   onSelect(batter.player_id);
-                  onClose();
                 }}
                 className="w-full p-4 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-between transition-colors"
               >

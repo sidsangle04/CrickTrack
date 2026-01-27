@@ -216,20 +216,20 @@ export default function MatchSetup() {
               <h2 className="text-lg font-semibold text-white">Match Details</h2>
             </div>
             <div>
-              <Label>Date</Label>
+              <Label className="text-slate-200">Date</Label>
               <Input 
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({...formData, date: e.target.value})}
-                className="bg-slate-900 border-slate-700 text-white"
+                className="bg-slate-900 border-slate-700 text-white [&::-webkit-calendar-picker-indicator]:invert"
               />
             </div>
             <div>
-              <Label>Venue</Label>
+              <Label className="text-slate-200">Venue</Label>
               <Input 
                 value={formData.venue}
                 onChange={(e) => setFormData({...formData, venue: e.target.value})}
-                className="bg-slate-900 border-slate-700"
+                className="bg-slate-900 border-slate-700 text-white placeholder:text-slate-500"
                 placeholder="e.g. Central Park Ground"
               />
             </div>
@@ -255,14 +255,14 @@ export default function MatchSetup() {
             ) : (
               <>
                 <div>
-                  <Label>Team 1</Label>
+                  <Label className="text-slate-200">Team 1</Label>
                   <Select value={formData.team1_id} onValueChange={(v) => setFormData({...formData, team1_id: v, team1_playing_xi: []})}>
-                    <SelectTrigger className="bg-slate-900 border-slate-700">
+                    <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
                       <SelectValue placeholder="Select team" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-slate-900 border-slate-700">
                       {teams.map(t => (
-                        <SelectItem key={t.id} value={t.id} disabled={t.id === formData.team2_id}>
+                        <SelectItem key={t.id} value={t.id} disabled={t.id === formData.team2_id} className="text-white">
                           {t.name}
                         </SelectItem>
                       ))}
@@ -270,14 +270,14 @@ export default function MatchSetup() {
                   </Select>
                 </div>
                 <div>
-                  <Label>Team 2</Label>
+                  <Label className="text-slate-200">Team 2</Label>
                   <Select value={formData.team2_id} onValueChange={(v) => setFormData({...formData, team2_id: v, team2_playing_xi: []})}>
-                    <SelectTrigger className="bg-slate-900 border-slate-700">
+                    <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
                       <SelectValue placeholder="Select team" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-slate-900 border-slate-700">
                       {teams.map(t => (
-                        <SelectItem key={t.id} value={t.id} disabled={t.id === formData.team1_id}>
+                        <SelectItem key={t.id} value={t.id} disabled={t.id === formData.team1_id} className="text-white">
                           {t.name}
                         </SelectItem>
                       ))}
@@ -381,7 +381,7 @@ export default function MatchSetup() {
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Overs per Innings</Label>
+                <Label className="text-slate-200">Overs per Innings</Label>
                 <Input 
                   type="number"
                   min="1"
@@ -394,54 +394,54 @@ export default function MatchSetup() {
                       max_overs_per_bowler: Math.ceil(overs / 5)
                     });
                   }}
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-slate-900 border-slate-700 text-white"
                 />
               </div>
               <div>
-                <Label>Max Overs per Bowler</Label>
+                <Label className="text-slate-200">Max Overs per Bowler</Label>
                 <Input 
                   type="number"
                   min="1"
                   value={formData.max_overs_per_bowler}
                   onChange={(e) => setFormData({...formData, max_overs_per_bowler: parseInt(e.target.value) || 4})}
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-slate-900 border-slate-700 text-white"
                 />
               </div>
             </div>
 
             <div>
-              <Label>Ball Type</Label>
+              <Label className="text-slate-200">Ball Type</Label>
               <Select value={formData.ball_type} onValueChange={(v) => setFormData({...formData, ball_type: v})}>
-                <SelectTrigger className="bg-slate-900 border-slate-700">
+                <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="leather">Leather Ball</SelectItem>
-                  <SelectItem value="tennis">Tennis Ball</SelectItem>
-                  <SelectItem value="tape">Tape Ball</SelectItem>
+                <SelectContent className="bg-slate-900 border-slate-700">
+                  <SelectItem value="leather" className="text-white">Leather Ball</SelectItem>
+                  <SelectItem value="tennis" className="text-white">Tennis Ball</SelectItem>
+                  <SelectItem value="tape" className="text-white">Tape Ball</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Wide Runs</Label>
+                <Label className="text-slate-200">Wide Runs</Label>
                 <Input 
                   type="number"
                   min="1"
                   value={formData.wide_runs}
                   onChange={(e) => setFormData({...formData, wide_runs: parseInt(e.target.value) || 1})}
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-slate-900 border-slate-700 text-white"
                 />
               </div>
               <div>
-                <Label>No-Ball Runs</Label>
+                <Label className="text-slate-200">No-Ball Runs</Label>
                 <Input 
                   type="number"
                   min="1"
                   value={formData.no_ball_runs}
                   onChange={(e) => setFormData({...formData, no_ball_runs: parseInt(e.target.value) || 1})}
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-slate-900 border-slate-700 text-white"
                 />
               </div>
             </div>
@@ -466,14 +466,14 @@ export default function MatchSetup() {
             </div>
             
             <div>
-              <Label>Toss Won By</Label>
+              <Label className="text-slate-200">Toss Won By</Label>
               <Select value={formData.toss_winner_id} onValueChange={(v) => setFormData({...formData, toss_winner_id: v})}>
-                <SelectTrigger className="bg-slate-900 border-slate-700">
+                <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
                   <SelectValue placeholder="Select team" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={formData.team1_id}>{teamsMap[formData.team1_id]?.name}</SelectItem>
-                  <SelectItem value={formData.team2_id}>{teamsMap[formData.team2_id]?.name}</SelectItem>
+                <SelectContent className="bg-slate-900 border-slate-700">
+                  <SelectItem value={formData.team1_id} className="text-white">{teamsMap[formData.team1_id]?.name}</SelectItem>
+                  <SelectItem value={formData.team2_id} className="text-white">{teamsMap[formData.team2_id]?.name}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

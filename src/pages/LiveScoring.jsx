@@ -393,7 +393,9 @@ export default function LiveScoring() {
       processDelivery({
         is_no_ball: true,
         no_ball_runs: match.no_ball_runs || 1,
-        runs_bat: extraData.additional_runs
+        runs_bat: extraData.additional_runs,
+        is_wide: extraData.include_wide || false,
+        wide_runs: extraData.include_wide ? (match.wide_runs || 1) : 0
       });
     } else if (extraData.extra_type === 'bye') {
       processDelivery({
