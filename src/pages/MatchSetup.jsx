@@ -326,11 +326,27 @@ export default function MatchSetup() {
                             <CheckCircle2 className="w-3 h-3 text-white" />
                           )}
                         </div>
-                        <span className="text-sm font-medium">{p.name}</span>
+                        <span className="text-sm font-medium text-white">{p.name}</span>
                       </button>
                     ))
                   )}
                 </div>
+                {team1Players.length > 0 && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      if (formData.team1_playing_xi.length === team1Players.length) {
+                        setFormData({...formData, team1_playing_xi: []});
+                      } else {
+                        setFormData({...formData, team1_playing_xi: team1Players.map(p => p.id)});
+                      }
+                    }}
+                    className="mt-3 w-full border-slate-600 text-slate-300 hover:bg-slate-700"
+                  >
+                    {formData.team1_playing_xi.length === team1Players.length ? 'Deselect All' : 'Select All'}
+                  </Button>
+                )}
               </div>
 
               {/* Team 2 */}
@@ -362,11 +378,27 @@ export default function MatchSetup() {
                             <CheckCircle2 className="w-3 h-3 text-white" />
                           )}
                         </div>
-                        <span className="text-sm font-medium">{p.name}</span>
+                        <span className="text-sm font-medium text-white">{p.name}</span>
                       </button>
                     ))
                   )}
                 </div>
+                {team2Players.length > 0 && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      if (formData.team2_playing_xi.length === team2Players.length) {
+                        setFormData({...formData, team2_playing_xi: []});
+                      } else {
+                        setFormData({...formData, team2_playing_xi: team2Players.map(p => p.id)});
+                      }
+                    }}
+                    className="mt-3 w-full border-slate-600 text-slate-300 hover:bg-slate-700"
+                  >
+                    {formData.team2_playing_xi.length === team2Players.length ? 'Deselect All' : 'Select All'}
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -453,7 +485,7 @@ export default function MatchSetup() {
                 onChange={(e) => setFormData({...formData, allow_multiple_super_overs: e.target.checked})}
                 className="rounded"
               />
-              <span className="text-sm text-slate-300">Allow multiple Super Overs if tied</span>
+              <span className="text-sm text-white">Allow multiple Super Overs if tied</span>
             </label>
           </div>
         )}
@@ -479,7 +511,7 @@ export default function MatchSetup() {
             </div>
 
             <div>
-              <Label>Elected to</Label>
+              <Label className="text-slate-200">Elected to</Label>
               <div className="grid grid-cols-2 gap-3 mt-2">
                 <button
                   onClick={() => setFormData({...formData, toss_decision: 'bat'})}
@@ -490,7 +522,7 @@ export default function MatchSetup() {
                   }`}
                 >
                   <span className="text-2xl mb-2 block">🏏</span>
-                  <span className="font-medium">Bat First</span>
+                  <span className="font-medium text-white">Bat First</span>
                 </button>
                 <button
                   onClick={() => setFormData({...formData, toss_decision: 'bowl'})}
@@ -501,7 +533,7 @@ export default function MatchSetup() {
                   }`}
                 >
                   <span className="text-2xl mb-2 block">⚾</span>
-                  <span className="font-medium">Bowl First</span>
+                  <span className="font-medium text-white">Bowl First</span>
                 </button>
               </div>
             </div>
