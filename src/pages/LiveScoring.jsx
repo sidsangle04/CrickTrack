@@ -119,12 +119,17 @@ export default function LiveScoring() {
   const maxWickets = currentInnings?.is_super_over ? 2 : 10;
 
   useEffect(() => {
-    if (currentInnings?.status === 'not_started' || 
-        (currentInnings?.status === 'in_progress' && !currentInnings.current_striker_id)) {
+    if (!currentInnings) return;
+    if (pendingAction) return; // Don't override if already in selection flow
+    
+    if (currentInnings.status === 'not_started') {
+      setShowSelectBatter(true);
+      setPendingAction('select_opener_1');
+    } else if (currentInnings.status === 'in_progress' && !currentInnings.current_striker_id && !currentInnings.current_non_striker_id) {
       setShowSelectBatter(true);
       setPendingAction('select_opener_1');
     }
-  }, [currentInnings]);
+  }, [currentInnings?.id, currentInnings?.status]);
 
   const refetchAll = async () => {
     await Promise.all([
@@ -497,6 +502,8 @@ export default function LiveScoring() {
   };
 
   const handleSelectBatter = async (playerId) => {
+    const currentPendingAction = pendingAction;
+    
     let batterStats = batterInnings.find(b => b.player_id === playerId);
     if (!batterStats) {
       batterStats = await base44.entities.BatterInnings.create({
@@ -508,24 +515,26 @@ export default function LiveScoring() {
       });
     }
 
-    if (pendingAction === 'select_opener_1') {
+    if (currentPendingAction === 'select_opener_1') {
       await base44.entities.Innings.update(currentInnings.id, {
         current_striker_id: playerId,
         status: 'in_progress'
       });
-      await refetchAll();
-      setShowSelectBatter(true);
       setPendingAction('select_opener_2');
-    } else if (pendingAction === 'select_opener_2') {
+      await refetchAll();
+    } else if (currentPendingAction === 'select_opener_2') {
       await base44.entities.Innings.update(currentInnings.id, {
         current_non_striker_id: playerId
       });
-      await refetchAll();
       setShowSelectBatter(false);
-      setShowSelectBowler(true);
       setPendingAction('select_opening_bowler');
-    } else if (pendingAction === 'new_batter') {
-      if (!currentInnings.current_striker_id) {
+      await refetchAll();
+      setShowSelectBowler(true);
+    } else if (currentPendingAction === 'new_batter') {
+      const latestInnings = await base44.entities.Innings.filter({ id: currentInnings.id });
+      const inn = latestInnings[0];
+      
+      if (!inn.current_striker_id) {
         await base44.entities.Innings.update(currentInnings.id, {
           current_striker_id: playerId
         });
@@ -534,9 +543,9 @@ export default function LiveScoring() {
           current_non_striker_id: playerId
         });
       }
-      await refetchAll();
       setShowSelectBatter(false);
       setPendingAction(null);
+      await refetchAll();
     }
   };
 
@@ -554,9 +563,9 @@ export default function LiveScoring() {
       current_bowler_id: playerId
     });
 
-    await refetchAll();
     setShowSelectBowler(false);
     setPendingAction(null);
+    await refetchAll();
   };
 
   const availableBatters = battingTeamPlayingXI
