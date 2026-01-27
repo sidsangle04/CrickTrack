@@ -20,7 +20,8 @@ import {
   Target, 
   Zap, 
   Award,
-  Loader2
+  Loader2,
+  Users
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -58,6 +59,16 @@ export default function Analytics() {
   const { data: allDeliveries = [] } = useQuery({
     queryKey: ['all-deliveries-analytics'],
     queryFn: () => base44.entities.Delivery.filter({ is_voided: false })
+  });
+
+  const { data: allPartnerships = [] } = useQuery({
+    queryKey: ['all-partnerships'],
+    queryFn: () => base44.entities.Partnership.list()
+  });
+
+  const { data: allInnings = [] } = useQuery({
+    queryKey: ['all-innings-analytics'],
+    queryFn: () => base44.entities.Innings.list()
   });
 
   const teamsMap = teams.reduce((acc, t) => ({ ...acc, [t.id]: t }), {});
@@ -168,6 +179,69 @@ export default function Analytics() {
     { name: 'Fours', value: Object.values(playerRuns).reduce((sum, p) => sum + p.fours, 0) },
     { name: 'Sixes', value: Object.values(playerRuns).reduce((sum, p) => sum + p.sixes, 0) }
   ];
+
+  // Compute partnerships from deliveries if no stored partnerships
+  const computedPartnerships = [];
+  if (allPartnerships.length === 0 && filteredDeliveries.length > 0) {
+    const inningsGroups = {};
+    filteredDeliveries.forEach(d => {
+      if (!inningsGroups[d.innings_id]) inningsGroups[d.innings_id] = [];
+      inningsGroups[d.innings_id].push(d);
+    });
+
+    Object.entries(inningsGroups).forEach(([inningsId, deliveries]) => {
+      const sorted = deliveries.sort((a, b) => {
+        if (a.over_number !== b.over_number) return a.over_number - b.over_number;
+        return (a.delivery_number || 0) - (b.delivery_number || 0);
+      });
+
+      let currentPartnership = null;
+      sorted.forEach(d => {
+        const pairKey = [d.striker_id, d.non_striker_id].sort().join('-');
+        
+        if (!currentPartnership || currentPartnership.pairKey !== pairKey) {
+          if (currentPartnership) computedPartnerships.push(currentPartnership);
+          currentPartnership = {
+            pairKey,
+            innings_id: inningsId,
+            match_id: d.match_id,
+            batter1_id: d.striker_id,
+            batter2_id: d.non_striker_id,
+            runs: 0,
+            balls: 0,
+            batter1_runs: 0,
+            batter2_runs: 0
+          };
+        }
+        
+        currentPartnership.runs += d.runs_total || 0;
+        currentPartnership.balls += d.is_legal_delivery ? 1 : 0;
+        if (d.striker_id === currentPartnership.batter1_id) {
+          currentPartnership.batter1_runs += d.runs_bat || 0;
+        } else {
+          currentPartnership.batter2_runs += d.runs_bat || 0;
+        }
+      });
+      if (currentPartnership) computedPartnerships.push(currentPartnership);
+    });
+  }
+
+  const partnerships = allPartnerships.length > 0 ? allPartnerships : computedPartnerships;
+  
+  const filteredPartnerships = partnerships.filter(p => {
+    if (selectedMatch !== 'all' && p.match_id !== selectedMatch) return false;
+    return true;
+  });
+
+  const topPartnerships = filteredPartnerships
+    .map(p => ({
+      ...p,
+      batter1Name: playersMap[p.batter1_id]?.name || 'Unknown',
+      batter2Name: playersMap[p.batter2_id]?.name || 'Unknown',
+      runRate: p.balls > 0 ? ((p.runs / p.balls) * 6).toFixed(2) : '0.00'
+    }))
+    .sort((a, b) => b.runs - a.runs)
+    .slice(0, 10);
 
   if (matchesLoading) {
     return (
@@ -348,6 +422,48 @@ export default function Analytics() {
           ) : (
             <div className="h-64 flex items-center justify-center text-slate-500">No data available</div>
           )}
+        </div>
+      </div>
+
+      {/* Partnership Section */}
+      <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden mb-8">
+        <div className="p-4 border-b border-slate-700/50 flex items-center gap-3">
+          <Users className="w-5 h-5 text-cyan-400" />
+          <h3 className="font-semibold text-white">Top Partnerships</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="text-xs text-slate-400 border-b border-slate-700/50">
+                <th className="text-left p-3">#</th>
+                <th className="text-left p-3">Partnership</th>
+                <th className="text-right p-3">Runs</th>
+                <th className="text-right p-3">Balls</th>
+                <th className="text-right p-3">RR</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topPartnerships.map((p, idx) => (
+                <tr key={idx} className="border-b border-slate-700/30">
+                  <td className="p-3 text-slate-500">{idx + 1}</td>
+                  <td className="p-3">
+                    <div className="font-medium text-white">{p.batter1Name} & {p.batter2Name}</div>
+                    <div className="text-xs text-slate-500">
+                      {p.batter1_runs || 0}* / {p.batter2_runs || 0}*
+                    </div>
+                  </td>
+                  <td className="text-right p-3 font-semibold text-cyan-400">{p.runs}</td>
+                  <td className="text-right p-3 text-slate-400">{p.balls}</td>
+                  <td className="text-right p-3 text-slate-400">{p.runRate}</td>
+                </tr>
+              ))}
+              {topPartnerships.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="p-8 text-center text-slate-500">No partnership data</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
