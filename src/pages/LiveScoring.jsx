@@ -143,7 +143,8 @@ export default function LiveScoring() {
 
   const processDelivery = async (deliveryData) => {
     const isLegal = !deliveryData.is_wide && !deliveryData.is_no_ball;
-    const totalRuns = (deliveryData.runs_bat || 0) + 
+    const runsScoredByBat = deliveryData.is_bye || deliveryData.is_leg_bye ? 0 : (deliveryData.runs_bat || 0);
+    const totalRuns = runsScoredByBat + 
                      (deliveryData.wide_runs || 0) + 
                      (deliveryData.no_ball_runs || 0) + 
                      (deliveryData.bye_runs || 0) + 
@@ -180,13 +181,13 @@ export default function LiveScoring() {
     });
 
     const strikerStats = batterInningsMap[currentInnings.current_striker_id];
-    if (strikerStats && !deliveryData.is_wide) {
+    if (strikerStats && !deliveryData.is_wide && !deliveryData.is_bye && !deliveryData.is_leg_bye) {
       await base44.entities.BatterInnings.update(strikerStats.id, {
-        runs: (strikerStats.runs || 0) + (deliveryData.runs_bat || 0),
+        runs: (strikerStats.runs || 0) + runsScoredByBat,
         balls_faced: (strikerStats.balls_faced || 0) + (isLegal || deliveryData.is_no_ball ? 1 : 0),
-        fours: (strikerStats.fours || 0) + (deliveryData.runs_bat === 4 ? 1 : 0),
-        sixes: (strikerStats.sixes || 0) + (deliveryData.runs_bat === 6 ? 1 : 0),
-        dots: (strikerStats.dots || 0) + (deliveryData.runs_bat === 0 && isLegal ? 1 : 0)
+        fours: (strikerStats.fours || 0) + (runsScoredByBat === 4 ? 1 : 0),
+        sixes: (strikerStats.sixes || 0) + (runsScoredByBat === 6 ? 1 : 0),
+        dots: (strikerStats.dots || 0) + (runsScoredByBat === 0 && isLegal ? 1 : 0)
       });
     }
 
@@ -212,7 +213,7 @@ export default function LiveScoring() {
     let newStrikerId = currentInnings.current_striker_id;
     let newNonStrikerId = currentInnings.current_non_striker_id;
     
-    const runsForStrikeChange = (deliveryData.runs_bat || 0) + (deliveryData.bye_runs || 0) + (deliveryData.leg_bye_runs || 0);
+    const runsForStrikeChange = runsScoredByBat + (deliveryData.bye_runs || 0) + (deliveryData.leg_bye_runs || 0);
     if (runsForStrikeChange % 2 === 1) {
       newStrikerId = currentInnings.current_non_striker_id;
       newNonStrikerId = currentInnings.current_striker_id;
