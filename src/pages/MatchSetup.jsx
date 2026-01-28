@@ -13,8 +13,8 @@ import {
   Coins,
   CheckCircle2,
   Loader2,
-  Plus
-} from 'lucide-react';
+  Plus } from
+'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -87,8 +87,8 @@ export default function MatchSetup() {
     }
   }, [existingMatch]);
 
-  const team1Players = allPlayers.filter(p => p.team_id === formData.team1_id);
-  const team2Players = allPlayers.filter(p => p.team_id === formData.team2_id);
+  const team1Players = allPlayers.filter((p) => p.team_id === formData.team1_id);
+  const team2Players = allPlayers.filter((p) => p.team_id === formData.team2_id);
 
   const teamsMap = teams.reduce((acc, t) => ({ ...acc, [t.id]: t }), {});
 
@@ -116,17 +116,17 @@ export default function MatchSetup() {
     const data = {
       ...formData,
       status: 'live',
-      batting_team_id: formData.toss_decision === 'bat' 
-        ? formData.toss_winner_id 
-        : (formData.toss_winner_id === formData.team1_id ? formData.team2_id : formData.team1_id),
-      bowling_team_id: formData.toss_decision === 'bat'
-        ? (formData.toss_winner_id === formData.team1_id ? formData.team2_id : formData.team1_id)
-        : formData.toss_winner_id
+      batting_team_id: formData.toss_decision === 'bat' ?
+      formData.toss_winner_id :
+      formData.toss_winner_id === formData.team1_id ? formData.team2_id : formData.team1_id,
+      bowling_team_id: formData.toss_decision === 'bat' ?
+      formData.toss_winner_id === formData.team1_id ? formData.team2_id : formData.team1_id :
+      formData.toss_winner_id
     };
 
     if (matchId) {
       await updateMatchMutation.mutateAsync({ id: matchId, data });
-      
+
       const existingInnings = await base44.entities.Innings.filter({ match_id: matchId, innings_number: 1 });
       if (existingInnings.length === 0) {
         await base44.entities.Innings.create({
@@ -156,29 +156,29 @@ export default function MatchSetup() {
     const key = `team${teamNum}_playing_xi`;
     const current = formData[key];
     if (current.includes(playerId)) {
-      setFormData({ ...formData, [key]: current.filter(id => id !== playerId) });
+      setFormData({ ...formData, [key]: current.filter((id) => id !== playerId) });
     } else if (current.length < 11 || formData.unlimited_batters) {
       setFormData({ ...formData, [key]: [...current, playerId] });
     }
   };
 
   const canProceed = () => {
-    switch(STEPS[step]) {
-      case 'basics': return formData.venue && formData.date;
-      case 'teams': return formData.team1_id && formData.team2_id && formData.team1_id !== formData.team2_id;
-      case 'playing_xi': return formData.team1_playing_xi.length >= 2 && formData.team2_playing_xi.length >= 2;
-      case 'format': return formData.overs_per_innings > 0;
-      case 'toss': return formData.toss_winner_id && formData.toss_decision;
-      default: return true;
+    switch (STEPS[step]) {
+      case 'basics':return formData.venue && formData.date;
+      case 'teams':return formData.team1_id && formData.team2_id && formData.team1_id !== formData.team2_id;
+      case 'playing_xi':return formData.team1_playing_xi.length >= 2 && formData.team2_playing_xi.length >= 2;
+      case 'format':return formData.overs_per_innings > 0;
+      case 'toss':return formData.toss_winner_id && formData.toss_decision;
+      default:return true;
     }
   };
 
   return (
     <div className="pb-24 md:pb-6 max-w-2xl mx-auto">
-      <Link 
+      <Link
         to={createPageUrl('Home')}
-        className="flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors"
-      >
+        className="flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors">
+
         <ArrowLeft className="w-4 h-4" />
         Back to Matches
       </Link>
@@ -189,61 +189,61 @@ export default function MatchSetup() {
 
       {/* Progress Steps */}
       <div className="flex items-center justify-between mb-8">
-        {STEPS.map((s, idx) => (
-          <div key={s} className="flex items-center">
-            <div 
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                idx < step ? 'bg-emerald-500 text-white' :
-                idx === step ? 'bg-emerald-500/20 text-emerald-400 border-2 border-emerald-500' :
-                'bg-slate-800 text-slate-500'
-              }`}
-            >
+        {STEPS.map((s, idx) =>
+        <div key={s} className="flex items-center">
+            <div
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+            idx < step ? 'bg-emerald-500 text-white' :
+            idx === step ? 'bg-emerald-500/20 text-emerald-400 border-2 border-emerald-500' :
+            'bg-slate-800 text-slate-500'}`
+            }>
+
               {idx < step ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
             </div>
-            {idx < STEPS.length - 1 && (
-              <div className={`w-12 md:w-20 h-0.5 ${idx < step ? 'bg-emerald-500' : 'bg-slate-700'}`} />
-            )}
+            {idx < STEPS.length - 1 &&
+          <div className={`w-12 md:w-20 h-0.5 ${idx < step ? 'bg-emerald-500' : 'bg-slate-700'}`} />
+          }
           </div>
-        ))}
+        )}
       </div>
 
       {/* Step Content */}
-      <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50 mb-6">
-        {STEPS[step] === 'basics' && (
-          <div className="space-y-4">
+      <div className="bg-transparent text-slate-50 mb-6 p-6 rounded-2xl border border-slate-700/50">
+        {STEPS[step] === 'basics' &&
+        <div className="space-y-4">
             <div className="flex items-center gap-3 mb-4">
               <Calendar className="w-5 h-5 text-emerald-400" />
               <h2 className="text-lg font-semibold text-white">Match Details</h2>
             </div>
             <div>
               <Label className="text-slate-200">Date</Label>
-              <Input 
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({...formData, date: e.target.value})}
-                className="bg-slate-900 border-slate-700 text-white [&::-webkit-calendar-picker-indicator]:invert"
-              />
+              <Input
+              type="date"
+              value={formData.date}
+              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              className="bg-slate-900 border-slate-700 text-white [&::-webkit-calendar-picker-indicator]:invert" />
+
             </div>
             <div>
               <Label className="text-slate-200">Venue</Label>
-              <Input 
-                value={formData.venue}
-                onChange={(e) => setFormData({...formData, venue: e.target.value})}
-                className="bg-slate-900 border-slate-700 text-white placeholder:text-slate-500"
-                placeholder="e.g. Central Park Ground"
-              />
+              <Input
+              value={formData.venue}
+              onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
+              className="bg-slate-900 border-slate-700 text-white placeholder:text-slate-500"
+              placeholder="e.g. Central Park Ground" />
+
             </div>
           </div>
-        )}
+        }
 
-        {STEPS[step] === 'teams' && (
-          <div className="space-y-4">
+        {STEPS[step] === 'teams' &&
+        <div className="space-y-4">
             <div className="flex items-center gap-3 mb-4">
               <Users className="w-5 h-5 text-emerald-400" />
               <h2 className="text-lg font-semibold text-white">Select Teams</h2>
             </div>
-            {teams.length === 0 ? (
-              <div className="text-center py-8">
+            {teams.length === 0 ?
+          <div className="text-center py-8">
                 <p className="text-slate-400 mb-4">No teams found. Create teams first.</p>
                 <Link to={createPageUrl('TeamManagement')}>
                   <Button className="bg-emerald-500 hover:bg-emerald-600">
@@ -251,46 +251,46 @@ export default function MatchSetup() {
                     Create Team
                   </Button>
                 </Link>
-              </div>
-            ) : (
-              <>
+              </div> :
+
+          <>
                 <div>
                   <Label className="text-slate-200">Team 1</Label>
-                  <Select value={formData.team1_id} onValueChange={(v) => setFormData({...formData, team1_id: v, team1_playing_xi: []})}>
+                  <Select value={formData.team1_id} onValueChange={(v) => setFormData({ ...formData, team1_id: v, team1_playing_xi: [] })}>
                     <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
                       <SelectValue placeholder="Select team" />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-900 border-slate-700">
-                      {teams.map(t => (
-                        <SelectItem key={t.id} value={t.id} disabled={t.id === formData.team2_id} className="text-white">
+                      {teams.map((t) =>
+                  <SelectItem key={t.id} value={t.id} disabled={t.id === formData.team2_id} className="text-white">
                           {t.name}
                         </SelectItem>
-                      ))}
+                  )}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label className="text-slate-200">Team 2</Label>
-                  <Select value={formData.team2_id} onValueChange={(v) => setFormData({...formData, team2_id: v, team2_playing_xi: []})}>
+                  <Select value={formData.team2_id} onValueChange={(v) => setFormData({ ...formData, team2_id: v, team2_playing_xi: [] })}>
                     <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
                       <SelectValue placeholder="Select team" />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-900 border-slate-700">
-                      {teams.map(t => (
-                        <SelectItem key={t.id} value={t.id} disabled={t.id === formData.team1_id} className="text-white">
+                      {teams.map((t) =>
+                  <SelectItem key={t.id} value={t.id} disabled={t.id === formData.team1_id} className="text-white">
                           {t.name}
                         </SelectItem>
-                      ))}
+                  )}
                     </SelectContent>
                   </Select>
                 </div>
               </>
-            )}
+          }
           </div>
-        )}
+        }
 
-        {STEPS[step] === 'playing_xi' && (
-          <div className="space-y-6">
+        {STEPS[step] === 'playing_xi' &&
+        <div className="space-y-6">
             <div className="flex items-center gap-3 mb-4">
               <Users className="w-5 h-5 text-emerald-400" />
               <h2 className="text-lg font-semibold text-white">Select Playing XI</h2>
@@ -304,49 +304,49 @@ export default function MatchSetup() {
                   <span className="text-sm text-slate-400">{formData.team1_playing_xi.length}/11</span>
                 </h3>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {team1Players.length === 0 ? (
-                    <p className="text-sm text-slate-400">No players in this team</p>
-                  ) : (
-                    team1Players.map(p => (
-                      <button
-                        key={p.id}
-                        onClick={() => togglePlayer(1, p.id)}
-                        className={`w-full p-3 rounded-lg flex items-center gap-3 transition-colors ${
-                          formData.team1_playing_xi.includes(p.id)
-                            ? 'bg-emerald-500/20 border border-emerald-500/50'
-                            : 'bg-slate-900 border border-slate-700 hover:border-slate-600'
-                        }`}
-                      >
+                  {team1Players.length === 0 ?
+                <p className="text-sm text-slate-400">No players in this team</p> :
+
+                team1Players.map((p) =>
+                <button
+                  key={p.id}
+                  onClick={() => togglePlayer(1, p.id)}
+                  className={`w-full p-3 rounded-lg flex items-center gap-3 transition-colors ${
+                  formData.team1_playing_xi.includes(p.id) ?
+                  'bg-emerald-500/20 border border-emerald-500/50' :
+                  'bg-slate-900 border border-slate-700 hover:border-slate-600'}`
+                  }>
+
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          formData.team1_playing_xi.includes(p.id) 
-                            ? 'border-emerald-500 bg-emerald-500' 
-                            : 'border-slate-600'
-                        }`}>
-                          {formData.team1_playing_xi.includes(p.id) && (
-                            <CheckCircle2 className="w-3 h-3 text-white" />
-                          )}
+                  formData.team1_playing_xi.includes(p.id) ?
+                  'border-emerald-500 bg-emerald-500' :
+                  'border-slate-600'}`
+                  }>
+                          {formData.team1_playing_xi.includes(p.id) &&
+                    <CheckCircle2 className="w-3 h-3 text-white" />
+                    }
                         </div>
                         <span className="text-sm font-medium text-white">{p.name}</span>
                       </button>
-                    ))
-                  )}
+                )
+                }
                 </div>
-                {team1Players.length > 0 && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      if (formData.team1_playing_xi.length === team1Players.length) {
-                        setFormData({...formData, team1_playing_xi: []});
-                      } else {
-                        setFormData({...formData, team1_playing_xi: team1Players.map(p => p.id)});
-                      }
-                    }}
-                    className="mt-3 w-full border-slate-600 text-slate-300 hover:bg-slate-700"
-                  >
+                {team1Players.length > 0 &&
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (formData.team1_playing_xi.length === team1Players.length) {
+                    setFormData({ ...formData, team1_playing_xi: [] });
+                  } else {
+                    setFormData({ ...formData, team1_playing_xi: team1Players.map((p) => p.id) });
+                  }
+                }}
+                className="mt-3 w-full border-slate-600 text-slate-300 hover:bg-slate-700">
+
                     {formData.team1_playing_xi.length === team1Players.length ? 'Deselect All' : 'Select All'}
                   </Button>
-                )}
+              }
               </div>
 
               {/* Team 2 */}
@@ -356,56 +356,56 @@ export default function MatchSetup() {
                   <span className="text-sm text-slate-400">{formData.team2_playing_xi.length}/11</span>
                 </h3>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {team2Players.length === 0 ? (
-                    <p className="text-sm text-slate-400">No players in this team</p>
-                  ) : (
-                    team2Players.map(p => (
-                      <button
-                        key={p.id}
-                        onClick={() => togglePlayer(2, p.id)}
-                        className={`w-full p-3 rounded-lg flex items-center gap-3 transition-colors ${
-                          formData.team2_playing_xi.includes(p.id)
-                            ? 'bg-emerald-500/20 border border-emerald-500/50'
-                            : 'bg-slate-900 border border-slate-700 hover:border-slate-600'
-                        }`}
-                      >
+                  {team2Players.length === 0 ?
+                <p className="text-sm text-slate-400">No players in this team</p> :
+
+                team2Players.map((p) =>
+                <button
+                  key={p.id}
+                  onClick={() => togglePlayer(2, p.id)}
+                  className={`w-full p-3 rounded-lg flex items-center gap-3 transition-colors ${
+                  formData.team2_playing_xi.includes(p.id) ?
+                  'bg-emerald-500/20 border border-emerald-500/50' :
+                  'bg-slate-900 border border-slate-700 hover:border-slate-600'}`
+                  }>
+
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          formData.team2_playing_xi.includes(p.id) 
-                            ? 'border-emerald-500 bg-emerald-500' 
-                            : 'border-slate-600'
-                        }`}>
-                          {formData.team2_playing_xi.includes(p.id) && (
-                            <CheckCircle2 className="w-3 h-3 text-white" />
-                          )}
+                  formData.team2_playing_xi.includes(p.id) ?
+                  'border-emerald-500 bg-emerald-500' :
+                  'border-slate-600'}`
+                  }>
+                          {formData.team2_playing_xi.includes(p.id) &&
+                    <CheckCircle2 className="w-3 h-3 text-white" />
+                    }
                         </div>
                         <span className="text-sm font-medium text-white">{p.name}</span>
                       </button>
-                    ))
-                  )}
+                )
+                }
                 </div>
-                {team2Players.length > 0 && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      if (formData.team2_playing_xi.length === team2Players.length) {
-                        setFormData({...formData, team2_playing_xi: []});
-                      } else {
-                        setFormData({...formData, team2_playing_xi: team2Players.map(p => p.id)});
-                      }
-                    }}
-                    className="mt-3 w-full border-slate-600 text-slate-300 hover:bg-slate-700"
-                  >
+                {team2Players.length > 0 &&
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (formData.team2_playing_xi.length === team2Players.length) {
+                    setFormData({ ...formData, team2_playing_xi: [] });
+                  } else {
+                    setFormData({ ...formData, team2_playing_xi: team2Players.map((p) => p.id) });
+                  }
+                }}
+                className="mt-3 w-full border-slate-600 text-slate-300 hover:bg-slate-700">
+
                     {formData.team2_playing_xi.length === team2Players.length ? 'Deselect All' : 'Select All'}
                   </Button>
-                )}
+              }
               </div>
             </div>
           </div>
-        )}
+        }
 
-        {STEPS[step] === 'format' && (
-          <div className="space-y-4">
+        {STEPS[step] === 'format' &&
+        <div className="space-y-4">
             <div className="flex items-center gap-3 mb-4">
               <Settings2 className="w-5 h-5 text-emerald-400" />
               <h2 className="text-lg font-semibold text-white">Match Format</h2>
@@ -414,36 +414,36 @@ export default function MatchSetup() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-slate-200">Overs per Innings</Label>
-                <Input 
-                  type="number"
-                  min="1"
-                  value={formData.overs_per_innings}
-                  onChange={(e) => {
-                    const overs = parseInt(e.target.value) || 20;
-                    setFormData({
-                      ...formData, 
-                      overs_per_innings: overs,
-                      max_overs_per_bowler: Math.ceil(overs / 5)
-                    });
-                  }}
-                  className="bg-slate-900 border-slate-700 text-white"
-                />
+                <Input
+                type="number"
+                min="1"
+                value={formData.overs_per_innings}
+                onChange={(e) => {
+                  const overs = parseInt(e.target.value) || 20;
+                  setFormData({
+                    ...formData,
+                    overs_per_innings: overs,
+                    max_overs_per_bowler: Math.ceil(overs / 5)
+                  });
+                }}
+                className="bg-slate-900 border-slate-700 text-white" />
+
               </div>
               <div>
                 <Label className="text-slate-200">Max Overs per Bowler</Label>
-                <Input 
-                  type="number"
-                  min="1"
-                  value={formData.max_overs_per_bowler}
-                  onChange={(e) => setFormData({...formData, max_overs_per_bowler: parseInt(e.target.value) || 4})}
-                  className="bg-slate-900 border-slate-700 text-white"
-                />
+                <Input
+                type="number"
+                min="1"
+                value={formData.max_overs_per_bowler}
+                onChange={(e) => setFormData({ ...formData, max_overs_per_bowler: parseInt(e.target.value) || 4 })}
+                className="bg-slate-900 border-slate-700 text-white" />
+
               </div>
             </div>
 
             <div>
               <Label className="text-slate-200">Ball Type</Label>
-              <Select value={formData.ball_type} onValueChange={(v) => setFormData({...formData, ball_type: v})}>
+              <Select value={formData.ball_type} onValueChange={(v) => setFormData({ ...formData, ball_type: v })}>
                 <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
                   <SelectValue />
                 </SelectTrigger>
@@ -458,40 +458,40 @@ export default function MatchSetup() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-slate-200">Wide Runs</Label>
-                <Input 
-                  type="number"
-                  min="1"
-                  value={formData.wide_runs}
-                  onChange={(e) => setFormData({...formData, wide_runs: parseInt(e.target.value) || 1})}
-                  className="bg-slate-900 border-slate-700 text-white"
-                />
+                <Input
+                type="number"
+                min="1"
+                value={formData.wide_runs}
+                onChange={(e) => setFormData({ ...formData, wide_runs: parseInt(e.target.value) || 1 })}
+                className="bg-slate-900 border-slate-700 text-white" />
+
               </div>
               <div>
                 <Label className="text-slate-200">No-Ball Runs</Label>
-                <Input 
-                  type="number"
-                  min="1"
-                  value={formData.no_ball_runs}
-                  onChange={(e) => setFormData({...formData, no_ball_runs: parseInt(e.target.value) || 1})}
-                  className="bg-slate-900 border-slate-700 text-white"
-                />
+                <Input
+                type="number"
+                min="1"
+                value={formData.no_ball_runs}
+                onChange={(e) => setFormData({ ...formData, no_ball_runs: parseInt(e.target.value) || 1 })}
+                className="bg-slate-900 border-slate-700 text-white" />
+
               </div>
             </div>
 
             <label className="flex items-center gap-2 cursor-pointer mt-4">
-              <input 
-                type="checkbox" 
-                checked={formData.allow_multiple_super_overs}
-                onChange={(e) => setFormData({...formData, allow_multiple_super_overs: e.target.checked})}
-                className="rounded"
-              />
+              <input
+              type="checkbox"
+              checked={formData.allow_multiple_super_overs}
+              onChange={(e) => setFormData({ ...formData, allow_multiple_super_overs: e.target.checked })}
+              className="rounded" />
+
               <span className="text-sm text-white">Allow multiple Super Overs if tied</span>
             </label>
           </div>
-        )}
+        }
 
-        {STEPS[step] === 'toss' && (
-          <div className="space-y-4">
+        {STEPS[step] === 'toss' &&
+        <div className="space-y-4">
             <div className="flex items-center gap-3 mb-4">
               <Coins className="w-5 h-5 text-emerald-400" />
               <h2 className="text-lg font-semibold text-white">Toss</h2>
@@ -499,7 +499,7 @@ export default function MatchSetup() {
             
             <div>
               <Label className="text-slate-200">Toss Won By</Label>
-              <Select value={formData.toss_winner_id} onValueChange={(v) => setFormData({...formData, toss_winner_id: v})}>
+              <Select value={formData.toss_winner_id} onValueChange={(v) => setFormData({ ...formData, toss_winner_id: v })}>
                 <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
                   <SelectValue placeholder="Select team" />
                 </SelectTrigger>
@@ -514,68 +514,68 @@ export default function MatchSetup() {
               <Label className="text-slate-200">Elected to</Label>
               <div className="grid grid-cols-2 gap-3 mt-2">
                 <button
-                  onClick={() => setFormData({...formData, toss_decision: 'bat'})}
-                  className={`p-4 rounded-xl text-center transition-colors ${
-                    formData.toss_decision === 'bat'
-                      ? 'bg-emerald-500/20 border-2 border-emerald-500'
-                      : 'bg-slate-900 border border-slate-700'
-                  }`}
-                >
+                onClick={() => setFormData({ ...formData, toss_decision: 'bat' })}
+                className={`p-4 rounded-xl text-center transition-colors ${
+                formData.toss_decision === 'bat' ?
+                'bg-emerald-500/20 border-2 border-emerald-500' :
+                'bg-slate-900 border border-slate-700'}`
+                }>
+
                   <span className="text-2xl mb-2 block">🏏</span>
                   <span className="font-medium text-white">Bat First</span>
                 </button>
                 <button
-                  onClick={() => setFormData({...formData, toss_decision: 'bowl'})}
-                  className={`p-4 rounded-xl text-center transition-colors ${
-                    formData.toss_decision === 'bowl'
-                      ? 'bg-emerald-500/20 border-2 border-emerald-500'
-                      : 'bg-slate-900 border border-slate-700'
-                  }`}
-                >
+                onClick={() => setFormData({ ...formData, toss_decision: 'bowl' })}
+                className={`p-4 rounded-xl text-center transition-colors ${
+                formData.toss_decision === 'bowl' ?
+                'bg-emerald-500/20 border-2 border-emerald-500' :
+                'bg-slate-900 border border-slate-700'}`
+                }>
+
                   <span className="text-2xl mb-2 block">⚾</span>
                   <span className="font-medium text-white">Bowl First</span>
                 </button>
               </div>
             </div>
           </div>
-        )}
+        }
       </div>
 
       {/* Navigation */}
       <div className="flex gap-3">
-        {step > 0 && (
-          <Button 
-            variant="outline" 
-            onClick={handleBack}
-            className="flex-1 border-slate-700 text-slate-300"
-          >
+        {step > 0 &&
+        <Button
+          variant="outline"
+          onClick={handleBack}
+          className="flex-1 border-slate-700 text-slate-300">
+
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
-        )}
+        }
         
-        {step < STEPS.length - 1 ? (
-          <Button 
-            onClick={handleNext}
-            disabled={!canProceed()}
-            className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50"
-          >
+        {step < STEPS.length - 1 ?
+        <Button
+          onClick={handleNext}
+          disabled={!canProceed()}
+          className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50">
+
             Next
             <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        ) : (
-          <Button 
-            onClick={handleStartMatch}
-            disabled={!canProceed() || updateMatchMutation.isPending}
-            className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50"
-          >
-            {updateMatchMutation.isPending && (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            )}
+          </Button> :
+
+        <Button
+          onClick={handleStartMatch}
+          disabled={!canProceed() || updateMatchMutation.isPending}
+          className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50">
+
+            {updateMatchMutation.isPending &&
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          }
             Start Match
           </Button>
-        )}
+        }
       </div>
-    </div>
-  );
+    </div>);
+
 }
