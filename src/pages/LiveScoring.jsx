@@ -19,8 +19,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  DialogFooter } from
+'@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
 export default function LiveScoring() {
@@ -53,19 +53,19 @@ export default function LiveScoring() {
     enabled: !!matchId
   });
 
-  const currentInnings = allInnings.find(inn => inn.status === 'in_progress') || 
-                         allInnings.find(inn => inn.status === 'not_started' && !inn.is_super_over) ||
-                         allInnings[allInnings.length - 1];
+  const currentInnings = allInnings.find((inn) => inn.status === 'in_progress') ||
+  allInnings.find((inn) => inn.status === 'not_started' && !inn.is_super_over) ||
+  allInnings[allInnings.length - 1];
 
   const { data: currentOverDeliveries = [], refetch: refetchDeliveries } = useQuery({
     queryKey: ['deliveries', currentInnings?.id, currentInnings?.current_over_number],
-    queryFn: () => currentInnings 
-      ? base44.entities.Delivery.filter({ 
-          innings_id: currentInnings.id, 
-          over_number: currentInnings.current_over_number,
-          is_voided: false 
-        })
-      : [],
+    queryFn: () => currentInnings ?
+    base44.entities.Delivery.filter({
+      innings_id: currentInnings.id,
+      over_number: currentInnings.current_over_number,
+      is_voided: false
+    }) :
+    [],
     enabled: !!currentInnings?.id
   });
 
@@ -81,17 +81,17 @@ export default function LiveScoring() {
 
   const { data: batterInnings = [], refetch: refetchBatterInnings } = useQuery({
     queryKey: ['batter-innings', currentInnings?.id],
-    queryFn: () => currentInnings 
-      ? base44.entities.BatterInnings.filter({ innings_id: currentInnings.id })
-      : [],
+    queryFn: () => currentInnings ?
+    base44.entities.BatterInnings.filter({ innings_id: currentInnings.id }) :
+    [],
     enabled: !!currentInnings?.id
   });
 
   const { data: bowlerInnings = [], refetch: refetchBowlerInnings } = useQuery({
     queryKey: ['bowler-innings', currentInnings?.id],
-    queryFn: () => currentInnings 
-      ? base44.entities.BowlerInnings.filter({ innings_id: currentInnings.id })
-      : [],
+    queryFn: () => currentInnings ?
+    base44.entities.BowlerInnings.filter({ innings_id: currentInnings.id }) :
+    [],
     enabled: !!currentInnings?.id
   });
 
@@ -107,21 +107,21 @@ export default function LiveScoring() {
   const currentNonStriker = batterInningsMap[currentInnings?.current_non_striker_id];
   const currentBowler = bowlerInningsMap[currentInnings?.current_bowler_id];
 
-  const battingTeamPlayingXI = currentInnings?.batting_team_id === match?.team1_id 
-    ? match?.team1_playing_xi || []
-    : match?.team2_playing_xi || [];
+  const battingTeamPlayingXI = currentInnings?.batting_team_id === match?.team1_id ?
+  match?.team1_playing_xi || [] :
+  match?.team2_playing_xi || [];
 
-  const bowlingTeamPlayingXI = currentInnings?.bowling_team_id === match?.team1_id
-    ? match?.team1_playing_xi || []
-    : match?.team2_playing_xi || [];
+  const bowlingTeamPlayingXI = currentInnings?.bowling_team_id === match?.team1_id ?
+  match?.team1_playing_xi || [] :
+  match?.team2_playing_xi || [];
 
-  const maxOvers = currentInnings?.is_super_over ? 1 : (match?.overs_per_innings || 20);
+  const maxOvers = currentInnings?.is_super_over ? 1 : match?.overs_per_innings || 20;
   const maxWickets = currentInnings?.is_super_over ? 2 : 10;
 
   useEffect(() => {
     if (!currentInnings) return;
     if (pendingAction) return; // Don't override if already in selection flow
-    
+
     if (currentInnings.status === 'not_started') {
       setShowSelectBatter(true);
       setPendingAction('select_opener_1');
@@ -133,22 +133,22 @@ export default function LiveScoring() {
 
   const refetchAll = async () => {
     await Promise.all([
-      refetchMatch(),
-      refetchInnings(),
-      refetchDeliveries(),
-      refetchBatterInnings(),
-      refetchBowlerInnings()
-    ]);
+    refetchMatch(),
+    refetchInnings(),
+    refetchDeliveries(),
+    refetchBatterInnings(),
+    refetchBowlerInnings()]
+    );
   };
 
   const processDelivery = async (deliveryData) => {
     const isLegal = !deliveryData.is_wide && !deliveryData.is_no_ball;
-    const runsScoredByBat = deliveryData.is_bye || deliveryData.is_leg_bye ? 0 : (deliveryData.runs_bat || 0);
-    const totalRuns = runsScoredByBat + 
-                     (deliveryData.wide_runs || 0) + 
-                     (deliveryData.no_ball_runs || 0) + 
-                     (deliveryData.bye_runs || 0) + 
-                     (deliveryData.leg_bye_runs || 0);
+    const runsScoredByBat = deliveryData.is_bye || deliveryData.is_leg_bye ? 0 : deliveryData.runs_bat || 0;
+    const totalRuns = runsScoredByBat + (
+    deliveryData.wide_runs || 0) + (
+    deliveryData.no_ball_runs || 0) + (
+    deliveryData.bye_runs || 0) + (
+    deliveryData.leg_bye_runs || 0);
 
     await base44.entities.Delivery.create({
       match_id: matchId,
@@ -212,7 +212,7 @@ export default function LiveScoring() {
     let newOverNumber = currentInnings.current_over_number;
     let newStrikerId = currentInnings.current_striker_id;
     let newNonStrikerId = currentInnings.current_non_striker_id;
-    
+
     const runsForStrikeChange = runsScoredByBat + (deliveryData.bye_runs || 0) + (deliveryData.leg_bye_runs || 0);
     if (runsForStrikeChange % 2 === 1) {
       newStrikerId = currentInnings.current_non_striker_id;
@@ -268,7 +268,7 @@ export default function LiveScoring() {
       extras_leg_byes: (currentInnings.extras_leg_byes || 0) + (deliveryData.leg_bye_runs || 0),
       status: 'in_progress'
     };
-    
+
     if (newStrikerId) inningsUpdate.current_striker_id = newStrikerId;
     if (newNonStrikerId) inningsUpdate.current_non_striker_id = newNonStrikerId;
 
@@ -301,11 +301,11 @@ export default function LiveScoring() {
     });
 
     const updatedInnings = await base44.entities.Innings.filter({ match_id: matchId });
-    const completedRegularInnings = updatedInnings.filter(i => !i.is_super_over && i.status === 'completed');
+    const completedRegularInnings = updatedInnings.filter((i) => !i.is_super_over && i.status === 'completed');
 
     if (completedRegularInnings.length >= 2) {
-      const inn1 = completedRegularInnings.find(i => i.innings_number === 1);
-      const inn2 = completedRegularInnings.find(i => i.innings_number === 2);
+      const inn1 = completedRegularInnings.find((i) => i.innings_number === 1);
+      const inn2 = completedRegularInnings.find((i) => i.innings_number === 2);
 
       if (inn1.total_runs > inn2.total_runs) {
         const winnerName = teamsMap[inn1.batting_team_id]?.name || 'Team 1';
@@ -353,7 +353,7 @@ export default function LiveScoring() {
 
   const startSuperOver = async () => {
     const superOverNum = (match.super_over_count || 0) + 1;
-    
+
     await base44.entities.Match.update(matchId, {
       status: 'super_over',
       super_over_count: superOverNum
@@ -401,7 +401,7 @@ export default function LiveScoring() {
         no_ball_runs: match.no_ball_runs || 1,
         runs_bat: extraData.additional_runs,
         is_wide: extraData.include_wide || false,
-        wide_runs: extraData.include_wide ? (match.wide_runs || 1) : 0
+        wide_runs: extraData.include_wide ? match.wide_runs || 1 : 0
       });
     } else if (extraData.extra_type === 'bye') {
       processDelivery({
@@ -433,18 +433,18 @@ export default function LiveScoring() {
   };
 
   const handleUndo = async () => {
-    const deliveries = await base44.entities.Delivery.filter({ 
-      innings_id: currentInnings.id, 
-      is_voided: false 
+    const deliveries = await base44.entities.Delivery.filter({
+      innings_id: currentInnings.id,
+      is_voided: false
     });
-    
+
     if (deliveries.length === 0) return;
-    
-    const lastDelivery = deliveries.sort((a, b) => 
-      new Date(b.created_date) - new Date(a.created_date)
+
+    const lastDelivery = deliveries.sort((a, b) =>
+    new Date(b.created_date) - new Date(a.created_date)
     )[0];
 
-    await base44.entities.Delivery.update(lastDelivery.id, { 
+    await base44.entities.Delivery.update(lastDelivery.id, {
       is_voided: true,
       void_reason: 'Undo by scorer'
     });
@@ -504,8 +504,8 @@ export default function LiveScoring() {
 
   const handleSelectBatter = async (playerId) => {
     const currentPendingAction = pendingAction;
-    
-    let batterStats = batterInnings.find(b => b.player_id === playerId);
+
+    let batterStats = batterInnings.find((b) => b.player_id === playerId);
     if (!batterStats) {
       batterStats = await base44.entities.BatterInnings.create({
         match_id: matchId,
@@ -534,7 +534,7 @@ export default function LiveScoring() {
     } else if (currentPendingAction === 'new_batter') {
       const latestInnings = await base44.entities.Innings.filter({ id: currentInnings.id });
       const inn = latestInnings[0];
-      
+
       if (!inn.current_striker_id) {
         await base44.entities.Innings.update(currentInnings.id, {
           current_striker_id: playerId
@@ -551,7 +551,7 @@ export default function LiveScoring() {
   };
 
   const handleSelectBowler = async (playerId) => {
-    let bowlerStats = bowlerInnings.find(b => b.player_id === playerId);
+    let bowlerStats = bowlerInnings.find((b) => b.player_id === playerId);
     if (!bowlerStats) {
       bowlerStats = await base44.entities.BowlerInnings.create({
         match_id: matchId,
@@ -569,21 +569,21 @@ export default function LiveScoring() {
     await refetchAll();
   };
 
-  const availableBatters = battingTeamPlayingXI
-    .filter(pId => {
-      const stats = batterInningsMap[pId];
-      if (!stats) return true;
-      return stats.status === 'yet_to_bat';
-    })
-    .filter(pId => pId !== currentInnings?.current_striker_id && pId !== currentInnings?.current_non_striker_id)
-    .map(pId => ({ player_id: pId }));
+  const availableBatters = battingTeamPlayingXI.
+  filter((pId) => {
+    const stats = batterInningsMap[pId];
+    if (!stats) return true;
+    return stats.status === 'yet_to_bat';
+  }).
+  filter((pId) => pId !== currentInnings?.current_striker_id && pId !== currentInnings?.current_non_striker_id).
+  map((pId) => ({ player_id: pId }));
 
   if (matchLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
-      </div>
-    );
+      </div>);
+
   }
 
   if (!match) {
@@ -596,52 +596,52 @@ export default function LiveScoring() {
             Go to Home
           </Button>
         </div>
-      </div>
-    );
+      </div>);
+
   }
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col">
-      <ScoreHeader 
+      <ScoreHeader
         match={match}
         innings={currentInnings}
         team1Name={team1Name}
         team2Name={team2Name}
-        onMenuOpen={() => setShowMenuDialog(true)}
-      />
+        onMenuOpen={() => setShowMenuDialog(true)} />
+
 
       <div className="px-4 py-3">
         <div className="flex gap-3 mb-3">
-          <BatterCard 
+          <BatterCard
             batter={currentStriker}
             isStriker={true}
-            playerName={playersMap[currentInnings?.current_striker_id]?.name}
-          />
-          <BatterCard 
+            playerName={playersMap[currentInnings?.current_striker_id]?.name} />
+
+          <BatterCard
             batter={currentNonStriker}
             isStriker={false}
-            playerName={playersMap[currentInnings?.current_non_striker_id]?.name}
-          />
+            playerName={playersMap[currentInnings?.current_non_striker_id]?.name} />
+
         </div>
-        <BowlerCard 
+        <BowlerCard
           bowler={currentBowler}
-          playerName={playersMap[currentInnings?.current_bowler_id]?.name}
-        />
+          playerName={playersMap[currentInnings?.current_bowler_id]?.name} />
+
       </div>
 
-      <ThisOver deliveries={currentOverDeliveries.filter(d => !d.is_voided)} />
+      <ThisOver deliveries={currentOverDeliveries.filter((d) => !d.is_voided)} />
 
       <div className="flex-1" />
 
-      <ScoringKeypad 
+      <ScoringKeypad
         onScore={handleScore}
         onExtra={handleExtra}
         onWicket={handleWicket}
         onUndo={handleUndo}
-        disabled={!currentInnings?.current_striker_id || !currentInnings?.current_bowler_id}
-      />
+        disabled={!currentInnings?.current_striker_id || !currentInnings?.current_bowler_id} />
 
-      <WicketModal 
+
+      <WicketModal
         open={showWicketModal}
         onClose={() => setShowWicketModal(false)}
         onConfirm={handleWicketConfirm}
@@ -650,27 +650,27 @@ export default function LiveScoring() {
         strikerName={playersMap[currentInnings?.current_striker_id]?.name}
         nonStrikerName={playersMap[currentInnings?.current_non_striker_id]?.name}
         bowlingTeamPlayers={bowlingTeamPlayingXI}
-        playersMap={playersMap}
-      />
+        playersMap={playersMap} />
 
-      <ExtrasModal 
+
+      <ExtrasModal
         open={showExtrasModal}
         onClose={() => setShowExtrasModal(false)}
         onConfirm={handleExtraConfirm}
         extraType={extraType}
-        matchConfig={match}
-      />
+        matchConfig={match} />
 
-      <SelectBatterModal 
+
+      <SelectBatterModal
         open={showSelectBatter}
         onClose={() => {}}
         onSelect={handleSelectBatter}
         availableBatters={availableBatters}
         playersMap={playersMap}
-        title={pendingAction?.includes('opener') ? 'Select Opening Batter' : 'Select Next Batter'}
-      />
+        title={pendingAction?.includes('opener') ? 'Select Opening Batter' : 'Select Next Batter'} />
 
-      <SelectBowlerModal 
+
+      <SelectBowlerModal
         open={showSelectBowler}
         onClose={() => {}}
         onSelect={handleSelectBowler}
@@ -679,8 +679,8 @@ export default function LiveScoring() {
         playersMap={playersMap}
         maxOversPerBowler={match?.max_overs_per_bowler}
         lastBowlerId={currentInnings?.current_bowler_id}
-        title={pendingAction === 'select_opening_bowler' ? 'Select Opening Bowler' : 'Select Bowler'}
-      />
+        title={pendingAction === 'select_opening_bowler' ? 'Select Opening Bowler' : 'Select Bowler'} />
+
 
       <Dialog open={showEndInningsDialog} onOpenChange={setShowEndInningsDialog}>
         <DialogContent className="bg-slate-900 border-slate-700 text-white">
@@ -691,8 +691,8 @@ export default function LiveScoring() {
             <p className="text-slate-400">Both teams scored the same. Would you like to start a Super Over?</p>
           </div>
           <DialogFooter className="flex gap-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => {
                 base44.entities.Match.update(matchId, {
                   status: 'completed',
@@ -700,14 +700,14 @@ export default function LiveScoring() {
                 });
                 navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
               }}
-              className="flex-1 border-slate-700"
-            >
+              className="flex-1 border-slate-700">
+
               End as Tie
             </Button>
-            <Button 
+            <Button
               onClick={startSuperOver}
-              className="flex-1 bg-emerald-500 hover:bg-emerald-600"
-            >
+              className="flex-1 bg-emerald-500 hover:bg-emerald-600">
+
               Super Over
             </Button>
           </DialogFooter>
@@ -720,42 +720,42 @@ export default function LiveScoring() {
             <DialogTitle>Match Options</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <Button 
-              variant="outline" 
-              className="w-full justify-start border-slate-700"
+            <Button
+              variant="outline" className="bg-slate-700 px-4 py-2 text-sm font-medium rounded-md inline-flex items-center gap-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border shadow-sm hover:bg-accent hover:text-accent-foreground h-9 w-full justify-start border-slate-700"
+
               onClick={() => {
                 setShowMenuDialog(false);
                 navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
-              }}
-            >
+              }}>
+
               View Scorecard
             </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start border-slate-700"
+            <Button
+              variant="outline" className="bg-slate-700 px-4 py-2 text-sm font-medium opacity-100 rounded-md inline-flex items-center gap-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border shadow-sm hover:bg-accent hover:text-accent-foreground h-9 w-full justify-start border-slate-700"
+
               onClick={() => {
                 setShowMenuDialog(false);
                 endInnings('declared');
-              }}
-            >
+              }}>
+
               End Innings
             </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start border-slate-700 text-red-400 hover:text-red-300"
+            <Button
+              variant="outline" className="bg-slate-700 text-red-400 px-4 py-2 text-sm font-medium rounded-md inline-flex items-center gap-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border shadow-sm hover:bg-accent h-9 w-full justify-start border-slate-700 hover:text-red-300"
+
               onClick={async () => {
                 await base44.entities.Match.update(matchId, {
                   status: 'abandoned',
                   result: 'Match Abandoned'
                 });
                 navigate(createPageUrl('Home'));
-              }}
-            >
+              }}>
+
               Abandon Match
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
+    </div>);
+
 }
