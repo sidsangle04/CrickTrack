@@ -150,6 +150,12 @@ export default function LiveScoring() {
     deliveryData.bye_runs || 0) + (
     deliveryData.leg_bye_runs || 0);
 
+    // Ensure all required IDs are present
+    if (!currentInnings.current_striker_id || !currentInnings.current_non_striker_id || !currentInnings.current_bowler_id) {
+      console.error('Missing required player IDs for delivery');
+      return;
+    }
+
     await base44.entities.Delivery.create({
       match_id: matchId,
       innings_id: currentInnings.id,
