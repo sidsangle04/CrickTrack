@@ -62,10 +62,16 @@ export default function ScoreHeader({
           {innings?.target && (
             <>
               <span className="text-slate-600">•</span>
-              <span className="text-slate-400">
-                Need <span className="text-amber-400 font-semibold">{innings.target - (innings?.total_runs || 0)}</span>
-                <span className="text-slate-500"> from {(maxOvers * 6) - (innings?.current_over_number * 6 + innings?.current_ball_in_over)} balls</span>
-              </span>
+              {(innings?.total_runs || 0) >= innings.target ? (
+                <span className="text-emerald-400 font-semibold">
+                  Target achieved!
+                </span>
+              ) : (
+                <span className="text-slate-400">
+                  Need <span className="text-amber-400 font-semibold">{innings.target - (innings?.total_runs || 0)}</span>
+                  <span className="text-slate-500"> from {(maxOvers * 6) - (innings?.current_over_number * 6 + innings?.current_ball_in_over)} balls</span>
+                </span>
+              )}
             </>
           )}
         </div>
