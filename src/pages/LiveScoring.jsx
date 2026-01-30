@@ -243,10 +243,27 @@ export default function LiveScoring() {
         });
       }
 
-      if (playerOutId === newStrikerId) {
-        newStrikerId = null;
-      } else if (playerOutId === newNonStrikerId) {
-        newNonStrikerId = null;
+      // Use the ORIGINAL striker/non-striker IDs from before strike rotation
+      // to determine which position needs a new batter
+      const originalStrikerId = currentInnings.current_striker_id;
+      const originalNonStrikerId = currentInnings.current_non_striker_id;
+      
+      if (playerOutId === originalStrikerId) {
+        // Striker was out - need new striker (after any strike rotation)
+        if (newStrikerId === originalStrikerId) {
+          newStrikerId = null;
+        } else {
+          // Strike rotated, so the original striker is now at non-striker end
+          newNonStrikerId = null;
+        }
+      } else if (playerOutId === originalNonStrikerId) {
+        // Non-striker was out - need new non-striker (after any strike rotation)
+        if (newNonStrikerId === originalNonStrikerId) {
+          newNonStrikerId = null;
+        } else {
+          // Strike rotated, so the original non-striker is now at striker end
+          newStrikerId = null;
+        }
       }
       needNewBatter = true;
     }
