@@ -53,8 +53,9 @@ export default function LiveScoring() {
     enabled: !!matchId
   });
 
+  // Find current innings - prioritize in_progress, then not_started (including super overs)
   const currentInnings = allInnings.find((inn) => inn.status === 'in_progress') ||
-  allInnings.find((inn) => inn.status === 'not_started' && !inn.is_super_over) ||
+  allInnings.find((inn) => inn.status === 'not_started') ||
   allInnings[allInnings.length - 1];
 
   const { data: currentOverDeliveries = [], refetch: refetchDeliveries } = useQuery({
@@ -195,16 +196,18 @@ export default function LiveScoring() {
     if (bowlerStats) {
       const newBalls = (bowlerStats.balls || 0) + (isLegal ? 1 : 0);
       const newOvers = Math.floor(newBalls / 6);
+      // Bowler runs conceded should NOT include byes and leg byes
+      const bowlerRunsConceded = runsScoredByBat + (deliveryData.wide_runs || 0) + (deliveryData.no_ball_runs || 0);
       await base44.entities.BowlerInnings.update(bowlerStats.id, {
         balls: newBalls,
         overs: newOvers,
-        runs_conceded: (bowlerStats.runs_conceded || 0) + totalRuns,
+        runs_conceded: (bowlerStats.runs_conceded || 0) + bowlerRunsConceded,
         wickets: (bowlerStats.wickets || 0) + (deliveryData.is_wicket && !deliveryData.is_run_out ? 1 : 0),
         wides: (bowlerStats.wides || 0) + (deliveryData.is_wide ? 1 : 0),
         no_balls: (bowlerStats.no_balls || 0) + (deliveryData.is_no_ball ? 1 : 0),
-        dots: (bowlerStats.dots || 0) + (isLegal && totalRuns === 0 ? 1 : 0),
-        fours_conceded: (bowlerStats.fours_conceded || 0) + (deliveryData.runs_bat === 4 ? 1 : 0),
-        sixes_conceded: (bowlerStats.sixes_conceded || 0) + (deliveryData.runs_bat === 6 ? 1 : 0)
+        dots: (bowlerStats.dots || 0) + (isLegal && bowlerRunsConceded === 0 ? 1 : 0),
+        fours_conceded: (bowlerStats.fours_conceded || 0) + (runsScoredByBat === 4 ? 1 : 0),
+        sixes_conceded: (bowlerStats.sixes_conceded || 0) + (runsScoredByBat === 6 ? 1 : 0)
       });
     }
 
@@ -243,27 +246,12 @@ export default function LiveScoring() {
         });
       }
 
-      // Use the ORIGINAL striker/non-striker IDs from before strike rotation
-      // to determine which position needs a new batter
-      const originalStrikerId = currentInnings.current_striker_id;
-      const originalNonStrikerId = currentInnings.current_non_striker_id;
-      
-      if (playerOutId === originalStrikerId) {
-        // Striker was out - need new striker (after any strike rotation)
-        if (newStrikerId === originalStrikerId) {
-          newStrikerId = null;
-        } else {
-          // Strike rotated, so the original striker is now at non-striker end
-          newNonStrikerId = null;
-        }
-      } else if (playerOutId === originalNonStrikerId) {
-        // Non-striker was out - need new non-striker (after any strike rotation)
-        if (newNonStrikerId === originalNonStrikerId) {
-          newNonStrikerId = null;
-        } else {
-          // Strike rotated, so the original non-striker is now at striker end
-          newStrikerId = null;
-        }
+      // Simply null out the position of the dismissed player after all rotations
+      // The new batter will take the position that is null
+      if (playerOutId === newStrikerId) {
+        newStrikerId = null;
+      } else if (playerOutId === newNonStrikerId) {
+        newNonStrikerId = null;
       }
       needNewBatter = true;
     }
@@ -286,8 +274,19 @@ export default function LiveScoring() {
       status: 'in_progress'
     };
 
-    if (newStrikerId) inningsUpdate.current_striker_id = newStrikerId;
-    if (newNonStrikerId) inningsUpdate.current_non_striker_id = newNonStrikerId;
+    // Always update striker/non-striker - set to null if dismissed
+    if (newStrikerId) {
+      inningsUpdate.current_striker_id = newStrikerId;
+    } else if (deliveryData.is_wicket) {
+      // Clear the striker position if they were dismissed
+      inningsUpdate.current_striker_id = null;
+    }
+    if (newNonStrikerId) {
+      inningsUpdate.current_non_striker_id = newNonStrikerId;
+    } else if (deliveryData.is_wicket) {
+      // Clear the non-striker position if they were dismissed  
+      inningsUpdate.current_non_striker_id = null;
+    }
 
     await base44.entities.Innings.update(currentInnings.id, inningsUpdate);
 
@@ -318,6 +317,57 @@ export default function LiveScoring() {
     });
 
     const updatedInnings = await base44.entities.Innings.filter({ match_id: matchId });
+    
+    // Handle Super Over completion
+    if (currentInnings.is_super_over) {
+      const superOverInnings = updatedInnings.filter(i => i.is_super_over && i.super_over_number === currentInnings.super_over_number);
+      const completedSuperOvers = superOverInnings.filter(i => i.status === 'completed');
+      
+      if (completedSuperOvers.length === 1) {
+        // First innings of super over done, start second
+        await base44.entities.Innings.create({
+          match_id: matchId,
+          innings_number: currentInnings.innings_number + 1,
+          batting_team_id: currentInnings.bowling_team_id,
+          bowling_team_id: currentInnings.batting_team_id,
+          is_super_over: true,
+          super_over_number: currentInnings.super_over_number,
+          target: currentInnings.total_runs + 1,
+          status: 'not_started'
+        });
+        await refetchAll();
+        setShowSelectBatter(true);
+        setPendingAction('select_opener_1');
+      } else if (completedSuperOvers.length >= 2) {
+        // Both super over innings done
+        const so1 = completedSuperOvers.find(i => i.innings_number === currentInnings.innings_number - 1) || completedSuperOvers[0];
+        const so2 = completedSuperOvers.find(i => i.innings_number === currentInnings.innings_number) || completedSuperOvers[1];
+        
+        if (so1.total_runs > so2.total_runs) {
+          const winnerName = teamsMap[so1.batting_team_id]?.name || 'Team 1';
+          await base44.entities.Match.update(matchId, {
+            status: 'completed',
+            winner_id: so1.batting_team_id,
+            result: `${winnerName} won in Super Over`
+          });
+          navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
+        } else if (so2.total_runs > so1.total_runs) {
+          const winnerName = teamsMap[so2.batting_team_id]?.name || 'Team 2';
+          await base44.entities.Match.update(matchId, {
+            status: 'completed',
+            winner_id: so2.batting_team_id,
+            result: `${winnerName} won in Super Over`
+          });
+          navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
+        } else {
+          // Super over tied, start another
+          setShowEndInningsDialog(true);
+        }
+      }
+      return;
+    }
+    
+    // Handle regular innings
     const completedRegularInnings = updatedInnings.filter((i) => !i.is_super_over && i.status === 'completed');
 
     if (completedRegularInnings.length >= 2) {
@@ -335,7 +385,7 @@ export default function LiveScoring() {
         navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
       } else if (inn2.total_runs > inn1.total_runs) {
         const winnerName = teamsMap[inn2.batting_team_id]?.name || 'Team 2';
-        const margin = 10 - inn2.total_wickets;
+        const margin = maxWickets - inn2.total_wickets;
         await base44.entities.Match.update(matchId, {
           status: 'completed',
           winner_id: inn2.batting_team_id,
@@ -370,6 +420,18 @@ export default function LiveScoring() {
 
   const startSuperOver = async () => {
     const superOverNum = (match.super_over_count || 0) + 1;
+    
+    // Get the last completed super over to determine who bats first
+    // If this is the first super over, team1 bats first
+    // Otherwise alternate based on previous super over result
+    const updatedInnings = await base44.entities.Innings.filter({ match_id: matchId });
+    const lastSuperOver = updatedInnings
+      .filter(i => i.is_super_over && i.status === 'completed')
+      .sort((a, b) => b.innings_number - a.innings_number)[0];
+    
+    // For first super over, team1 bats. For subsequent, alternate
+    const battingTeamId = lastSuperOver ? lastSuperOver.bowling_team_id : match.team1_id;
+    const bowlingTeamId = lastSuperOver ? lastSuperOver.batting_team_id : match.team2_id;
 
     await base44.entities.Match.update(matchId, {
       status: 'super_over',
@@ -379,8 +441,8 @@ export default function LiveScoring() {
     await base44.entities.Innings.create({
       match_id: matchId,
       innings_number: 3 + (superOverNum - 1) * 2,
-      batting_team_id: match.team1_id,
-      bowling_team_id: match.team2_id,
+      batting_team_id: battingTeamId,
+      bowling_team_id: bowlingTeamId,
       is_super_over: true,
       super_over_number: superOverNum,
       status: 'not_started'
