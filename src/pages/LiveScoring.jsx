@@ -182,13 +182,15 @@ export default function LiveScoring() {
     });
 
     const strikerStats = batterInningsMap[currentInnings.current_striker_id];
-    if (strikerStats && !deliveryData.is_wide && !deliveryData.is_bye && !deliveryData.is_leg_bye) {
+    if (strikerStats && !deliveryData.is_wide) {
+      // For bye/leg bye: count ball faced but no runs to batter
+      const isByeOrLegBye = deliveryData.is_bye || deliveryData.is_leg_bye;
       await base44.entities.BatterInnings.update(strikerStats.id, {
-        runs: (strikerStats.runs || 0) + runsScoredByBat,
+        runs: (strikerStats.runs || 0) + (isByeOrLegBye ? 0 : runsScoredByBat),
         balls_faced: (strikerStats.balls_faced || 0) + (isLegal || deliveryData.is_no_ball ? 1 : 0),
-        fours: (strikerStats.fours || 0) + (runsScoredByBat === 4 ? 1 : 0),
-        sixes: (strikerStats.sixes || 0) + (runsScoredByBat === 6 ? 1 : 0),
-        dots: (strikerStats.dots || 0) + (runsScoredByBat === 0 && isLegal ? 1 : 0)
+        fours: (strikerStats.fours || 0) + (!isByeOrLegBye && runsScoredByBat === 4 ? 1 : 0),
+        sixes: (strikerStats.sixes || 0) + (!isByeOrLegBye && runsScoredByBat === 6 ? 1 : 0),
+        dots: (strikerStats.dots || 0) + (isByeOrLegBye ? 0 : (runsScoredByBat === 0 && isLegal ? 1 : 0))
       });
     }
 
@@ -197,7 +199,8 @@ export default function LiveScoring() {
       const newBalls = (bowlerStats.balls || 0) + (isLegal ? 1 : 0);
       const newOvers = Math.floor(newBalls / 6);
       // Bowler runs conceded should NOT include byes and leg byes
-      const bowlerRunsConceded = runsScoredByBat + (deliveryData.wide_runs || 0) + (deliveryData.no_ball_runs || 0);
+      const isByeOrLegBye = deliveryData.is_bye || deliveryData.is_leg_bye;
+      const bowlerRunsConceded = (isByeOrLegBye ? 0 : runsScoredByBat) + (deliveryData.wide_runs || 0) + (deliveryData.no_ball_runs || 0);
       await base44.entities.BowlerInnings.update(bowlerStats.id, {
         balls: newBalls,
         overs: newOvers,
@@ -205,9 +208,9 @@ export default function LiveScoring() {
         wickets: (bowlerStats.wickets || 0) + (deliveryData.is_wicket && !deliveryData.is_run_out ? 1 : 0),
         wides: (bowlerStats.wides || 0) + (deliveryData.is_wide ? 1 : 0),
         no_balls: (bowlerStats.no_balls || 0) + (deliveryData.is_no_ball ? 1 : 0),
-        dots: (bowlerStats.dots || 0) + (isLegal && bowlerRunsConceded === 0 ? 1 : 0),
-        fours_conceded: (bowlerStats.fours_conceded || 0) + (runsScoredByBat === 4 ? 1 : 0),
-        sixes_conceded: (bowlerStats.sixes_conceded || 0) + (runsScoredByBat === 6 ? 1 : 0)
+        dots: (bowlerStats.dots || 0) + (isLegal && bowlerRunsConceded === 0 && !isByeOrLegBye ? 1 : 0),
+        fours_conceded: (bowlerStats.fours_conceded || 0) + (!isByeOrLegBye && runsScoredByBat === 4 ? 1 : 0),
+        sixes_conceded: (bowlerStats.sixes_conceded || 0) + (!isByeOrLegBye && runsScoredByBat === 6 ? 1 : 0)
       });
     }
 
@@ -294,6 +297,7 @@ export default function LiveScoring() {
 
     const isAllOut = newTotalWickets >= maxWickets;
     const isOversComplete = newOverNumber >= maxOvers && newBallInOver === 0;
+    // Target is achieved only if runs EXCEED target-1 (i.e. >= target means win)
     const isTargetReached = currentInnings.target && newTotalRuns >= currentInnings.target;
 
     if (isAllOut || isOversComplete || isTargetReached) {
@@ -340,8 +344,9 @@ export default function LiveScoring() {
         setPendingAction('select_opener_1');
       } else if (completedSuperOvers.length >= 2) {
         // Both super over innings done
-        const so1 = completedSuperOvers.find(i => i.innings_number === currentInnings.innings_number - 1) || completedSuperOvers[0];
-        const so2 = completedSuperOvers.find(i => i.innings_number === currentInnings.innings_number) || completedSuperOvers[1];
+        const superOverForThisRound = superOverInnings.filter(i => i.status === 'completed');
+        const so1 = superOverForThisRound.sort((a, b) => a.innings_number - b.innings_number)[0];
+        const so2 = superOverForThisRound.sort((a, b) => a.innings_number - b.innings_number)[1];
         
         if (so1.total_runs > so2.total_runs) {
           const winnerName = teamsMap[so1.batting_team_id]?.name || 'Team 1';
@@ -360,7 +365,7 @@ export default function LiveScoring() {
           });
           navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
         } else {
-          // Super over tied, start another
+          // Super over tied (both scored exactly same), start another
           setShowEndInningsDialog(true);
         }
       }
@@ -509,6 +514,17 @@ export default function LiveScoring() {
       runout_end: wicketData.runout_end,
       is_run_out: wicketData.is_run_out
     });
+  };
+
+  const handleSwapStrike = async () => {
+    if (!currentInnings?.current_striker_id || !currentInnings?.current_non_striker_id) return;
+    
+    await base44.entities.Innings.update(currentInnings.id, {
+      current_striker_id: currentInnings.current_non_striker_id,
+      current_non_striker_id: currentInnings.current_striker_id
+    });
+    
+    await refetchAll();
   };
 
   const handleUndo = async () => {
@@ -702,6 +718,22 @@ export default function LiveScoring() {
             playerName={playersMap[currentInnings?.current_non_striker_id]?.name} />
 
         </div>
+        
+        {/* Swap Strike Button */}
+        {currentInnings?.current_striker_id && currentInnings?.current_non_striker_id && (
+          <button
+            onClick={handleSwapStrike}
+            className="w-full mb-3 py-2 px-4 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-sm font-medium hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 3L4 7l4 4"/>
+              <path d="M4 7h16"/>
+              <path d="m16 21 4-4-4-4"/>
+              <path d="M20 17H4"/>
+            </svg>
+            Swap Strike
+          </button>
+        )}
         <BowlerCard
           bowler={currentBowler}
           playerName={playersMap[currentInnings?.current_bowler_id]?.name} />
