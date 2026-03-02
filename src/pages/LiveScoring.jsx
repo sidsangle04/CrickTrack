@@ -297,7 +297,8 @@ export default function LiveScoring() {
 
     const isAllOut = newTotalWickets >= maxWickets;
     const isOversComplete = newOverNumber >= maxOvers && newBallInOver === 0;
-    // Target is achieved only if runs EXCEED target-1 (i.e. >= target means win)
+    // Target is set to inn1 + 1. Team2 wins if they score >= target (i.e. > inn1 score).
+    // Exact tie (inn2 == inn1) is handled at overs_complete/all_out via endInnings.
     const isTargetReached = currentInnings.target && newTotalRuns >= currentInnings.target;
 
     if (isAllOut || isOversComplete || isTargetReached) {
