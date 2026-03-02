@@ -348,15 +348,8 @@ export default function LiveScoring() {
         const so1 = superOverForThisRound.sort((a, b) => a.innings_number - b.innings_number)[0];
         const so2 = superOverForThisRound.sort((a, b) => a.innings_number - b.innings_number)[1];
         
-        if (so1.total_runs > so2.total_runs) {
-          const winnerName = teamsMap[so1.batting_team_id]?.name || 'Team 1';
-          await base44.entities.Match.update(matchId, {
-            status: 'completed',
-            winner_id: so1.batting_team_id,
-            result: `${winnerName} won in Super Over`
-          });
-          navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
-        } else if (so2.total_runs > so1.total_runs) {
+        if (so2.total_runs > so1.total_runs) {
+          // so2 chased and crossed so1's score
           const winnerName = teamsMap[so2.batting_team_id]?.name || 'Team 2';
           await base44.entities.Match.update(matchId, {
             status: 'completed',
@@ -364,8 +357,17 @@ export default function LiveScoring() {
             result: `${winnerName} won in Super Over`
           });
           navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
+        } else if (so1.total_runs > so2.total_runs) {
+          // so2 failed to cross so1's score
+          const winnerName = teamsMap[so1.batting_team_id]?.name || 'Team 1';
+          await base44.entities.Match.update(matchId, {
+            status: 'completed',
+            winner_id: so1.batting_team_id,
+            result: `${winnerName} won in Super Over`
+          });
+          navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
         } else {
-          // Super over tied (both scored exactly same), start another
+          // Super over tied (exact same score), start another
           setShowEndInningsDialog(true);
         }
       }
@@ -379,16 +381,8 @@ export default function LiveScoring() {
       const inn1 = completedRegularInnings.find((i) => i.innings_number === 1);
       const inn2 = completedRegularInnings.find((i) => i.innings_number === 2);
 
-      if (inn1.total_runs > inn2.total_runs) {
-        const winnerName = teamsMap[inn1.batting_team_id]?.name || 'Team 1';
-        const margin = inn1.total_runs - inn2.total_runs;
-        await base44.entities.Match.update(matchId, {
-          status: 'completed',
-          winner_id: inn1.batting_team_id,
-          result: `${winnerName} won by ${margin} runs`
-        });
-        navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
-      } else if (inn2.total_runs > inn1.total_runs) {
+      if (inn2.total_runs > inn1.total_runs) {
+        // Team 2 wins - they scored more than team 1
         const winnerName = teamsMap[inn2.batting_team_id]?.name || 'Team 2';
         const margin = maxWickets - inn2.total_wickets;
         await base44.entities.Match.update(matchId, {
@@ -397,7 +391,18 @@ export default function LiveScoring() {
           result: `${winnerName} won by ${margin} wickets`
         });
         navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
+      } else if (inn1.total_runs > inn2.total_runs) {
+        // Team 1 wins - team 2 scored less
+        const winnerName = teamsMap[inn1.batting_team_id]?.name || 'Team 1';
+        const margin = inn1.total_runs - inn2.total_runs;
+        await base44.entities.Match.update(matchId, {
+          status: 'completed',
+          winner_id: inn1.batting_team_id,
+          result: `${winnerName} won by ${margin} runs`
+        });
+        navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
       } else {
+        // Exact same score = Tied, ask for super over
         setShowEndInningsDialog(true);
       }
     } else {
