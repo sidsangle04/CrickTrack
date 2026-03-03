@@ -67,6 +67,8 @@ export default function ImportMatch() {
     const team2Name = teams[1] || 'Team 2';
 
     // ---- Parse batting sections ----
+    // CSV columns: Name, How Out, Bowler, (blank), Runs, 4s, 6s, Balls
+    // For "not out" rows, bowler may be empty but column count stays the same
     const parseBatting = (startIdx) => {
       const batters = [];
       let i = startIdx;
@@ -76,24 +78,60 @@ export default function ImportMatch() {
         const parts = line.split(',');
         const name = parts[0]?.trim();
         if (!name || name === 'Name') { i++; continue; }
-        // columns: Name, How Out, Bowler,, Runs, 4s, 6s, Balls
+
         const howOut = parts[1]?.trim() || 'not out';
         const bowler = parts[2]?.trim() || '';
-        // runs can be at index 4
-        const runs = parseInt(parts[4]) || 0;
-        const fours = parseInt(parts[5]) || 0;
-        const sixes = parseInt(parts[6]) || 0;
-        const balls = parseInt(parts[7]) || 0;
-        let dismissal = howOut;
-        if (howOut === 'not out' || howOut === 'did not bat') dismissal = howOut;
-        else if (howOut.startsWith('lbw')) dismissal = `lbw b ${bowler}`;
-        else if (howOut.startsWith('ct')) dismissal = `${howOut} b ${bowler}`;
-        else if (howOut.startsWith('st')) dismissal = `${howOut} b ${bowler}`;
-        else if (howOut.startsWith('run out')) dismissal = howOut;
-        else if (howOut.startsWith('b ')) dismissal = howOut;
-        else if (bowler) dismissal = `${howOut} b ${bowler}`;
 
-        batters.push({ name, runs, balls, fours, sixes, dismissal, is_out: !['not out', 'did not bat'].includes(howOut) });
+        // Find runs: it's the first numeric value starting from index 3 (skip blank col)
+        // Play-Cricket format: Name, HowOut, Bowler, "", Runs, 4s, 6s, Balls
+        // But sometimes cols shift - find first non-empty numeric from index 3
+        let runsIdx = 4;
+        for (let k = 3; k <= 5; k++) {
+          if (parts[k]?.trim() !== '' && !isNaN(parseInt(parts[k]))) { runsIdx = k; break; }
+        }
+        const runs = parseInt(parts[runsIdx]) || 0;
+        const fours = parseInt(parts[runsIdx + 1]) || 0;
+        const sixes = parseInt(parts[runsIdx + 2]) || 0;
+        const balls = parseInt(parts[runsIdx + 3]) || 0;
+
+        // Map howOut to dismissal string and dismissal_type enum
+        const howOutLower = howOut.toLowerCase();
+        let dismissal = howOut;
+        let dismissal_type = null;
+
+        if (howOutLower === 'not out') {
+          dismissal = 'not out';
+        } else if (howOutLower === 'did not bat') {
+          dismissal = 'did not bat';
+        } else if (howOutLower === 'bowled' || howOutLower === 'b') {
+          dismissal = bowler ? `b ${bowler}` : 'bowled';
+          dismissal_type = 'bowled';
+        } else if (howOutLower.startsWith('lbw')) {
+          dismissal = bowler ? `lbw b ${bowler}` : howOut;
+          dismissal_type = 'lbw';
+        } else if (howOutLower.startsWith('ct') || howOutLower.startsWith('caught')) {
+          dismissal = bowler ? `${howOut} b ${bowler}` : howOut;
+          dismissal_type = 'caught';
+        } else if (howOutLower.startsWith('st') || howOutLower.startsWith('stumped')) {
+          dismissal = bowler ? `${howOut} b ${bowler}` : howOut;
+          dismissal_type = 'stumped';
+        } else if (howOutLower.startsWith('run out')) {
+          dismissal = howOut;
+          dismissal_type = 'run_out';
+        } else if (howOutLower.startsWith('hit wicket')) {
+          dismissal = bowler ? `hit wicket b ${bowler}` : howOut;
+          dismissal_type = 'hit_wicket';
+        } else if (howOutLower.startsWith('retired hurt')) {
+          dismissal = howOut;
+          dismissal_type = 'retired_hurt';
+        } else {
+          // fallback - use howOut text, try to detect type
+          if (bowler) dismissal = `${howOut} b ${bowler}`;
+          dismissal_type = 'caught'; // safe fallback
+        }
+
+        const is_out = !['not out', 'did not bat'].includes(howOutLower);
+        batters.push({ name, runs, balls, fours, sixes, dismissal, dismissal_type, is_out });
         i++;
       }
       return batters;
