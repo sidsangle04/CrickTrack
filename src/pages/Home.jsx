@@ -13,7 +13,8 @@ import {
   Trophy,
   Clock,
   CheckCircle2,
-  Loader2
+  Loader2,
+  Upload
 } from 'lucide-react';
 import { format } from 'date-fns';
 
