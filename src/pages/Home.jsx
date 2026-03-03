@@ -101,6 +101,14 @@ export default function Home() {
           <h3 className="font-semibold text-white">Teams</h3>
           <p className="text-sm text-slate-400">Manage squads & players</p>
         </Link>
+        <Link 
+          to={createPageUrl('ImportMatch')}
+          className="p-5 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/30 hover:border-blue-500/50 transition-all group col-span-2"
+        >
+          <Upload className="w-8 h-8 text-blue-400 mb-3 group-hover:scale-110 transition-transform" />
+          <h3 className="font-semibold text-white">Import Match Data</h3>
+          <p className="text-sm text-slate-400">Upload a Play-Cricket CSV to import match & stats</p>
+        </Link>
       </div>
 
       {/* Filter Tabs */}
