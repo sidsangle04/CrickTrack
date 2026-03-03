@@ -318,7 +318,7 @@ export default function ImportMatch() {
         batting_position: i + 1,
         runs: b.runs, balls_faced: b.balls, fours: b.fours, sixes: b.sixes,
         is_out: b.is_out,
-        dismissal_type: b.is_out ? b.dismissal : null,
+        dismissal_type: b.is_out ? b.dismissal_type : null,
         status: b.dismissal === 'did not bat' ? 'yet_to_bat' : b.is_out ? 'out' : 'not_out',
         strike_rate: b.balls > 0 ? (b.runs / b.balls) * 100 : 0,
       });
@@ -334,7 +334,7 @@ export default function ImportMatch() {
         batting_position: i + 1,
         runs: b.runs, balls_faced: b.balls, fours: b.fours, sixes: b.sixes,
         is_out: b.is_out,
-        dismissal_type: b.is_out ? b.dismissal : null,
+        dismissal_type: b.is_out ? b.dismissal_type : null,
         status: b.dismissal === 'did not bat' ? 'yet_to_bat' : b.is_out ? 'out' : 'not_out',
         strike_rate: b.balls > 0 ? (b.runs / b.balls) * 100 : 0,
       });
