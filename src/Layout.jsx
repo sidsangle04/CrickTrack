@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Home, PlusCircle, BarChart3, Trophy } from 'lucide-react';
+import { Home, PlusCircle, BarChart3, Trophy, Upload } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
   const isScoring = currentPageName === 'LiveScoring';
