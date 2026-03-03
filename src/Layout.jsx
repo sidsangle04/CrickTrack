@@ -4,7 +4,7 @@ import { createPageUrl } from './utils';
 import { Home, PlusCircle, BarChart3, Trophy, Upload } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
-  const isScoring = currentPageName === 'LiveScoring';
+  const isScoring = currentPageName === 'LiveScoring' || currentPageName === 'ImportMatch';
   
   if (isScoring) {
     return (
