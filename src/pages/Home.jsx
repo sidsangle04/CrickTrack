@@ -22,6 +22,23 @@ import { format } from 'date-fns';
 
 export default function Home() {
   const [filter, setFilter] = useState('all');
+  const [deletingId, setDeletingId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const queryClient = useQueryClient();
+
+  const handleDelete = async (matchId, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (confirmDeleteId !== matchId) {
+      setConfirmDeleteId(matchId);
+      return;
+    }
+    setDeletingId(matchId);
+    setConfirmDeleteId(null);
+    await base44.entities.Match.delete(matchId);
+    queryClient.invalidateQueries({ queryKey: ['matches'] });
+    setDeletingId(null);
+  };
   
   const { data: matches = [], isLoading: matchesLoading } = useQuery({
     queryKey: ['matches'],
