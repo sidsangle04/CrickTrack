@@ -282,9 +282,18 @@ export default function Analytics() {
 
   return (
     <div className="bg-transparent text-slate-50 pb-24 md:pb-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">Analytics</h1>
-        <p className="text-slate-400 text-sm">Performance insights and statistics</p>
+      <div className="mb-6 flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-white mb-1">Analytics</h1>
+          <p className="text-slate-400 text-sm">Performance insights and statistics</p>
+        </div>
+        <button
+          onClick={exportCSV}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/30 transition-all text-sm font-medium"
+        >
+          <Download className="w-4 h-4" />
+          Export CSV
+        </button>
       </div>
 
       <div className="flex gap-3 mb-6 flex-wrap">
