@@ -245,6 +245,33 @@ export default function Analytics() {
   sort((a, b) => b.runs - a.runs).
   slice(0, 10);
 
+  const exportCSV = () => {
+    let csv = 'CRICKET ANALYTICS REPORT\n\n';
+
+    csv += 'BATTING LEADERBOARD\n';
+    csv += '#,Player,Innings,Runs,Average,Strike Rate,4s,6s\n';
+    topBatters.forEach((p, i) => {
+      csv += `${i+1},${p.name},${p.innings},${p.runs},${p.average},${p.strikeRate},${p.fours},${p.sixes}\n`;
+    });
+
+    csv += '\nBOWLING LEADERBOARD\n';
+    csv += '#,Player,Wickets,Runs,Economy,Dots\n';
+    topBowlers.forEach((p, i) => {
+      csv += `${i+1},${p.name},${p.wickets},${p.runs},${p.economy},${p.dots}\n`;
+    });
+
+    csv += '\nDISMISSAL TYPES\n';
+    csv += 'Type,Count\n';
+    dismissalData.forEach(d => { csv += `${d.name},${d.value}\n`; });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cricket_analytics.csv';
+    a.click();
+  };
+
   if (matchesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
