@@ -407,7 +407,7 @@ export default function ImportMatch() {
           <span className="text-slate-400 group-hover:text-white transition-colors font-medium">
             {file ? file.name : 'Click to upload CSV file'}
           </span>
-          <span className="text-slate-600 text-sm mt-1">Play-Cricket CSV format supported</span>
+          <span className="text-slate-600 text-sm mt-1">Play-Cricket CSV format supported · PDF shows guidance</span>
           <input type="file" accept=".csv,.pdf" className="hidden" onChange={handleFile} />
         </label>
 
