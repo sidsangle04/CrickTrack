@@ -408,7 +408,7 @@ export default function ImportMatch() {
             {file ? file.name : 'Click to upload CSV file'}
           </span>
           <span className="text-slate-600 text-sm mt-1">Play-Cricket CSV format supported</span>
-          <input type="file" accept=".csv" className="hidden" onChange={handleFile} />
+          <input type="file" accept=".csv,.pdf" className="hidden" onChange={handleFile} />
         </label>
 
         {file && status === 'idle' && (
