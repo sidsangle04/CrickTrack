@@ -49,22 +49,22 @@
  */
 import Analytics from './pages/Analytics';
 import Home from './pages/Home';
+import ImportMatch from './pages/ImportMatch';
 import LiveScoring from './pages/LiveScoring';
 import MatchSetup from './pages/MatchSetup';
 import Scorecard from './pages/Scorecard';
 import TeamManagement from './pages/TeamManagement';
-import ImportMatch from './pages/ImportMatch';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "Analytics": Analytics,
     "Home": Home,
+    "ImportMatch": ImportMatch,
     "LiveScoring": LiveScoring,
     "MatchSetup": MatchSetup,
     "Scorecard": Scorecard,
     "TeamManagement": TeamManagement,
-    "ImportMatch": ImportMatch,
 }
 
 export const pagesConfig = {

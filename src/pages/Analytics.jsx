@@ -21,7 +21,9 @@ import {
   Zap,
   Award,
   Loader2,
-  Users } from
+  Users,
+  Download,
+  FileText } from
 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 

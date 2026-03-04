@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { 
@@ -14,7 +14,9 @@ import {
   Clock,
   CheckCircle2,
   Loader2,
-  Upload
+  Upload,
+  Trash2,
+  X
 } from 'lucide-react';
 import { format } from 'date-fns';
 

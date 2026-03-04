@@ -16,7 +16,15 @@ export default function ImportMatch() {
   const addLog = (msg) => setLog(prev => [...prev, msg]);
 
   const handleFile = (e) => {
-    setFile(e.target.files[0]);
+    const selected = e.target.files[0];
+    if (!selected) return;
+    const ext = selected.name.split('.').pop().toLowerCase();
+    if (ext === 'pdf') {
+      setError('PDF import: Please export the scorecard as CSV from Play-Cricket. PDF parsing is not supported — open the PDF, copy the content, and save as .csv, or use the Play-Cricket "Export to CSV" option.');
+      setFile(null);
+      return;
+    }
+    setFile(selected);
     setLog([]);
     setStatus('idle');
     setError('');
