@@ -240,6 +240,31 @@ export default function Home() {
                       </span>
                     )}
                     <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-slate-300 transition-colors" />
+                    <button
+                      onClick={(e) => handleDelete(match.id, e)}
+                      className={`p-1.5 rounded-lg transition-all ${
+                        confirmDeleteId === match.id
+                          ? 'bg-red-500 text-white'
+                          : 'text-slate-500 hover:text-red-400 hover:bg-red-400/10'
+                      }`}
+                      title={confirmDeleteId === match.id ? 'Click again to confirm' : 'Delete match'}
+                    >
+                      {deletingId === match.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : confirmDeleteId === match.id ? (
+                        <Trash2 className="w-4 h-4" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                    </button>
+                    {confirmDeleteId === match.id && (
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setConfirmDeleteId(null); }}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-700"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
                 
