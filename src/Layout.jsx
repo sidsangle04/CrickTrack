@@ -65,6 +65,17 @@ export default function Layout({ children, currentPageName }) {
                 <BarChart3 className="w-4 h-4 inline mr-2" />
                 Analytics
               </Link>
+              <Link 
+                to={createPageUrl('PlayerComparison')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  currentPageName === 'PlayerComparison' 
+                    ? 'bg-emerald-500/20 text-emerald-400' 
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <ArrowLeftRight className="w-4 h-4 inline mr-2" />
+                Compare
+              </Link>
             </nav>
             
             <Link 
