@@ -43,7 +43,8 @@ function StatBar({ label, valA, valB, higherIsBetter = true }) {
   );
 }
 
-function StatCard({ icon: Icon, label, valA, valB, higherIsBetter = true, color }) {
+function StatCard({ icon: IconComp, label, valA, valB, higherIsBetter = true, color }) {
+  const Icon = IconComp;
   const numA = parseFloat(valA) || 0;
   const numB = parseFloat(valB) || 0;
   const aWins = higherIsBetter ? numA >= numB : numA <= numB;
