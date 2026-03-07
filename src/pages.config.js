@@ -54,6 +54,7 @@ import LiveScoring from './pages/LiveScoring';
 import MatchSetup from './pages/MatchSetup';
 import Scorecard from './pages/Scorecard';
 import TeamManagement from './pages/TeamManagement';
+import PlayerComparison from './pages/PlayerComparison';
 import __Layout from './Layout.jsx';
 
 
@@ -65,6 +66,7 @@ export const PAGES = {
     "MatchSetup": MatchSetup,
     "Scorecard": Scorecard,
     "TeamManagement": TeamManagement,
+    "PlayerComparison": PlayerComparison,
 }
 
 export const pagesConfig = {
