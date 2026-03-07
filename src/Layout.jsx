@@ -115,6 +115,15 @@ export default function Layout({ children, currentPageName }) {
             <BarChart3 className="w-5 h-5" />
             <span className="text-xs mt-1">Analytics</span>
           </Link>
+          <Link 
+            to={createPageUrl('PlayerComparison')}
+            className={`flex flex-col items-center py-2 px-4 rounded-lg ${
+              currentPageName === 'PlayerComparison' ? 'text-emerald-400' : 'text-slate-500'
+            }`}
+          >
+            <ArrowLeftRight className="w-5 h-5" />
+            <span className="text-xs mt-1">Compare</span>
+          </Link>
         </div>
       </nav>
     </div>
