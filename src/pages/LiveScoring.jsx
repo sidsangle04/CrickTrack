@@ -695,6 +695,20 @@ export default function LiveScoring() {
     setShowSelectBowler(false);
     setPendingAction(null);
     await refetchAll();
+
+    // Show bowler profile modal if not already profiled
+    if (!bowlerProfile[playerId]) {
+      setPendingBowlerId(playerId);
+      setShowBowlerProfile(true);
+    }
+  };
+
+  const handleBowlerProfileConfirm = (profile) => {
+    if (profile && pendingBowlerId) {
+      setBowlerProfile(prev => ({ ...prev, [pendingBowlerId]: profile }));
+    }
+    setShowBowlerProfile(false);
+    setPendingBowlerId(null);
   };
 
   const availableBatters = battingTeamPlayingXI.
