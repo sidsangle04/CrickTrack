@@ -673,8 +673,9 @@ export default function Analytics() {
           </div>
         </div>
       </div>
-        </TabsContent> {/* end stats */}
+        </TabsContent>
       </Tabs>
-    </div>);
+    </div>
+  );
 
 }
