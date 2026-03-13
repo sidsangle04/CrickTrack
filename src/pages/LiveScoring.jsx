@@ -469,8 +469,29 @@ export default function LiveScoring() {
     setPendingAction('select_opener_1');
   };
 
+  // Open visual tracking, then process after
+  const triggerDelivery = (deliveryData) => {
+    setPendingDelivery(deliveryData);
+    setShowVisualTracking(true);
+  };
+
+  const handleVisualConfirm = (visualData) => {
+    setShowVisualTracking(false);
+    if (pendingDelivery) {
+      const currentBowlerId = currentInnings?.current_bowler_id;
+      const profile = bowlerProfile[currentBowlerId] || {};
+      processDelivery({
+        ...pendingDelivery,
+        ...visualData,
+        bowler_hand: profile.hand,
+        bowler_type: profile.type,
+      });
+      setPendingDelivery(null);
+    }
+  };
+
   const handleScore = (runs) => {
-    processDelivery({
+    triggerDelivery({
       runs_bat: runs,
       is_boundary: runs === 4,
       is_six: runs === 6
@@ -483,31 +504,17 @@ export default function LiveScoring() {
   };
 
   const handleExtraConfirm = (extraData) => {
+    let deliveryData;
     if (extraData.extra_type === 'wide') {
-      processDelivery({
-        is_wide: true,
-        wide_runs: match.wide_runs || 1,
-        runs_bat: extraData.additional_runs
-      });
+      deliveryData = { is_wide: true, wide_runs: match.wide_runs || 1, runs_bat: extraData.additional_runs };
     } else if (extraData.extra_type === 'no_ball') {
-      processDelivery({
-        is_no_ball: true,
-        no_ball_runs: match.no_ball_runs || 1,
-        runs_bat: extraData.additional_runs,
-        is_wide: extraData.include_wide || false,
-        wide_runs: extraData.include_wide ? match.wide_runs || 1 : 0
-      });
+      deliveryData = { is_no_ball: true, no_ball_runs: match.no_ball_runs || 1, runs_bat: extraData.additional_runs, is_wide: extraData.include_wide || false, wide_runs: extraData.include_wide ? match.wide_runs || 1 : 0 };
     } else if (extraData.extra_type === 'bye') {
-      processDelivery({
-        is_bye: true,
-        bye_runs: extraData.additional_runs
-      });
+      deliveryData = { is_bye: true, bye_runs: extraData.additional_runs };
     } else if (extraData.extra_type === 'leg_bye') {
-      processDelivery({
-        is_leg_bye: true,
-        leg_bye_runs: extraData.additional_runs
-      });
+      deliveryData = { is_leg_bye: true, leg_bye_runs: extraData.additional_runs };
     }
+    if (deliveryData) triggerDelivery(deliveryData);
   };
 
   const handleWicket = () => {
@@ -515,7 +522,7 @@ export default function LiveScoring() {
   };
 
   const handleWicketConfirm = (wicketData) => {
-    processDelivery({
+    triggerDelivery({
       runs_bat: wicketData.runs_before_wicket || 0,
       is_wicket: true,
       wicket_type: wicketData.wicket_type,
