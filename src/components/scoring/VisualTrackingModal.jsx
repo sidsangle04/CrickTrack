@@ -87,7 +87,7 @@ export default function VisualTrackingModal({ open, onClose, onConfirm, runs, is
 
   return (
     <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="bg-slate-900 border-slate-700 text-white p-0 max-w-sm w-full mx-auto" hideClose>
+      <DialogContent className="bg-slate-900 border-slate-700 text-white p-0 max-w-sm w-full mx-auto [&>button]:hidden">
         <DialogHeader className="px-4 pt-4 pb-2 flex-row items-center justify-between">
           <div className="flex items-center gap-3">
             <DialogTitle className="text-base font-semibold">
