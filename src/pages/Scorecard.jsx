@@ -14,6 +14,8 @@ import {
   Loader2,
   Trophy
 } from 'lucide-react';
+import WagonWheel from '../components/analytics/WagonWheel';
+import PitchHeatmap from '../components/analytics/PitchHeatmap';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
