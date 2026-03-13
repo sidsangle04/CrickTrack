@@ -872,6 +872,12 @@ export default function LiveScoring() {
         </DialogContent>
       </Dialog>
 
+      <BowlerProfileModal
+        open={showBowlerProfile}
+        bowlerName={playersMap[pendingBowlerId]?.name}
+        onConfirm={handleBowlerProfileConfirm}
+      />
+
       <VisualTrackingModal
         open={showVisualTracking}
         onClose={() => { setShowVisualTracking(false); setPendingDelivery(null); }}
