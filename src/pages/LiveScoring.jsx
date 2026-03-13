@@ -42,6 +42,8 @@ export default function LiveScoring() {
   const [showVisualTracking, setShowVisualTracking] = useState(false);
   const [pendingDelivery, setPendingDelivery] = useState(null);
   const [bowlerProfile, setBowlerProfile] = useState({}); // { [playerId]: { hand, type } }
+  const [showBowlerProfile, setShowBowlerProfile] = useState(false);
+  const [pendingBowlerId, setPendingBowlerId] = useState(null);
 
   const { data: match, isLoading: matchLoading, refetch: refetchMatch } = useQuery({
     queryKey: ['match', matchId],
