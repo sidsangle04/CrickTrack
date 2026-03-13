@@ -855,6 +855,15 @@ export default function LiveScoring() {
         </DialogContent>
       </Dialog>
 
+      <VisualTrackingModal
+        open={showVisualTracking}
+        onClose={() => { setShowVisualTracking(false); setPendingDelivery(null); }}
+        onConfirm={handleVisualConfirm}
+        runs={pendingDelivery?.runs_bat}
+        isWicket={pendingDelivery?.is_wicket}
+        bowlerType={bowlerProfile[currentInnings?.current_bowler_id]?.type}
+      />
+
       <Dialog open={showMenuDialog} onOpenChange={setShowMenuDialog}>
         <DialogContent className="bg-slate-900 border-slate-700 text-white">
           <DialogHeader>
