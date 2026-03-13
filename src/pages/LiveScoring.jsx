@@ -14,6 +14,7 @@ import WicketModal from '../components/scoring/WicketModal';
 import ExtrasModal from '../components/scoring/ExtrasModal';
 import SelectBatterModal from '../components/scoring/SelectBatterModal';
 import SelectBowlerModal from '../components/scoring/SelectBowlerModal';
+import VisualTrackingModal from '../components/scoring/VisualTrackingModal';
 import {
   Dialog,
   DialogContent,
