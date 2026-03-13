@@ -356,6 +356,17 @@ export default function Scorecard() {
         )}
       </Tabs>
 
+      {/* Visual Analytics */}
+      {allDeliveries.some(d => d.shot_x != null || d.pitch_x != null) && (
+        <div className="mt-6 space-y-4">
+          <h2 className="text-lg font-semibold text-white">Visual Analytics</h2>
+          <div className="grid md:grid-cols-2 gap-4">
+            <WagonWheel deliveries={allDeliveries} title="Match Wagon Wheel" size={240} />
+            <PitchHeatmap deliveries={allDeliveries} title="Match Pitch Map" width={120} height={280} />
+          </div>
+        </div>
+      )}
+
       <div className="mt-6">
         <button
           onClick={() => setExpandedInnings(expandedInnings ? null : 'log')}
