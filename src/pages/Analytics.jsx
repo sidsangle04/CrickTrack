@@ -419,7 +419,7 @@ export default function Analytics() {
           )}
         </TabsContent>
 
-        <TabsContent value="stats">
+        <TabsContent value="stats"><div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
           <div className="flex items-center gap-3 mb-2">
