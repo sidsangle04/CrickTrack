@@ -284,6 +284,30 @@ export default function Analytics() {
 
   }
 
+  // Visual analytics data
+  const shotDeliveries = filteredDeliveries.filter(d => d.shot_x != null);
+  const pitchDeliveries = filteredDeliveries.filter(d => d.pitch_x != null);
+
+  // Per-player wagon wheels (top 5 batters by shots)
+  const playerShotCounts = {};
+  shotDeliveries.forEach(d => {
+    playerShotCounts[d.striker_id] = (playerShotCounts[d.striker_id] || 0) + 1;
+  });
+  const topShotPlayers = Object.entries(playerShotCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([id]) => id);
+
+  // Per-player pitch maps (top bowlers)
+  const playerPitchCounts = {};
+  pitchDeliveries.forEach(d => {
+    playerPitchCounts[d.bowler_id] = (playerPitchCounts[d.bowler_id] || 0) + 1;
+  });
+  const topPitchPlayers = Object.entries(playerPitchCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([id]) => id);
+
   return (
     <div className="bg-transparent text-slate-50 pb-24 md:pb-6">
       <div className="mb-6 flex items-start justify-between flex-wrap gap-3">
@@ -327,6 +351,75 @@ export default function Analytics() {
           </SelectContent>
         </Select>
       </div>
+
+      <Tabs defaultValue="stats" className="w-full mb-6">
+        <TabsList className="bg-slate-800/50 p-1 rounded-xl mb-4">
+          <TabsTrigger value="stats" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
+            📊 Stats
+          </TabsTrigger>
+          <TabsTrigger value="visual" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
+            🗺️ Visual
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="visual">
+          {shotDeliveries.length === 0 && pitchDeliveries.length === 0 ? (
+            <div className="text-center py-16 text-slate-500">
+              <div className="text-4xl mb-3">🏏</div>
+              <p className="font-medium text-white mb-1">No visual tracking data yet</p>
+              <p className="text-sm">Visual data is captured during live scoring when you click the Ground Map and Pitch Map</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Overall wagon wheel */}
+              <WagonWheel deliveries={filteredDeliveries} title="Overall Wagon Wheel" size={260} />
+              
+              {/* Overall pitch map */}
+              <PitchHeatmap deliveries={filteredDeliveries} title="Overall Pitch Map" />
+
+              {/* Per batter wagon wheels */}
+              {topShotPlayers.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+                    <span>🏏</span> Batter Wagon Wheels
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {topShotPlayers.map(pid => (
+                      <WagonWheel
+                        key={pid}
+                        deliveries={filteredDeliveries.filter(d => d.striker_id === pid)}
+                        title={playersMap[pid]?.name || 'Unknown'}
+                        size={220}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Per bowler pitch maps */}
+              {topPitchPlayers.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+                    <span>🎯</span> Bowler Pitch Maps
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {topPitchPlayers.map(pid => (
+                      <PitchHeatmap
+                        key={pid}
+                        deliveries={filteredDeliveries.filter(d => d.bowler_id === pid)}
+                        title={playersMap[pid]?.name || 'Unknown'}
+                        width={120}
+                        height={260}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="stats">
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
