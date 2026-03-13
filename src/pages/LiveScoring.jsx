@@ -38,6 +38,9 @@ export default function LiveScoring() {
   const [showEndInningsDialog, setShowEndInningsDialog] = useState(false);
   const [showMenuDialog, setShowMenuDialog] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
+  const [showVisualTracking, setShowVisualTracking] = useState(false);
+  const [pendingDelivery, setPendingDelivery] = useState(null);
+  const [bowlerProfile, setBowlerProfile] = useState({}); // { [playerId]: { hand, type } }
 
   const { data: match, isLoading: matchLoading, refetch: refetchMatch } = useQuery({
     queryKey: ['match', matchId],
