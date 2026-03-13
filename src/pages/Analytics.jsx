@@ -23,9 +23,13 @@ import {
   Loader2,
   Users,
   Download,
-  FileText } from
+  FileText,
+  Map } from
 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import WagonWheel from '../components/analytics/WagonWheel';
+import PitchHeatmap from '../components/analytics/PitchHeatmap';
 
 const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'];
 
