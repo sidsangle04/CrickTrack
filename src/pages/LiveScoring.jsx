@@ -182,6 +182,19 @@ export default function LiveScoring() {
       is_boundary: deliveryData.runs_bat === 4,
       is_six: deliveryData.runs_bat === 6,
       is_dot_ball: isLegal && totalRuns === 0 && !deliveryData.is_wicket,
+      // Visual tracking fields
+      shot_x: deliveryData.shot_x,
+      shot_y: deliveryData.shot_y,
+      shot_region: deliveryData.shot_region,
+      shot_side: deliveryData.shot_side,
+      shot_distance: deliveryData.shot_distance,
+      pitch_x: deliveryData.pitch_x,
+      pitch_y: deliveryData.pitch_y,
+      line: deliveryData.line,
+      length: deliveryData.length,
+      delivery_variation: deliveryData.delivery_variation,
+      bowler_hand: deliveryData.bowler_hand,
+      bowler_type: deliveryData.bowler_type,
       timestamp: new Date().toISOString()
     });
 
