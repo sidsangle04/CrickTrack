@@ -1,24 +1,26 @@
 import React, { useRef } from 'react';
 
 // Returns region name from click coordinates (center=0,0, radius=1)
+// x>0 = OFF side (right), y>0 = BEHIND batter (top), y<0 = IN FRONT toward bowler (bottom)
 export function classifyShot(x, y) {
-  const angle = Math.atan2(-y, x) * (180 / Math.PI); // 0=right(off), 90=straight(top)
+  const angle = Math.atan2(-y, x) * (180 / Math.PI);
   const normalized = ((angle % 360) + 360) % 360;
   const dist = Math.sqrt(x * x + y * y);
 
   let region;
-  // Angle: 0=right (point/cover), 90=top (straight/long on), 180=left (leg/fine leg)
+  // 0=right(point/off), going clockwise
+  // lower-right = cover/mid-off, lower = straight/mid-on, left = leg side, upper = fine leg/third man
   if (normalized >= 345 || normalized < 15) region = 'Point';
   else if (normalized >= 15 && normalized < 55) region = 'Cover';
   else if (normalized >= 55 && normalized < 80) region = 'Extra Cover';
   else if (normalized >= 80 && normalized < 105) region = 'Mid Off';
   else if (normalized >= 105 && normalized < 130) region = 'Straight';
   else if (normalized >= 130 && normalized < 160) region = 'Mid On';
-  else if (normalized >= 160 && normalized < 195) region = 'Mid Wicket';
-  else if (normalized >= 195 && normalized < 230) region = 'Square Leg';
+  else if (normalized >= 160 && normalized < 200) region = 'Mid Wicket';
+  else if (normalized >= 200 && normalized < 230) region = 'Square Leg';
   else if (normalized >= 230 && normalized < 270) region = 'Fine Leg';
-  else if (normalized >= 270 && normalized < 310) region = 'Third Man';
-  else if (normalized >= 310 && normalized < 345) region = 'Backward Point';
+  else if (normalized >= 270 && normalized < 315) region = 'Third Man';
+  else if (normalized >= 315 && normalized < 345) region = 'Gully';
   else region = 'Point';
 
   const side = x > 0 ? 'off' : 'leg';
@@ -27,23 +29,25 @@ export function classifyShot(x, y) {
   return { region, side, distance };
 }
 
+// angle=0 → top, increases clockwise. Formula: rad = (angle-90)*π/180
 const REGION_LABELS = [
-  { label: 'Third Man', angle: 290, r: 0.82 },
-  { label: 'Point', angle: 0, r: 0.82 },
-  { label: 'Cover', angle: 35, r: 0.82 },
-  { label: 'Mid Off', angle: 92, r: 0.82 },
-  { label: 'Straight', angle: 118, r: 0.75 },
-  { label: 'Mid On', angle: 145, r: 0.82 },
-  { label: 'Mid Wicket', angle: 175, r: 0.82 },
-  { label: 'Sq Leg', angle: 212, r: 0.82 },
-  { label: 'Fine Leg', angle: 250, r: 0.82 },
+  { label: 'Third Man', angle: 38,  r: 0.82 },
+  { label: 'Gully',     angle: 68,  r: 0.68 },
+  { label: 'Point',     angle: 90,  r: 0.84 },
+  { label: 'Cover',     angle: 128, r: 0.80 },
+  { label: 'Mid Off',   angle: 158, r: 0.84 },
+  { label: 'Straight',  angle: 180, r: 0.84 },
+  { label: 'Mid On',    angle: 202, r: 0.84 },
+  { label: 'Mid Wicket',angle: 232, r: 0.80 },
+  { label: 'Sq Leg',    angle: 268, r: 0.84 },
+  { label: 'Fine Leg',  angle: 322, r: 0.82 },
 ];
 
 export default function GroundMap({ onShot, shots = [], highlightShot = null, size = 280 }) {
   const svgRef = useRef();
   const cx = size / 2;
   const cy = size / 2;
-  const R = (size / 2) - 10;
+  const R = (size / 2) - 12;
 
   const toSvg = (x, y) => ({
     sx: cx + x * R,
@@ -63,7 +67,7 @@ export default function GroundMap({ onShot, shots = [], highlightShot = null, si
     const x = (px - cx) / R;
     const y = -(py - cy) / R;
     const dist = Math.sqrt(x * x + y * y);
-    if (dist > 1.05) return; // outside field
+    if (dist > 1.05) return;
     const classified = classifyShot(x, y);
     onShot({ x, y, ...classified });
   };
@@ -76,6 +80,9 @@ export default function GroundMap({ onShot, shots = [], highlightShot = null, si
     return '#60a5fa';
   };
 
+  // sector boundary angles (0=top, clockwise) between regions
+  const sectorAngles = [0, 30, 53, 68, 80, 93, 118, 143, 180, 215, 248, 285, 330];
+
   return (
     <svg
       ref={svgRef}
@@ -85,50 +92,64 @@ export default function GroundMap({ onShot, shots = [], highlightShot = null, si
       className="cursor-crosshair select-none"
       style={{ touchAction: 'none' }}
     >
-      {/* Outer boundary */}
-      <ellipse cx={cx} cy={cy} rx={R} ry={R * 0.78} fill="#14532d" stroke="#22c55e" strokeWidth="2" />
-      {/* Inner circle (30 yards) */}
-      <ellipse cx={cx} cy={cy} rx={R * 0.42} ry={R * 0.33} fill="none" stroke="#16a34a" strokeWidth="1.5" strokeDasharray="5,4" />
-      {/* Pitch rectangle */}
-      <rect x={cx - R * 0.05} y={cy - R * 0.18} width={R * 0.1} height={R * 0.36}
-        fill="#ca8a04" stroke="#fbbf24" strokeWidth="1" rx="2" />
-      {/* Stumps top */}
-      <line x1={cx} y1={cy - R * 0.18} x2={cx} y2={cy - R * 0.22} stroke="#fff" strokeWidth="2" />
-      {/* Stumps bottom */}
-      <line x1={cx} y1={cy + R * 0.18} x2={cx} y2={cy + R * 0.22} stroke="#fff" strokeWidth="2" />
-      {/* Crease lines */}
-      <line x1={cx - R * 0.08} y1={cy - R * 0.18} x2={cx + R * 0.08} y2={cy - R * 0.18} stroke="#fff" strokeWidth="1" />
-      <line x1={cx - R * 0.08} y1={cy + R * 0.18} x2={cx + R * 0.08} y2={cy + R * 0.18} stroke="#fff" strokeWidth="1" />
+      {/* Outer boundary - circle */}
+      <circle cx={cx} cy={cy} r={R} fill="#166534" stroke="#22c55e" strokeWidth="2" />
       
+      {/* Inner grass rings */}
+      <circle cx={cx} cy={cy} r={R * 0.92} fill="none" stroke="#14532d" strokeWidth="8" opacity="0.3" />
+
+      {/* 30-yard circle */}
+      <circle cx={cx} cy={cy} r={R * 0.48} fill="none" stroke="#16a34a" strokeWidth="1.5" strokeDasharray="6,5" />
+
       {/* Sector lines */}
-      {[0, 40, 80, 120, 160, 200, 240, 280, 320].map(deg => {
+      {sectorAngles.map(deg => {
         const rad = (deg - 90) * Math.PI / 180;
         return (
           <line key={deg}
             x1={cx} y1={cy}
             x2={cx + Math.cos(rad) * R}
-            y2={cy + Math.sin(rad) * R * 0.78}
-            stroke="#166534" strokeWidth="0.7" strokeDasharray="4,6"
+            y2={cy + Math.sin(rad) * R}
+            stroke="#14532d" strokeWidth="0.8" strokeDasharray="3,7"
           />
         );
       })}
+
+      {/* Pitch rectangle - vertical, batter at bottom, bowler at top */}
+      <rect
+        x={cx - R * 0.04} y={cy - R * 0.22}
+        width={R * 0.08} height={R * 0.44}
+        fill="#ca8a04" stroke="#fbbf24" strokeWidth="1" rx="2"
+      />
+
+      {/* Batting crease (bottom of pitch - batter's end) */}
+      <line x1={cx - R*0.09} y1={cy + R*0.22} x2={cx + R*0.09} y2={cy + R*0.22} stroke="#fff" strokeWidth="1.2" />
+      {/* Bowling crease (top of pitch - bowler's end) */}
+      <line x1={cx - R*0.09} y1={cy - R*0.22} x2={cx + R*0.09} y2={cy - R*0.22} stroke="#fff" strokeWidth="1.2" />
+
+      {/* Stumps - batter end (bottom) */}
+      <line x1={cx} y1={cy + R*0.22} x2={cx} y2={cy + R*0.27} stroke="#fff" strokeWidth="2.5" />
+      {/* Stumps - bowler end (top) */}
+      <line x1={cx} y1={cy - R*0.22} x2={cx} y2={cy - R*0.27} stroke="#fff" strokeWidth="2.5" />
 
       {/* Region labels */}
       {REGION_LABELS.map(({ label, angle, r }) => {
         const rad = (angle - 90) * Math.PI / 180;
         const lx = cx + Math.cos(rad) * R * r;
-        const ly = cy + Math.sin(rad) * R * r * 0.78;
+        const ly = cy + Math.sin(rad) * R * r;
         return (
           <text key={label} x={lx} y={ly} textAnchor="middle" dominantBaseline="middle"
-            fill="#bbf7d0" fontSize={size < 250 ? 7 : 9} fontWeight="500" opacity="0.9">
+            fill="#bbf7d0" fontSize={size < 250 ? 7 : 9} fontWeight="500" opacity="0.85">
             {label}
           </text>
         );
       })}
 
       {/* OFF / LEG labels */}
-      <text x={cx + R * 0.55} y={cy - R * 0.3} fill="#6ee7b7" fontSize="9" textAnchor="middle">OFF</text>
-      <text x={cx - R * 0.55} y={cy - R * 0.3} fill="#fcd34d" fontSize="9" textAnchor="middle">LEG</text>
+      <text x={cx + R * 0.78} y={cy + R * 0.15} fill="#6ee7b7" fontSize={size < 250 ? 8 : 10} textAnchor="middle" fontWeight="bold">OFF</text>
+      <text x={cx - R * 0.78} y={cy + R * 0.15} fill="#fcd34d" fontSize={size < 250 ? 8 : 10} textAnchor="middle" fontWeight="bold">LEG</text>
+
+      {/* Bowler label at top */}
+      <text x={cx} y={cy - R * 0.35} fill="#94a3b8" fontSize="8" textAnchor="middle" opacity="0.7">▲ Bowler</text>
 
       {/* Shot markers */}
       {shots.map((s, i) => {
@@ -144,8 +165,8 @@ export default function GroundMap({ onShot, shots = [], highlightShot = null, si
 
       {/* Click hint */}
       {shots.length === 0 && onShot && (
-        <text x={cx} y={cy + R * 0.45} textAnchor="middle" fill="#4ade80" fontSize="11" opacity="0.7">
-          Click to mark shot
+        <text x={cx} y={cy + R * 0.5} textAnchor="middle" fill="#4ade80" fontSize="11" opacity="0.7">
+          Tap to mark shot
         </text>
       )}
     </svg>
