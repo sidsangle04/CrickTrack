@@ -673,6 +673,8 @@ export default function Analytics() {
           </div>
         </div>
       </div>
+        </TabsContent>
+      </Tabs>
     </div>);
 
 }
