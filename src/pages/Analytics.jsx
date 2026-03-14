@@ -250,6 +250,72 @@ export default function Analytics() {
   sort((a, b) => b.runs - a.runs).
   slice(0, 10);
 
+  const exportHTML = () => {
+    const batterRows = topBatters.map((p, i) => `<tr>
+      <td>${i+1}</td><td>${p.name}</td>
+      <td>${p.innings}</td>
+      <td class="green" style="text-align:right;font-weight:700">${p.runs}</td>
+      <td style="text-align:right">${p.average}</td>
+      <td style="text-align:right">${p.strikeRate}</td>
+      <td style="text-align:right">${p.fours}</td>
+      <td style="text-align:right">${p.sixes}</td>
+    </tr>`).join('');
+
+    const bowlerRows = topBowlers.map((p, i) => `<tr>
+      <td>${i+1}</td><td>${p.name}</td>
+      <td class="red" style="text-align:right;font-weight:700">${p.wickets}</td>
+      <td style="text-align:right">${p.runs}</td>
+      <td style="text-align:right">${p.economy}</td>
+      <td style="text-align:right">${p.dots}</td>
+    </tr>`).join('');
+
+    const partnershipRows = topPartnerships.map((p, i) => `<tr>
+      <td>${i+1}</td>
+      <td>${p.batter1Name} &amp; ${p.batter2Name}</td>
+      <td class="cyan" style="text-align:right;font-weight:700">${p.runs}</td>
+      <td style="text-align:right">${p.balls}</td>
+      <td style="text-align:right">${p.runRate}</td>
+    </tr>`).join('');
+
+    const dismissalRows = dismissalData.map(d => `<tr><td>${d.name}</td><td style="text-align:right">${d.value}</td></tr>`).join('');
+
+    const totalRuns = Object.values(playerRuns).reduce((s, p) => s + p.runs, 0);
+    const totalWickets = Object.values(playerWickets).reduce((s, p) => s + p.wickets, 0);
+    const totalBoundaries = boundaryData.reduce((s, b) => s + b.value, 0);
+
+    const html = `
+      <h1>Cricket Analytics Report</h1>
+      <p>Generated ${new Date().toLocaleDateString()}</p>
+      <div class="grid4">
+        <div class="stat-box"><div class="stat-val green">${totalRuns}</div><div class="stat-lbl">Total Runs</div></div>
+        <div class="stat-box"><div class="stat-val red">${totalWickets}</div><div class="stat-lbl">Total Wickets</div></div>
+        <div class="stat-box"><div class="stat-val amber">${totalBoundaries}</div><div class="stat-lbl">Boundaries</div></div>
+        <div class="stat-box"><div class="stat-val">${selectedMatch === 'all' ? matches.length : 1}</div><div class="stat-lbl">Matches</div></div>
+      </div>
+      <h2>🏏 Batting Leaderboard</h2>
+      <div class="card">
+        <table><thead><tr><th>#</th><th>Player</th><th>Inn</th><th style="text-align:right">Runs</th><th style="text-align:right">Avg</th><th style="text-align:right">SR</th><th style="text-align:right">4s</th><th style="text-align:right">6s</th></tr></thead>
+        <tbody>${batterRows}</tbody></table>
+      </div>
+      <h2>🎯 Bowling Leaderboard</h2>
+      <div class="card">
+        <table><thead><tr><th>#</th><th>Player</th><th style="text-align:right">Wkts</th><th style="text-align:right">Runs</th><th style="text-align:right">Econ</th><th style="text-align:right">Dots</th></tr></thead>
+        <tbody>${bowlerRows}</tbody></table>
+      </div>
+      <h2>🤝 Top Partnerships</h2>
+      <div class="card">
+        <table><thead><tr><th>#</th><th>Partnership</th><th style="text-align:right">Runs</th><th style="text-align:right">Balls</th><th style="text-align:right">RR</th></tr></thead>
+        <tbody>${partnershipRows || '<tr><td colspan="5" style="text-align:center;color:#64748b">No data</td></tr>'}</tbody></table>
+      </div>
+      <h2>📊 Dismissal Types</h2>
+      <div class="card">
+        <table><thead><tr><th>Type</th><th style="text-align:right">Count</th></tr></thead>
+        <tbody>${dismissalRows || '<tr><td colspan="2" style="text-align:center;color:#64748b">No data</td></tr>'}</tbody></table>
+      </div>
+    `;
+    downloadHTML(html, 'cricket_analytics_report');
+  };
+
   const exportCSV = () => {
     let csv = 'CRICKET ANALYTICS REPORT\n\n';
 
@@ -316,13 +382,22 @@ export default function Analytics() {
           <h1 className="text-2xl font-bold text-white mb-1">Analytics</h1>
           <p className="text-slate-400 text-sm">Performance insights and statistics</p>
         </div>
-        <button
-          onClick={exportCSV}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/30 transition-all text-sm font-medium"
-        >
-          <Download className="w-4 h-4" />
-          Export CSV
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={exportHTML}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500/20 border border-blue-500/40 text-blue-400 hover:bg-blue-500/30 transition-all text-sm font-medium"
+          >
+            <FileText className="w-4 h-4" />
+            HTML
+          </button>
+          <button
+            onClick={exportCSV}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/30 transition-all text-sm font-medium"
+          >
+            <Download className="w-4 h-4" />
+            CSV
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-3 mb-6 flex-wrap">
