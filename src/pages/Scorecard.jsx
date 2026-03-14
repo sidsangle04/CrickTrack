@@ -12,8 +12,10 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
-  Trophy
+  Trophy,
+  FileText
 } from 'lucide-react';
+import { downloadHTML } from '../components/utils/htmlExport';
 import WagonWheel from '../components/analytics/WagonWheel';
 import PitchHeatmap from '../components/analytics/PitchHeatmap';
 import { Button } from '@/components/ui/button';

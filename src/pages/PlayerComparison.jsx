@@ -3,7 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { Users, TrendingUp, Target, Zap, Award, Shield, Loader2, ArrowLeftRight } from 'lucide-react';
+import { Users, TrendingUp, Target, Zap, Award, Shield, Loader2, ArrowLeftRight, Download } from 'lucide-react';
+import { downloadHTML } from '../components/utils/htmlExport';
 
 const PLAYER_A_COLOR = '#10b981';
 const PLAYER_B_COLOR = '#f59e0b';
