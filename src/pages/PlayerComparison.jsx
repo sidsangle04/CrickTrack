@@ -171,6 +171,100 @@ export default function PlayerComparison() {
     { name: 'Wickets', A: statsA.bowling.wickets, B: statsB.bowling.wickets },
   ] : [];
 
+  const exportHTML = () => {
+    if (!statsA || !statsB || !playerA || !playerB) return;
+
+    const batStats = [
+      ['Runs', statsA.batting.runs, statsB.batting.runs],
+      ['Average', statsA.batting.average, statsB.batting.average],
+      ['Strike Rate', statsA.batting.strikeRate, statsB.batting.strikeRate],
+      ['High Score', statsA.batting.highScore, statsB.batting.highScore],
+      ['Innings', statsA.batting.innings, statsB.batting.innings],
+      ['Fours', statsA.batting.fours, statsB.batting.fours],
+      ['Sixes', statsA.batting.sixes, statsB.batting.sixes],
+      ['50s', statsA.batting.fifties, statsB.batting.fifties],
+      ['100s', statsA.batting.hundreds, statsB.batting.hundreds],
+      ['Dot Ball %', statsA.batting.dotPct, statsB.batting.dotPct],
+    ];
+    const bowlStats = [
+      ['Wickets', statsA.bowling.wickets, statsB.bowling.wickets],
+      ['Economy', statsA.bowling.economy, statsB.bowling.economy],
+      ['Average', statsA.bowling.average, statsB.bowling.average],
+      ['Dot Balls', statsA.bowling.dots, statsB.bowling.dots],
+      ['Maidens', statsA.bowling.maidens, statsB.bowling.maidens],
+      ['5-Wicket Hauls', statsA.bowling.fiveWickets, statsB.bowling.fiveWickets],
+    ];
+
+    const compareRows = (rows) => rows.map(([label, a, b]) => `
+      <div class="compare-row">
+        <span class="compare-a">${a}</span>
+        <span class="compare-lbl">${label}</span>
+        <span class="compare-b">${b}</span>
+      </div>`).join('');
+
+    const verdictBetter = parseFloat(statsA.batting.average) >= parseFloat(statsB.batting.average) ? playerA.name : playerB.name;
+    const verdictExplosive = parseFloat(statsA.batting.strikeRate) >= parseFloat(statsB.batting.strikeRate) ? playerA.name : playerB.name;
+    const verdictBowler = statsA.bowling.wickets >= statsB.bowling.wickets ? playerA.name : playerB.name;
+    const verdictEcon = (parseFloat(statsA.bowling.economy)||99) <= (parseFloat(statsB.bowling.economy)||99) ? playerA.name : playerB.name;
+
+    const html = `
+      <h1>Player Comparison Report</h1>
+      <p>Generated ${new Date().toLocaleDateString()}</p>
+      <div class="grid2" style="margin-top:16px">
+        <div class="player-header player-a">
+          <div style="font-size:1.25rem;font-weight:800;color:#10b981">${playerA.name}</div>
+          <div style="color:#64748b;font-size:0.8rem">${teamsMap[playerA.team_id]?.name || ''}</div>
+          <div style="color:#475569;font-size:0.75rem;margin-top:2px">${playerA.role?.replace('_',' ') || ''}</div>
+        </div>
+        <div class="player-header player-b">
+          <div style="font-size:1.25rem;font-weight:800;color:#f59e0b">${playerB.name}</div>
+          <div style="color:#64748b;font-size:0.8rem">${teamsMap[playerB.team_id]?.name || ''}</div>
+          <div style="color:#475569;font-size:0.75rem;margin-top:2px">${playerB.role?.replace('_',' ') || ''}</div>
+        </div>
+      </div>
+      <h2>🏏 Batting Head-to-Head</h2>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid #334155;margin-bottom:4px">
+          <span style="color:#10b981;font-weight:700">${playerA.name}</span>
+          <span style="color:#64748b;font-size:0.75rem">Stat</span>
+          <span style="color:#f59e0b;font-weight:700">${playerB.name}</span>
+        </div>
+        ${compareRows(batStats)}
+      </div>
+      <h2>🎯 Bowling Head-to-Head</h2>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid #334155;margin-bottom:4px">
+          <span style="color:#10b981;font-weight:700">${playerA.name}</span>
+          <span style="color:#64748b;font-size:0.75rem">Stat</span>
+          <span style="color:#f59e0b;font-weight:700">${playerB.name}</span>
+        </div>
+        ${compareRows(bowlStats)}
+      </div>
+      <h2>🏆 Quick Verdict</h2>
+      <div class="card">
+        <div class="verdict-grid">
+          <div class="verdict-card ${verdictBetter===playerA.name?'verdict-a':'verdict-b'}">
+            <div style="font-size:0.75rem;color:#64748b">Better Batter</div>
+            <div style="font-weight:700;color:${verdictBetter===playerA.name?'#10b981':'#f59e0b'}">${verdictBetter}</div>
+          </div>
+          <div class="verdict-card ${verdictExplosive===playerA.name?'verdict-a':'verdict-b'}">
+            <div style="font-size:0.75rem;color:#64748b">More Explosive</div>
+            <div style="font-weight:700;color:${verdictExplosive===playerA.name?'#10b981':'#f59e0b'}">${verdictExplosive}</div>
+          </div>
+          <div class="verdict-card ${verdictBowler===playerA.name?'verdict-a':'verdict-b'}">
+            <div style="font-size:0.75rem;color:#64748b">Better Bowler</div>
+            <div style="font-weight:700;color:${verdictBowler===playerA.name?'#10b981':'#f59e0b'}">${verdictBowler}</div>
+          </div>
+          <div class="verdict-card ${verdictEcon===playerA.name?'verdict-a':'verdict-b'}">
+            <div style="font-size:0.75rem;color:#64748b">More Economical</div>
+            <div style="font-weight:700;color:${verdictEcon===playerA.name?'#10b981':'#f59e0b'}">${verdictEcon}</div>
+          </div>
+        </div>
+      </div>
+    `;
+    downloadHTML(html, `comparison_${playerA.name}_vs_${playerB.name}`);
+  };
+
   if (playersLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -181,9 +275,20 @@ export default function PlayerComparison() {
 
   return (
     <div className="pb-24 md:pb-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">Player Comparison</h1>
-        <p className="text-slate-400 text-sm">Head-to-head stats between two players</p>
+      <div className="mb-6 flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-white mb-1">Player Comparison</h1>
+          <p className="text-slate-400 text-sm">Head-to-head stats between two players</p>
+        </div>
+        {statsA && statsB && (
+          <button
+            onClick={exportHTML}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500/20 border border-blue-500/40 text-blue-400 hover:bg-blue-500/30 transition-all text-sm font-medium"
+          >
+            <Download className="w-4 h-4" />
+            Export HTML
+          </button>
+        )}
       </div>
 
       {/* Player Selectors */}
