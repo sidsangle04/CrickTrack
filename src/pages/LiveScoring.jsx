@@ -434,12 +434,13 @@ export default function LiveScoring() {
         bowling_team_id: currentInnings.batting_team_id
       });
 
+      const latestInn1 = updatedInnings.find(i => i.innings_number === 1 && !i.is_super_over);
       await base44.entities.Innings.create({
         match_id: matchId,
         innings_number: 2,
         batting_team_id: currentInnings.bowling_team_id,
         bowling_team_id: currentInnings.batting_team_id,
-        target: currentInnings.total_runs + 1,
+        target: (latestInn1?.total_runs ?? currentInnings.total_runs) + 1,
         status: 'not_started'
       });
 
