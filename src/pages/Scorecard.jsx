@@ -96,6 +96,64 @@ export default function Scorecard() {
     return `${overs}.${remainingBalls}`;
   };
 
+  const exportHTML = () => {
+    const inningsRows = regularInnings.map(inn => {
+      const inningsBatters = batterInnings.filter(b => b.innings_id === inn.id).sort((a, b) => a.batting_position - b.batting_position);
+      const inningsBowlers = bowlerInnings.filter(b => b.innings_id === inn.id);
+      const teamName = teamsMap[inn.batting_team_id]?.name || 'Team';
+      const extras = (inn.extras_wide||0)+(inn.extras_no_ball||0)+(inn.extras_byes||0)+(inn.extras_leg_byes||0);
+
+      const batterRows = inningsBatters.map(b => {
+        const player = playersMap[b.player_id];
+        const sr = b.balls_faced > 0 ? ((b.runs/b.balls_faced)*100).toFixed(1) : '0.0';
+        return `<tr><td>${player?.name||'Unknown'}<br/><small style="color:#64748b">${getDismissalText(b)}</small></td>
+          <td style="text-align:right;font-weight:700">${b.runs}</td>
+          <td style="text-align:right">${b.balls_faced}</td>
+          <td style="text-align:right">${b.fours}</td>
+          <td style="text-align:right">${b.sixes}</td>
+          <td style="text-align:right">${sr}</td></tr>`;
+      }).join('');
+
+      const bowlerRows = inningsBowlers.map(b => {
+        const player = playersMap[b.player_id];
+        const totalOv = b.overs + b.balls/6;
+        const econ = totalOv > 0 ? (b.runs_conceded/totalOv).toFixed(2) : '0.00';
+        return `<tr><td>${player?.name||'Unknown'}</td>
+          <td style="text-align:right">${b.overs}.${b.balls%6}</td>
+          <td style="text-align:right">${b.maidens||0}</td>
+          <td style="text-align:right">${b.runs_conceded}</td>
+          <td style="text-align:right;font-weight:700">${b.wickets}</td>
+          <td style="text-align:right">${econ}</td></tr>`;
+      }).join('');
+
+      return `<h2>${teamName} Innings</h2>
+        <div class="card">
+          <div style="font-size:2rem;font-weight:900;color:#fff">${inn.total_runs}/${inn.total_wickets} <span style="font-size:1rem;color:#64748b">(${getOversDisplay(inn.total_balls)} ov)</span></div>
+          <div style="font-size:0.8rem;color:#64748b;margin-top:4px">Extras: ${extras} (Wd ${inn.extras_wide||0}, Nb ${inn.extras_no_ball||0}, B ${inn.extras_byes||0}, Lb ${inn.extras_leg_byes||0})</div>
+        </div>
+        <div class="card">
+          <h3>Batting</h3>
+          <table><thead><tr><th>Batter</th><th style="text-align:right">R</th><th style="text-align:right">B</th><th style="text-align:right">4s</th><th style="text-align:right">6s</th><th style="text-align:right">SR</th></tr></thead>
+          <tbody>${batterRows}</tbody></table>
+        </div>
+        <div class="card">
+          <h3>Bowling</h3>
+          <table><thead><tr><th>Bowler</th><th style="text-align:right">O</th><th style="text-align:right">M</th><th style="text-align:right">R</th><th style="text-align:right">W</th><th style="text-align:right">Econ</th></tr></thead>
+          <tbody>${bowlerRows}</tbody></table>
+        </div>`;
+    }).join('');
+
+    const team1 = teamsMap[match?.team1_id]?.name || 'Team 1';
+    const team2 = teamsMap[match?.team2_id]?.name || 'Team 2';
+    const html = `
+      <h1>${team1} vs ${team2}</h1>
+      <p class="meta">${match?.venue || ''} &nbsp;|&nbsp; ${match?.date || ''}</p>
+      ${match?.result ? `<div class="result-box">🏆 ${match.result}</div>` : ''}
+      ${inningsRows}
+    `;
+    downloadHTML(html, `scorecard_${team1}_vs_${team2}`);
+  };
+
   const exportCSV = () => {
     let csv = 'Match Scorecard\n\n';
     
@@ -169,9 +227,13 @@ export default function Scorecard() {
             </h1>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={exportHTML} className="border-slate-700">
+              <FileText className="w-4 h-4 mr-2" />
+              HTML
+            </Button>
             <Button variant="outline" size="sm" onClick={exportCSV} className="border-slate-700">
               <Download className="w-4 h-4 mr-2" />
-              Export
+              CSV
             </Button>
           </div>
         </div>
