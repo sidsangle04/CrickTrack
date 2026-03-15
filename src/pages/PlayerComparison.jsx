@@ -286,6 +286,7 @@ export default function PlayerComparison() {
         </div>
         ${compareRows(bowlStats)}
       </div>
+      ${visualSection}
       <h2>🏆 Quick Verdict</h2>
       <div class="card">
         <div class="verdict-grid">
