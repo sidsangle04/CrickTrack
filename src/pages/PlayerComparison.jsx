@@ -213,6 +213,46 @@ export default function PlayerComparison() {
     const verdictBowler = statsA.bowling.wickets >= statsB.bowling.wickets ? playerA.name : playerB.name;
     const verdictEcon = (parseFloat(statsA.bowling.economy)||99) <= (parseFloat(statsB.bowling.economy)||99) ? playerA.name : playerB.name;
 
+    // Per-player visual data
+    const delivA = allDeliveries.filter(d => d.striker_id === playerAId);
+    const delivB = allDeliveries.filter(d => d.striker_id === playerBId);
+    const pitchA = allDeliveries.filter(d => d.bowler_id === playerAId);
+    const pitchB = allDeliveries.filter(d => d.bowler_id === playerBId);
+
+    const visualA = delivA.some(d => d.shot_x != null) ? `
+      <div class="card" style="text-align:center">
+        <h3 style="margin-bottom:8px;color:#10b981">${playerA.name} – Wagon Wheel</h3>
+        ${generateWagonWheelSVG(delivA, 220)}
+        ${wagonWheelLegend(delivA.filter(d => d.shot_x != null))}
+      </div>` : '';
+
+    const visualB = delivB.some(d => d.shot_x != null) ? `
+      <div class="card" style="text-align:center">
+        <h3 style="margin-bottom:8px;color:#f59e0b">${playerB.name} – Wagon Wheel</h3>
+        ${generateWagonWheelSVG(delivB, 220)}
+        ${wagonWheelLegend(delivB.filter(d => d.shot_x != null))}
+      </div>` : '';
+
+    const pitchMapA = pitchA.some(d => d.pitch_x != null) ? `
+      <div class="card" style="text-align:center">
+        <h3 style="margin-bottom:8px;color:#10b981">${playerA.name} – Pitch Map</h3>
+        ${generatePitchMapSVG(pitchA, 120, 260)}
+        ${pitchLegend()}
+      </div>` : '';
+
+    const pitchMapB = pitchB.some(d => d.pitch_x != null) ? `
+      <div class="card" style="text-align:center">
+        <h3 style="margin-bottom:8px;color:#f59e0b">${playerB.name} – Pitch Map</h3>
+        ${generatePitchMapSVG(pitchB, 120, 260)}
+        ${pitchLegend()}
+      </div>` : '';
+
+    const visualSection = (visualA || visualB || pitchMapA || pitchMapB) ? `
+      <h2>🗺️ Visual Analytics</h2>
+      ${(visualA || visualB) ? `<div class="grid2">${visualA}${visualB}</div>` : ''}
+      ${(pitchMapA || pitchMapB) ? `<div class="grid2">${pitchMapA}${pitchMapB}</div>` : ''}
+    ` : '';
+
     const html = `
       <h1>Player Comparison Report</h1>
       <p>Generated ${new Date().toLocaleDateString()}</p>
