@@ -146,11 +146,31 @@ export default function Scorecard() {
 
     const team1 = teamsMap[match?.team1_id]?.name || 'Team 1';
     const team2 = teamsMap[match?.team2_id]?.name || 'Team 2';
+
+    const shotDeliveries = allDeliveries.filter(d => d.shot_x != null);
+    const pitchDeliveries = allDeliveries.filter(d => d.pitch_x != null);
+    const visualSection = (shotDeliveries.length > 0 || pitchDeliveries.length > 0) ? `
+      <h2>📊 Visual Analytics</h2>
+      <div class="grid2">
+        ${shotDeliveries.length > 0 ? `<div class="card" style="text-align:center">
+          <h3 style="margin-bottom:12px">Wagon Wheel</h3>
+          ${generateWagonWheelSVG(allDeliveries, 240)}
+          ${wagonWheelLegend(shotDeliveries)}
+        </div>` : ''}
+        ${pitchDeliveries.length > 0 ? `<div class="card" style="text-align:center">
+          <h3 style="margin-bottom:12px">Pitch Map</h3>
+          ${generatePitchMapSVG(allDeliveries, 130, 280)}
+          ${pitchLegend()}
+        </div>` : ''}
+      </div>
+    ` : '';
+
     const html = `
       <h1>${team1} vs ${team2}</h1>
       <p class="meta">${match?.venue || ''} &nbsp;|&nbsp; ${match?.date || ''}</p>
       ${match?.result ? `<div class="result-box">🏆 ${match.result}</div>` : ''}
       ${inningsRows}
+      ${visualSection}
     `;
     downloadHTML(html, `scorecard_${team1}_vs_${team2}`);
   };

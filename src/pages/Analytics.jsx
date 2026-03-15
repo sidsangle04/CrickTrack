@@ -284,6 +284,24 @@ export default function Analytics() {
     const totalWickets = Object.values(playerWickets).reduce((s, p) => s + p.wickets, 0);
     const totalBoundaries = boundaryData.reduce((s, b) => s + b.value, 0);
 
+    const shotDeliveries = filteredDeliveries.filter(d => d.shot_x != null);
+    const pitchDeliveries = filteredDeliveries.filter(d => d.pitch_x != null);
+    const visualSection = (shotDeliveries.length > 0 || pitchDeliveries.length > 0) ? `
+      <h2>🗺️ Visual Analytics</h2>
+      <div class="grid2">
+        ${shotDeliveries.length > 0 ? `<div class="card" style="text-align:center">
+          <h3 style="margin-bottom:12px">Overall Wagon Wheel</h3>
+          ${generateWagonWheelSVG(filteredDeliveries, 240)}
+          ${wagonWheelLegend(shotDeliveries)}
+        </div>` : ''}
+        ${pitchDeliveries.length > 0 ? `<div class="card" style="text-align:center">
+          <h3 style="margin-bottom:12px">Overall Pitch Map</h3>
+          ${generatePitchMapSVG(filteredDeliveries, 130, 280)}
+          ${pitchLegend()}
+        </div>` : ''}
+      </div>
+    ` : '';
+
     const html = `
       <h1>Cricket Analytics Report</h1>
       <p>Generated ${new Date().toLocaleDateString()}</p>
@@ -293,6 +311,7 @@ export default function Analytics() {
         <div class="stat-box"><div class="stat-val amber">${totalBoundaries}</div><div class="stat-lbl">Boundaries</div></div>
         <div class="stat-box"><div class="stat-val">${selectedMatch === 'all' ? matches.length : 1}</div><div class="stat-lbl">Matches</div></div>
       </div>
+      ${visualSection}
       <h2>🏏 Batting Leaderboard</h2>
       <div class="card">
         <table><thead><tr><th>#</th><th>Player</th><th>Inn</th><th style="text-align:right">Runs</th><th style="text-align:right">Avg</th><th style="text-align:right">SR</th><th style="text-align:right">4s</th><th style="text-align:right">6s</th></tr></thead>
