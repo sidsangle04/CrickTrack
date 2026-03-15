@@ -27,6 +27,7 @@ import {
   Map } from
 'lucide-react';
 import { downloadHTML } from '../components/utils/htmlExport';
+import { generateWagonWheelSVG, generatePitchMapSVG, wagonWheelLegend, pitchLegend } from '../components/utils/svgExport';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import WagonWheel from '../components/analytics/WagonWheel';

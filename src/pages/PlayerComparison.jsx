@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { Users, TrendingUp, Target, Zap, Award, Shield, Loader2, ArrowLeftRight, Download } from 'lucide-react';
 import { downloadHTML } from '../components/utils/htmlExport';
+import { generateWagonWheelSVG, generatePitchMapSVG, wagonWheelLegend, pitchLegend } from '../components/utils/svgExport';
 
 const PLAYER_A_COLOR = '#10b981';
 const PLAYER_B_COLOR = '#f59e0b';
