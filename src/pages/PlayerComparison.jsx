@@ -91,6 +91,11 @@ export default function PlayerComparison() {
     queryFn: () => base44.entities.BowlerInnings.list()
   });
 
+  const { data: allDeliveries = [] } = useQuery({
+    queryKey: ['all-deliveries-analytics'],
+    queryFn: () => base44.entities.Delivery.filter({ is_voided: false })
+  });
+
   const { data: teams = [] } = useQuery({
     queryKey: ['teams'],
     queryFn: () => base44.entities.Team.list()
