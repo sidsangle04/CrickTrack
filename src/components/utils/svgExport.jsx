@@ -3,80 +3,70 @@
  * to be embedded in exported HTML reports.
  */
 
-// ── Wagon Wheel ──────────────────────────────────────────────────────────────
-
-const REGION_LABELS = [
-  { label: 'Fine Leg',   angle: 38,  r: 0.82 },
-  { label: 'Sq Leg',     angle: 90,  r: 0.84 },
-  { label: 'Mid Wicket', angle: 122, r: 0.80 },
-  { label: 'Mid On',     angle: 152, r: 0.82 },
-  { label: 'Straight',   angle: 178, r: 0.82 },
-  { label: 'Mid Off',    angle: 208, r: 0.82 },
-  { label: 'Cover',      angle: 242, r: 0.80 },
-  { label: 'Point',      angle: 272, r: 0.84 },
-  { label: 'Gully',      angle: 310, r: 0.68 },
-  { label: 'Third Man',  angle: 332, r: 0.82 },
-];
-
-const SECTOR_ANGLES = [22, 60, 105, 135, 165, 195, 225, 248, 270, 300, 324, 355];
-
-function shotColor(runs, isWicket) {
-  if (isWicket) return '#ef4444';
-  if (runs === 6) return '#f59e0b';
-  if (runs === 4) return '#10b981';
-  if (runs === 0) return '#64748b';
-  return '#60a5fa';
-}
+// ── Wagon Wheel (Rectangular Turf Ground) ───────────────────────────────────
 
 export function generateWagonWheelSVG(deliveries = [], size = 260) {
   const shots = deliveries.filter(d => d.shot_x != null && d.shot_y != null && !d.is_voided);
-  const cx = size / 2;
-  const cy = size / 2;
-  const R = size / 2 - 12;
+  const W = Math.round(size * 0.72);
+  const H = size;
+  const pad = 12;
+  const gX = pad, gY = pad;
+  const gW = W - pad * 2;
+  const gH = H - pad * 2;
+  const cx = W / 2;
+  const cy = H / 2;
+  const rX = gW / 2 * 0.87;
+  const rY = gH / 2 * 0.87;
+  const pitchW = gW * 0.13;
+  const pitchH = gH * 0.44;
+  const pitchX = cx - pitchW / 2;
+  const pitchY = cy - pitchH / 2;
+  const so = [-pitchW * 0.32, 0, pitchW * 0.32];
 
-  const labelToSvg = (angle, r) => {
-    const rad = (angle - 90) * Math.PI / 180;
-    return { lx: cx + Math.cos(rad) * R * r, ly: cy + Math.sin(rad) * R * r };
+  const getBoundaryPoint = (x, y) => {
+    const dx = x * rX, dy = -y * rY;
+    if (dx === 0 && dy === 0) return { ex: cx, ey: cy };
+    const sX = dx !== 0 ? (gW / 2 - 3) / Math.abs(dx) : Infinity;
+    const sY = dy !== 0 ? (gH / 2 - 3) / Math.abs(dy) : Infinity;
+    const s = Math.min(sX, sY);
+    return { ex: cx + dx * s, ey: cy + dy * s };
   };
 
-  const toSvg = (x, y) => ({ sx: cx + x * R, sy: cy - y * R });
+  const stripes = Array.from({ length: 8 }).map((_, i) =>
+    `<rect x="${gX}" y="${(gY + i * gH / 8).toFixed(1)}" width="${gW}" height="${(gH/8).toFixed(1)}" fill="${i%2===0?'#166534':'#15803d'}" opacity="0.5"/>`
+  ).join('');
 
-  const sectorLines = SECTOR_ANGLES.map(deg => {
-    const rad = (deg - 90) * Math.PI / 180;
-    return `<line x1="${cx}" y1="${cy}" x2="${cx + Math.cos(rad) * R}" y2="${cy + Math.sin(rad) * R}" stroke="#14532d" stroke-width="0.8" stroke-dasharray="3,8"/>`;
-  }).join('');
-
-  const regionLabels = REGION_LABELS.map(({ label, angle, r }) => {
-    const { lx, ly } = labelToSvg(angle, r);
-    return `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" fill="#bbf7d0" font-size="9" font-weight="500" opacity="0.9">${label}</text>`;
-  }).join('');
+  const stumpsSvg = so.map(off =>
+    `<line x1="${(cx+off).toFixed(1)}" y1="${(pitchY+pitchH*0.08).toFixed(1)}" x2="${(cx+off).toFixed(1)}" y2="${(pitchY-pitchH*0.06).toFixed(1)}" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round"/>
+     <line x1="${(cx+off).toFixed(1)}" y1="${(pitchY+pitchH*0.92).toFixed(1)}" x2="${(cx+off).toFixed(1)}" y2="${(pitchY+pitchH*1.06).toFixed(1)}" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round"/>`
+  ).join('');
 
   const shotMarkers = shots.map(s => {
-    const { sx, sy } = toSvg(s.shot_x, s.shot_y);
+    const sx = cx + s.shot_x * rX, sy = cy - s.shot_y * rY;
     const runs = s.runs_bat || 0;
-    const col = shotColor(runs, s.is_wicket);
+    const col = s.is_wicket ? '#ef4444' : runs===6 ? '#f59e0b' : runs===4 ? '#10b981' : runs===0 ? '#64748b' : '#60a5fa';
     const isBoundary = runs === 4 || runs === 6;
-    const dist = Math.sqrt(s.shot_x * s.shot_x + s.shot_y * s.shot_y) || 1;
-    const ex = isBoundary ? cx + (s.shot_x / dist) * R : sx;
-    const ey = isBoundary ? cy - (s.shot_y / dist) * R : sy;
-    return `<line x1="${cx}" y1="${cy}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${col}" stroke-width="${isBoundary ? 1.8 : 1.2}" opacity="${isBoundary ? 0.75 : 0.5}"/>
-<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="5" fill="${col}" opacity="0.9"/>`;
+    const dx = s.shot_x * rX, dy = -s.shot_y * rY;
+    let ex = sx, ey = sy;
+    if (isBoundary && (dx !== 0 || dy !== 0)) {
+      const sX = dx !== 0 ? (gW/2-3)/Math.abs(dx) : Infinity;
+      const sY = dy !== 0 ? (gH/2-3)/Math.abs(dy) : Infinity;
+      const sc = Math.min(sX, sY);
+      ex = cx + dx * sc; ey = cy + dy * sc;
+    }
+    return `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${col}" stroke-width="${isBoundary?2:1.4}" opacity="${isBoundary?0.8:0.55}"/>
+<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="5" fill="${col}" opacity="0.92" stroke="#000" stroke-width="0.5"/>`;
   }).join('');
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-  <circle cx="${cx}" cy="${cy}" r="${R}" fill="#166534" stroke="#22c55e" stroke-width="2.5"/>
-  <circle cx="${cx}" cy="${cy}" r="${R * 0.95}" fill="none" stroke="#14532d" stroke-width="${R * 0.08}" opacity="0.35"/>
-  <circle cx="${cx}" cy="${cy}" r="${R * 0.48}" fill="#16a34a" opacity="0.5"/>
-  <circle cx="${cx}" cy="${cy}" r="${R * 0.48}" fill="none" stroke="#bbf7d0" stroke-width="1.5" stroke-dasharray="6,5" opacity="0.7"/>
-  ${sectorLines}
-  <rect x="${cx - R * 0.045}" y="${cy - R * 0.23}" width="${R * 0.09}" height="${R * 0.46}" fill="#ca8a04" stroke="#fbbf24" stroke-width="1" rx="2"/>
-  <line x1="${cx - R*0.1}" y1="${cy - R*0.23}" x2="${cx + R*0.1}" y2="${cy - R*0.23}" stroke="#fff" stroke-width="1.2"/>
-  <line x1="${cx - R*0.1}" y1="${cy + R*0.23}" x2="${cx + R*0.1}" y2="${cy + R*0.23}" stroke="#fff" stroke-width="1.2"/>
-  <circle cx="${cx}" cy="${cy - R*0.32}" r="${R*0.025}" fill="#ef4444"/>
-  <text x="${cx + R*0.04}" y="${cy - R*0.31}" fill="#fca5a5" font-size="8" dominant-baseline="middle">WK</text>
-  ${regionLabels}
-  <text x="${cx - R * 0.82}" y="${cy - R * 0.05}" fill="#6ee7b7" font-size="10" text-anchor="middle" font-weight="bold">OFF</text>
-  <text x="${cx + R * 0.82}" y="${cy - R * 0.05}" fill="#fcd34d" font-size="10" text-anchor="middle" font-weight="bold">LEG</text>
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  <rect x="0" y="0" width="${W}" height="${H}" fill="#0d1f0d" rx="6"/>
+  <rect x="${gX}" y="${gY}" width="${gW}" height="${gH}" fill="#15803d" rx="3"/>
+  ${stripes}
+  <rect x="${gX+3}" y="${gY+3}" width="${gW-6}" height="${gH-6}" fill="none" stroke="white" stroke-width="1.8" rx="2"/>
+  <rect x="${pitchX.toFixed(1)}" y="${pitchY.toFixed(1)}" width="${pitchW.toFixed(1)}" height="${pitchH.toFixed(1)}" fill="#78350f" stroke="#d97706" stroke-width="1" rx="2"/>
+  <line x1="${(pitchX-pitchW*0.6).toFixed(1)}" y1="${(pitchY+pitchH*0.1).toFixed(1)}" x2="${(pitchX+pitchW*1.6).toFixed(1)}" y2="${(pitchY+pitchH*0.1).toFixed(1)}" stroke="white" stroke-width="1"/>
+  <line x1="${(pitchX-pitchW*0.6).toFixed(1)}" y1="${(pitchY+pitchH*0.9).toFixed(1)}" x2="${(pitchX+pitchW*1.6).toFixed(1)}" y2="${(pitchY+pitchH*0.9).toFixed(1)}" stroke="white" stroke-width="1"/>
+  ${stumpsSvg}
   ${shotMarkers}
 </svg>`;
 }

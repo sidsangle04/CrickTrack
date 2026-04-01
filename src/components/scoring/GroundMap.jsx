@@ -8,7 +8,6 @@ export function classifyShot(x, y) {
   const dist = Math.sqrt(x * x + y * y);
 
   let region;
-  // 0° = right (LEG), 90° = bottom (toward bowler), 180° = left (OFF), 270° = top (toward WK)
   if (normalized >= 345 || normalized < 20)  region = 'Square Leg';
   else if (normalized >= 20  && normalized < 60)  region = 'Mid Wicket';
   else if (normalized >= 60  && normalized < 80)  region = 'Mid On';
@@ -28,55 +27,50 @@ export function classifyShot(x, y) {
   return { region, side, distance };
 }
 
-// angle: 0=top, clockwise. lx = cx + cos((a-90)*π/180)*R*r, ly = cy + sin((a-90)*π/180)*R*r
-const REGION_LABELS = [
-  { label: 'Fine Leg',   angle: 38,  r: 0.82 },
-  { label: 'Sq Leg',     angle: 90,  r: 0.84 },
-  { label: 'Mid Wicket', angle: 122, r: 0.80 },
-  { label: 'Mid On',     angle: 152, r: 0.82 },
-  { label: 'Straight',   angle: 178, r: 0.82 },
-  { label: 'Mid Off',    angle: 208, r: 0.82 },
-  { label: 'Cover',      angle: 242, r: 0.80 },
-  { label: 'Point',      angle: 272, r: 0.84 },
-  { label: 'Gully',      angle: 310, r: 0.68 },
-  { label: 'Third Man',  angle: 332, r: 0.82 },
-];
-
-// Sector boundary lines (label-angle system, 0=top, clockwise)
-const SECTOR_ANGLES = [22, 60, 105, 135, 165, 195, 225, 248, 270, 300, 324, 355];
-
 export default function GroundMap({ onShot, shots = [], highlightShot = null, size = 280 }) {
   const svgRef = useRef();
-  const cx = size / 2;
-  const cy = size / 2;
-  const R = (size / 2) - 12;
 
-  // label-angle → SVG coordinate
-  const labelToSvg = (angle, r) => {
-    const rad = (angle - 90) * Math.PI / 180;
-    return {
-      lx: cx + Math.cos(rad) * R * r,
-      ly: cy + Math.sin(rad) * R * r,
-    };
-  };
+  // Rectangular turf ground — portrait orientation
+  const W = Math.round(size * 0.72);
+  const H = size;
+  const pad = 12;
+  const gX = pad, gY = pad;
+  const gW = W - pad * 2;
+  const gH = H - pad * 2;
+  const cx = W / 2;
+  const cy = H / 2;
 
-  // shot coordinate → SVG (x right=LEG, y up=toward WK)
+  // Usable shot mapping radius (so shots don't land on boundary line)
+  const rX = gW / 2 * 0.87;
+  const rY = gH / 2 * 0.87;
+
   const toSvg = (x, y) => ({
-    sx: cx + x * R,
-    sy: cy - y * R,
+    sx: cx + x * rX,
+    sy: cy - y * rY,
   });
+
+  // Find where direction (dx,dy) from center hits the ground rectangle edge
+  const getBoundaryPoint = (x, y) => {
+    const dx = x * rX;
+    const dy = -y * rY;
+    if (dx === 0 && dy === 0) return { ex: cx, ey: cy };
+    const edgeX = gW / 2 - 3;
+    const edgeY = gH / 2 - 3;
+    const sX = dx !== 0 ? edgeX / Math.abs(dx) : Infinity;
+    const sY = dy !== 0 ? edgeY / Math.abs(dy) : Infinity;
+    const s = Math.min(sX, sY);
+    return { ex: cx + dx * s, ey: cy + dy * s };
+  };
 
   const handleClick = (e) => {
     if (!onShot) return;
     const rect = svgRef.current.getBoundingClientRect();
-    const px = e.clientX - rect.left;
-    const py = e.clientY - rect.top;
-    const x = (px - cx) / R;
-    const y = -(py - cy) / R;
-    const dist = Math.sqrt(x * x + y * y);
-    if (dist > 1.05) return;
-    const classified = classifyShot(x, y);
-    onShot({ x, y, ...classified });
+    const px = (e.clientX - rect.left) * (W / rect.width);
+    const py = (e.clientY - rect.top) * (H / rect.height);
+    if (px < gX || px > gX + gW || py < gY || py > gY + gH) return;
+    const x = Math.max(-1, Math.min(1, (px - cx) / rX));
+    const y = Math.max(-1, Math.min(1, -(py - cy) / rY));
+    onShot({ x, y, ...classifyShot(x, y) });
   };
 
   const shotColor = (s) => {
@@ -87,106 +81,113 @@ export default function GroundMap({ onShot, shots = [], highlightShot = null, si
     return '#60a5fa';
   };
 
+  // Pitch strip dimensions
+  const pitchW = gW * 0.13;
+  const pitchH = gH * 0.44;
+  const pitchX = cx - pitchW / 2;
+  const pitchY = cy - pitchH / 2;
+
+  // Stump x positions relative to pitch center
+  const stumpOffsets = [-pitchW * 0.32, 0, pitchW * 0.32];
+
   return (
     <svg
       ref={svgRef}
-      width={size}
-      height={size}
+      width={W}
+      height={H}
       onClick={handleClick}
-      className="cursor-crosshair select-none"
+      className={onShot ? 'cursor-crosshair select-none' : 'select-none'}
       style={{ touchAction: 'none' }}
+      viewBox={`0 0 ${W} ${H}`}
     >
-      {/* Outer boundary */}
-      <circle cx={cx} cy={cy} r={R} fill="#166534" stroke="#22c55e" strokeWidth="2.5" />
+      {/* Dark cage background */}
+      <rect x={0} y={0} width={W} height={H} fill="#0d1f0d" rx="6" />
 
-      {/* Outfield ring shading */}
-      <circle cx={cx} cy={cy} r={R * 0.95} fill="none" stroke="#14532d" strokeWidth={R * 0.08} opacity="0.35" />
+      {/* Green turf */}
+      <rect x={gX} y={gY} width={gW} height={gH} fill="#15803d" rx="3" />
 
-      {/* 30-yard inner circle */}
-      <circle cx={cx} cy={cy} r={R * 0.48} fill="#15803d" stroke="#bbf7d0" strokeWidth="1.5" strokeDasharray="6,5" opacity="0.7" />
+      {/* Subtle alternating mow stripes */}
+      {Array.from({ length: 8 }).map((_, i) => (
+        <rect
+          key={i}
+          x={gX} y={gY + i * (gH / 8)}
+          width={gW} height={gH / 8}
+          fill={i % 2 === 0 ? '#166534' : '#15803d'}
+          opacity="0.5"
+        />
+      ))}
 
-      {/* Infield grass */}
-      <circle cx={cx} cy={cy} r={R * 0.48} fill="#16a34a" opacity="0.5" />
+      {/* White boundary line */}
+      <rect x={gX + 3} y={gY + 3} width={gW - 6} height={gH - 6}
+        fill="none" stroke="white" strokeWidth="1.8" rx="2" />
 
-      {/* Sector lines */}
-      {SECTOR_ANGLES.map(deg => {
-        const rad = (deg - 90) * Math.PI / 180;
-        return (
-          <line key={deg}
-            x1={cx} y1={cy}
-            x2={cx + Math.cos(rad) * R}
-            y2={cy + Math.sin(rad) * R}
-            stroke="#14532d" strokeWidth="0.8" strokeDasharray="3,8"
-          />
-        );
-      })}
+      {/* Cage corner poles */}
+      {[[gX, gY], [gX + gW, gY], [gX, gY + gH], [gX + gW, gY + gH]].map(([px, py], i) => (
+        <circle key={i} cx={px} cy={py} r={3.5} fill="#374151" stroke="#6b7280" strokeWidth="0.8" />
+      ))}
 
-      {/* Pitch rectangle — vertical, batter-end top, bowler-end bottom */}
-      <rect
-        x={cx - R * 0.045} y={cy - R * 0.23}
-        width={R * 0.09} height={R * 0.46}
-        fill="#ca8a04" stroke="#fbbf24" strokeWidth="1" rx="2"
-      />
+      {/* Floodlight glow top corners */}
+      <circle cx={gX + gW * 0.15} cy={gY - 2} r={8} fill="#22d3ee" opacity="0.18" />
+      <circle cx={gX + gW * 0.85} cy={gY - 2} r={8} fill="#22d3ee" opacity="0.18" />
+      <circle cx={gX + gW * 0.15} cy={gY + gH + 2} r={8} fill="#22d3ee" opacity="0.18" />
+      <circle cx={gX + gW * 0.85} cy={gY + gH + 2} r={8} fill="#22d3ee" opacity="0.18" />
 
-      {/* Batting crease (top of pitch, batter's end toward WK) */}
-      <line x1={cx - R*0.1} y1={cy - R*0.23} x2={cx + R*0.1} y2={cy - R*0.23} stroke="#fff" strokeWidth="1.2" />
-      {/* Bowling crease (bottom, bowler's end) */}
-      <line x1={cx - R*0.1} y1={cy + R*0.23} x2={cx + R*0.1} y2={cy + R*0.23} stroke="#fff" strokeWidth="1.2" />
+      {/* Central pitch */}
+      <rect x={pitchX} y={pitchY} width={pitchW} height={pitchH}
+        fill="#78350f" stroke="#d97706" strokeWidth="1" rx="2" />
 
-      {/* Stumps batter end (top) */}
-      <line x1={cx - R*0.025} y1={cy - R*0.23} x2={cx - R*0.025} y2={cy - R*0.28} stroke="#fff" strokeWidth="2" />
-      <line x1={cx}            y1={cy - R*0.23} x2={cx}            y2={cy - R*0.28} stroke="#fff" strokeWidth="2" />
-      <line x1={cx + R*0.025} y1={cy - R*0.23} x2={cx + R*0.025} y2={cy - R*0.28} stroke="#fff" strokeWidth="2" />
+      {/* Crease lines */}
+      <line x1={pitchX - pitchW * 0.6} y1={pitchY + pitchH * 0.1}
+            x2={pitchX + pitchW * 1.6} y2={pitchY + pitchH * 0.1}
+            stroke="white" strokeWidth="1" />
+      <line x1={pitchX - pitchW * 0.6} y1={pitchY + pitchH * 0.9}
+            x2={pitchX + pitchW * 1.6} y2={pitchY + pitchH * 0.9}
+            stroke="white" strokeWidth="1" />
 
-      {/* Stumps bowler end (bottom) */}
-      <line x1={cx - R*0.025} y1={cy + R*0.23} x2={cx - R*0.025} y2={cy + R*0.28} stroke="#fff" strokeWidth="2" />
-      <line x1={cx}            y1={cy + R*0.23} x2={cx}            y2={cy + R*0.28} stroke="#fff" strokeWidth="2" />
-      <line x1={cx + R*0.025} y1={cy + R*0.23} x2={cx + R*0.025} y2={cy + R*0.28} stroke="#fff" strokeWidth="2" />
+      {/* Stumps — batter end (top) */}
+      {stumpOffsets.map((off, i) => (
+        <line key={`st${i}`}
+          x1={cx + off} y1={pitchY + pitchH * 0.08}
+          x2={cx + off} y2={pitchY - pitchH * 0.06}
+          stroke="#fbbf24" strokeWidth="2.2" strokeLinecap="round" />
+      ))}
 
-      {/* WK dot */}
-      <circle cx={cx} cy={cy - R*0.32} r={R*0.025} fill="#ef4444" />
-      <text x={cx + R*0.04} y={cy - R*0.31} fill="#fca5a5" fontSize={size < 250 ? 7 : 8} dominantBaseline="middle">WK</text>
+      {/* Bails top */}
+      <line x1={cx + stumpOffsets[0]} y1={pitchY - pitchH * 0.06}
+            x2={cx + stumpOffsets[2]} y2={pitchY - pitchH * 0.06}
+            stroke="#fbbf24" strokeWidth="1" />
 
-      {/* Bowler dot */}
-      <circle cx={cx} cy={cy + R*0.38} r={R*0.025} fill="#ef4444" />
-      <text x={cx + R*0.04} y={cy + R*0.38} fill="#fca5a5" fontSize={size < 250 ? 7 : 8} dominantBaseline="middle">B</text>
+      {/* Stumps — bowler end (bottom) */}
+      {stumpOffsets.map((off, i) => (
+        <line key={`sb${i}`}
+          x1={cx + off} y1={pitchY + pitchH * 0.92}
+          x2={cx + off} y2={pitchY + pitchH * 1.06}
+          stroke="#fbbf24" strokeWidth="2.2" strokeLinecap="round" />
+      ))}
 
-      {/* Region labels */}
-      {REGION_LABELS.map(({ label, angle, r }) => {
-        const { lx, ly } = labelToSvg(angle, r);
-        return (
-          <text key={label} x={lx} y={ly} textAnchor="middle" dominantBaseline="middle"
-            fill="#bbf7d0" fontSize={size < 250 ? 7 : 9} fontWeight="500" opacity="0.9">
-            {label}
-          </text>
-        );
-      })}
+      {/* Bails bottom */}
+      <line x1={cx + stumpOffsets[0]} y1={pitchY + pitchH * 1.06}
+            x2={cx + stumpOffsets[2]} y2={pitchY + pitchH * 1.06}
+            stroke="#fbbf24" strokeWidth="1" />
 
-      {/* OFF / LEG side labels */}
-      <text x={cx - R * 0.82} y={cy - R * 0.05} fill="#6ee7b7" fontSize={size < 250 ? 8 : 10} textAnchor="middle" fontWeight="bold">OFF</text>
-      <text x={cx + R * 0.82} y={cy - R * 0.05} fill="#fcd34d" fontSize={size < 250 ? 8 : 10} textAnchor="middle" fontWeight="bold">LEG</text>
-
-      {/* Shot markers */}
+      {/* Shot lines and markers */}
       {shots.map((s, i) => {
         const { sx, sy } = toSvg(s.x, s.y);
         const col = shotColor(s);
         const isBoundary = s.runs === 4 || s.runs === 6;
-        const dist = Math.sqrt(s.x * s.x + s.y * s.y) || 1;
-        // For boundaries: extend line to edge of field; for others: stop at clicked point
-        const ex = isBoundary ? cx + (s.x / dist) * R : sx;
-        const ey = isBoundary ? cy - (s.y / dist) * R : sy;
-
+        const { ex, ey } = isBoundary ? getBoundaryPoint(s.x, s.y) : { ex: sx, ey: sy };
         return (
           <g key={i}>
             <line x1={cx} y1={cy} x2={ex} y2={ey}
-              stroke={col} strokeWidth={isBoundary ? 1.8 : 1.2} opacity={isBoundary ? 0.75 : 0.5} />
-            <circle cx={sx} cy={sy} r={s === highlightShot ? 7 : 5} fill={col} opacity="0.9" />
+              stroke={col} strokeWidth={isBoundary ? 2 : 1.4} opacity={isBoundary ? 0.8 : 0.55} />
+            <circle cx={sx} cy={sy} r={s === highlightShot ? 7 : 5} fill={col} opacity="0.92"
+              stroke="#000" strokeWidth="0.5" />
           </g>
         );
       })}
 
       {shots.length === 0 && onShot && (
-        <text x={cx} y={cy + R * 0.55} textAnchor="middle" fill="#4ade80" fontSize="11" opacity="0.7">
+        <text x={cx} y={cy + pitchH * 0.85} textAnchor="middle" fill="#4ade80" fontSize="10" opacity="0.7">
           Tap to mark shot
         </text>
       )}
