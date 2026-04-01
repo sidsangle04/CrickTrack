@@ -101,14 +101,7 @@ export default function Home() {
         <p className="text-slate-400 text-sm">Manage and score your club cricket matches</p>
       </div>
 
-      {/* Turf Ground Banner */}
-      <div className="mb-6 rounded-2xl overflow-hidden border border-emerald-500/20 shadow-lg shadow-emerald-900/20">
-        <img
-          src="https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/b92e6e5ff_generated_image.png"
-          alt="Turf Cricket Ground"
-          className="w-full h-40 object-cover object-center"
-        />
-      </div>
+
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-4 mb-8">
