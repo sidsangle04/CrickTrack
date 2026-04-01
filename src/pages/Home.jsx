@@ -14,7 +14,6 @@ import {
   Clock,
   CheckCircle2,
   Loader2,
-  Upload,
   Trash2,
   X
 } from 'lucide-react';
@@ -102,6 +101,15 @@ export default function Home() {
         <p className="text-slate-400 text-sm">Manage and score your club cricket matches</p>
       </div>
 
+      {/* Turf Ground Banner */}
+      <div className="mb-6 rounded-2xl overflow-hidden border border-emerald-500/20 shadow-lg shadow-emerald-900/20">
+        <img
+          src="https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/b92e6e5ff_generated_image.png"
+          alt="Turf Cricket Ground"
+          className="w-full h-40 object-cover object-center"
+        />
+      </div>
+
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-4 mb-8">
         <Link 
@@ -119,14 +127,6 @@ export default function Home() {
           <Trophy className="w-8 h-8 text-purple-400 mb-3 group-hover:scale-110 transition-transform" />
           <h3 className="font-semibold text-white">Teams</h3>
           <p className="text-sm text-slate-400">Manage squads & players</p>
-        </Link>
-        <Link 
-          to={createPageUrl('ImportMatch')}
-          className="p-5 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/30 hover:border-blue-500/50 transition-all group col-span-2"
-        >
-          <Upload className="w-8 h-8 text-blue-400 mb-3 group-hover:scale-110 transition-transform" />
-          <h3 className="font-semibold text-white">Import Match Data</h3>
-          <p className="text-sm text-slate-400">Upload a Play-Cricket CSV to import match & stats</p>
         </Link>
       </div>
 
