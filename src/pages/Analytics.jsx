@@ -3,8 +3,9 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
-import { ArrowLeft, Zap, Target, TrendingUp, AlertTriangle, Users } from 'lucide-react';
+import { ArrowLeft, Zap, Target, TrendingUp, AlertTriangle, Users, ShieldAlert, BarChart2 } from 'lucide-react';
 import GroundMap from '../components/scoring/GroundMap';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // ── Turf zone from x,y ────────────────────────────────────────────────────
 function getTurfZone(x, y) {
@@ -318,6 +319,53 @@ export default function Analytics() {
     return counts;
   }, [catchDrops]);
 
+  // ── Dismissal & pitch weakness data ──────────────────────────────────
+  const { data: allBatterInnings = [] } = useQuery({
+    queryKey: ['batter-innings-analytics', selectedPlayerId],
+    queryFn: () => selectedPlayerId
+      ? base44.entities.BatterInnings.filter({ player_id: selectedPlayerId })
+      : base44.entities.BatterInnings.list(),
+  });
+
+  const dismissalCounts = useMemo(() => {
+    const counts = {};
+    allBatterInnings.filter(b => b.is_out && b.dismissal_type).forEach(b => {
+      counts[b.dismissal_type] = (counts[b.dismissal_type] || 0) + 1;
+    });
+    return counts;
+  }, [allBatterInnings]);
+
+  const totalDismissals = Object.values(dismissalCounts).reduce((s, v) => s + v, 0);
+
+  const LENGTH_ZONES_ORDER = ['full_toss', 'yorker', 'full', 'good_length', 'good', 'back_of_length', 'short', 'bouncer'];
+  const LENGTH_LABEL = {
+    full_toss: 'Full Toss', yorker: 'Yorker', full: 'Full', good_length: 'Good Length',
+    good: 'Good', back_of_length: 'Back of Length', short: 'Short', bouncer: 'Bouncer'
+  };
+
+  const pitchLengthStats = useMemo(() => {
+    const stats = {};
+    LENGTH_ZONES_ORDER.forEach(l => { stats[l] = { balls: 0, runs: 0, wickets: 0 }; });
+    allDeliveries.filter(d => d.length && !d.is_voided && d.is_legal_delivery !== false).forEach(d => {
+      if (stats[d.length]) {
+        stats[d.length].balls++;
+        stats[d.length].runs += d.runs_bat || 0;
+        if (d.is_wicket) stats[d.length].wickets++;
+      }
+    });
+    return stats;
+  }, [allDeliveries]);
+
+  const DISMISSAL_LABEL = {
+    bowled: 'Bowled', caught: 'Caught', lbw: 'LBW', run_out: 'Run Out',
+    stumped: 'Stumped', hit_wicket: 'Hit Wicket', retired_hurt: 'Retired Hurt',
+    retired_out: 'Retired Out', obstructing_field: 'Obstructing', handled_ball: 'Handled Ball'
+  };
+  const DISMISSAL_COLOR = {
+    bowled: 'text-red-400', caught: 'text-orange-400', lbw: 'text-amber-400',
+    run_out: 'text-purple-400', stumped: 'text-pink-400',
+  };
+
   return (
     <div className="pb-24 md:pb-6">
       {/* Header */}
@@ -360,6 +408,18 @@ export default function Analytics() {
           ))}
         </div>
       </div>
+
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="w-full bg-slate-800/50 p-1 rounded-xl mb-5">
+          <TabsTrigger value="overview" className="flex-1 data-[state=active]:bg-emerald-500 data-[state=active]:text-white text-xs">
+            <BarChart2 className="w-3.5 h-3.5 mr-1" />Overview
+          </TabsTrigger>
+          <TabsTrigger value="weaknesses" className="flex-1 data-[state=active]:bg-red-500 data-[state=active]:text-white text-xs">
+            <ShieldAlert className="w-3.5 h-3.5 mr-1" />Weaknesses
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview">
 
       {/* Performance Stats */}
       <div className="mb-5">
@@ -567,6 +627,130 @@ export default function Analytics() {
           </div>
         )}
       </div>
+
+        </TabsContent>
+
+        {/* ── WEAKNESSES TAB ─────────────────────────────────────────────── */}
+        <TabsContent value="weaknesses">
+
+          {/* Dismissal Analysis */}
+          <div className="mb-5">
+            <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">Dismissal Breakdown</p>
+            {totalDismissals === 0 ? (
+              <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/50 text-center text-slate-500 text-sm">
+                No dismissal data available
+              </div>
+            ) : (
+              <div className="bg-slate-800/60 rounded-xl border border-slate-700/50 overflow-hidden">
+                <div className="p-3 border-b border-slate-700/50 flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-red-400" />
+                  <span className="text-sm font-semibold text-white">{totalDismissals} Total Dismissals</span>
+                </div>
+                <div className="divide-y divide-slate-700/30">
+                  {Object.entries(dismissalCounts).sort((a, b) => b[1] - a[1]).map(([type, count]) => {
+                    const pct = Math.round((count / totalDismissals) * 100);
+                    const color = DISMISSAL_COLOR[type] || 'text-slate-300';
+                    return (
+                      <div key={type} className="px-3 py-2.5">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className={`text-sm font-medium ${color}`}>{DISMISSAL_LABEL[type] || type}</span>
+                          <span className="text-xs text-slate-400">{count} ({pct}%)</span>
+                        </div>
+                        <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                          <div className="h-full bg-red-500/70 rounded-full" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Pitch Zone Weakness */}
+          <div className="mb-5">
+            <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">Pitch Zone Performance</p>
+            <div className="text-xs text-slate-500 mb-3 flex gap-3 flex-wrap">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> Weak (&lt;100 SR)</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> Average (100-150)</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Strong (&gt;150 SR)</span>
+            </div>
+            {allDeliveries.filter(d => d.length).length === 0 ? (
+              <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/50 text-center text-slate-500 text-sm">
+                No pitch data available
+              </div>
+            ) : (
+              <div className="bg-slate-800/60 rounded-xl border border-slate-700/50 overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-700/50">
+                      <th className="text-left p-2.5 text-slate-400 font-medium">Length</th>
+                      <th className="text-right p-2.5 text-slate-400 font-medium">Balls</th>
+                      <th className="text-right p-2.5 text-slate-400 font-medium">Runs</th>
+                      <th className="text-right p-2.5 text-slate-400 font-medium">SR</th>
+                      <th className="text-right p-2.5 text-slate-400 font-medium">W</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {LENGTH_ZONES_ORDER.filter(l => pitchLengthStats[l].balls > 0).map(l => {
+                      const { balls, runs, wickets } = pitchLengthStats[l];
+                      const sr = ((runs / balls) * 100).toFixed(1);
+                      const srNum = parseFloat(sr);
+                      const srColor = srNum < 100 ? 'text-red-400' : srNum > 150 ? 'text-emerald-400' : 'text-amber-400';
+                      const bgColor = srNum < 100 ? 'bg-red-500/10 border-l-2 border-red-500/60' : srNum > 150 ? 'bg-emerald-500/5' : '';
+                      return (
+                        <tr key={l} className={`border-b border-slate-700/30 last:border-0 ${bgColor}`}>
+                          <td className="p-2.5 text-white font-medium">{LENGTH_LABEL[l]}</td>
+                          <td className="p-2.5 text-right text-slate-400">{balls}</td>
+                          <td className="p-2.5 text-right text-slate-300">{runs}</td>
+                          <td className={`p-2.5 text-right font-bold ${srColor}`}>{sr}</td>
+                          <td className="p-2.5 text-right text-red-400">{wickets || '—'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Weak zone insight */}
+          {(() => {
+            const weakLengths = LENGTH_ZONES_ORDER.filter(l => {
+              const { balls, runs } = pitchLengthStats[l];
+              return balls >= 3 && (runs / balls) * 100 < 100;
+            });
+            const strongLengths = LENGTH_ZONES_ORDER.filter(l => {
+              const { balls, runs } = pitchLengthStats[l];
+              return balls >= 3 && (runs / balls) * 100 > 150;
+            });
+            if (weakLengths.length === 0 && strongLengths.length === 0) return null;
+            return (
+              <div className="space-y-2 mb-5">
+                {weakLengths.length > 0 && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-start gap-3">
+                    <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-semibold text-red-400 mb-0.5">Vulnerable Lengths</div>
+                      <div className="text-xs text-slate-300">{weakLengths.map(l => LENGTH_LABEL[l]).join(', ')} — SR below 100</div>
+                    </div>
+                  </div>
+                )}
+                {strongLengths.length > 0 && (
+                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 flex items-start gap-3">
+                    <Zap className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-semibold text-emerald-400 mb-0.5">Power Lengths</div>
+                      <div className="text-xs text-slate-300">{strongLengths.map(l => LENGTH_LABEL[l]).join(', ')} — SR above 150</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
