@@ -1,0 +1,269 @@
+{
+  "name": "Delivery",
+  "type": "object",
+  "properties": {
+    "match_id": {
+      "type": "string"
+    },
+    "innings_id": {
+      "type": "string"
+    },
+    "over_number": {
+      "type": "number",
+      "description": "Over number (0-indexed)"
+    },
+    "ball_in_over": {
+      "type": "number",
+      "description": "Legal ball number in over (1-6)"
+    },
+    "delivery_number": {
+      "type": "number",
+      "description": "Sequential delivery in innings"
+    },
+    "striker_id": {
+      "type": "string"
+    },
+    "non_striker_id": {
+      "type": "string"
+    },
+    "bowler_id": {
+      "type": "string"
+    },
+    "runs_bat": {
+      "type": "number",
+      "default": 0
+    },
+    "runs_total": {
+      "type": "number",
+      "default": 0
+    },
+    "is_wide": {
+      "type": "boolean",
+      "default": false
+    },
+    "wide_runs": {
+      "type": "number",
+      "default": 0
+    },
+    "is_no_ball": {
+      "type": "boolean",
+      "default": false
+    },
+    "no_ball_runs": {
+      "type": "number",
+      "default": 0
+    },
+    "is_bye": {
+      "type": "boolean",
+      "default": false
+    },
+    "bye_runs": {
+      "type": "number",
+      "default": 0
+    },
+    "is_leg_bye": {
+      "type": "boolean",
+      "default": false
+    },
+    "leg_bye_runs": {
+      "type": "number",
+      "default": 0
+    },
+    "penalty_runs": {
+      "type": "number",
+      "default": 0
+    },
+    "is_wicket": {
+      "type": "boolean",
+      "default": false
+    },
+    "wicket_type": {
+      "type": "string",
+      "enum": [
+        "bowled",
+        "caught",
+        "lbw",
+        "run_out",
+        "stumped",
+        "hit_wicket",
+        "retired_hurt",
+        "retired_out",
+        "obstructing_field",
+        "timed_out",
+        "handled_ball"
+      ]
+    },
+    "player_out_id": {
+      "type": "string"
+    },
+    "fielder_id": {
+      "type": "string"
+    },
+    "runout_end": {
+      "type": "string",
+      "enum": [
+        "striker",
+        "non_striker"
+      ]
+    },
+    "is_legal_delivery": {
+      "type": "boolean",
+      "default": true
+    },
+    "is_boundary": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_six": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_dot_ball": {
+      "type": "boolean",
+      "default": false
+    },
+    "shot_type": {
+      "type": "string",
+      "enum": [
+        "drive",
+        "cut",
+        "pull",
+        "hook",
+        "sweep",
+        "reverse_sweep",
+        "flick",
+        "glance",
+        "defence",
+        "leave",
+        "edge",
+        "miscue",
+        "other"
+      ]
+    },
+    "line": {
+      "type": "string",
+      "enum": [
+        "wide_outside_off",
+        "outside_off",
+        "off_stump",
+        "middle_stump",
+        "leg_stump",
+        "outside_leg",
+        "wide_outside_leg",
+        "off",
+        "middle",
+        "leg"
+      ]
+    },
+    "length": {
+      "type": "string",
+      "enum": [
+        "full_toss",
+        "yorker",
+        "full",
+        "good_length",
+        "good",
+        "back_of_length",
+        "short",
+        "bouncer"
+      ]
+    },
+    "wagon_wheel_zone": {
+      "type": "number",
+      "description": "Scoring zone 1-8"
+    },
+    "shot_x": {
+      "type": "number",
+      "description": "Shot X coordinate (-1 to 1, from center)"
+    },
+    "shot_y": {
+      "type": "number",
+      "description": "Shot Y coordinate (-1 to 1, from center)"
+    },
+    "shot_region": {
+      "type": "string",
+      "description": "Auto-classified zone name (Cover, Point, etc.)"
+    },
+    "shot_side": {
+      "type": "string",
+      "enum": [
+        "off",
+        "leg"
+      ],
+      "description": "Off or leg side"
+    },
+    "shot_distance": {
+      "type": "string",
+      "enum": [
+        "inner",
+        "mid",
+        "boundary"
+      ],
+      "description": "Distance from wicket"
+    },
+    "turf_zone": {
+      "type": "string",
+      "enum": [
+        "Front Left",
+        "Front Right",
+        "Back Left",
+        "Back Center",
+        "Back Right"
+      ],
+      "description": "Turf ground zone classification"
+    },
+    "pitch_x": {
+      "type": "number",
+      "description": "Pitch landing X (0-1, left=off, right=leg)"
+    },
+    "pitch_y": {
+      "type": "number",
+      "description": "Pitch landing Y (0-1, top=bouncer, bottom=full toss)"
+    },
+    "delivery_variation": {
+      "type": "string",
+      "description": "Variation tag: googly, doosra, inswinger, slower_ball etc."
+    },
+    "bowler_hand": {
+      "type": "string",
+      "enum": [
+        "right",
+        "left"
+      ]
+    },
+    "bowler_type": {
+      "type": "string",
+      "enum": [
+        "pace",
+        "spin"
+      ]
+    },
+    "is_catch_drop": {
+      "type": "boolean",
+      "default": false,
+      "description": "Was a catch dropped on this delivery"
+    },
+    "dropped_by": {
+      "type": "string",
+      "description": "Player ID of the fielder who dropped the catch"
+    },
+    "is_voided": {
+      "type": "boolean",
+      "default": false
+    },
+    "void_reason": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "match_id",
+    "innings_id",
+    "striker_id",
+    "non_striker_id",
+    "bowler_id"
+  ]
+}

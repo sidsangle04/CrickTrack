@@ -1,776 +1,572 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area } from
-'recharts';
-import {
-  TrendingUp,
-  Target,
-  Zap,
-  Award,
-  Loader2,
-  Users,
-  Download,
-  FileText,
-  Map } from
-'lucide-react';
-import { downloadHTML } from '../components/utils/htmlExport';
-import { generateWagonWheelSVG, generatePitchMapSVG, wagonWheelLegend, pitchLegend } from '../components/utils/svgExport';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import WagonWheel from '../components/analytics/WagonWheel';
-import PitchHeatmap from '../components/analytics/PitchHeatmap';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '../utils';
+import { ArrowLeft, Zap, Target, TrendingUp, AlertTriangle, Users } from 'lucide-react';
+import GroundMap from '../components/scoring/GroundMap';
 
-const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'];
+// ── Turf zone from x,y ────────────────────────────────────────────────────
+function getTurfZone(x, y) {
+  // y > 0 = batter end (top), y < 0 = bowler end (bottom)
+  // x < 0 = off side (left), x > 0 = leg side (right)
+  if (y >= 0) {
+    return x < 0 ? 'Front Left' : 'Front Right';
+  } else {
+    if (x < -0.3) return 'Back Left';
+    if (x > 0.3) return 'Back Right';
+    return 'Back Center';
+  }
+}
 
-export default function Analytics() {
-  const [selectedMatch, setSelectedMatch] = useState('all');
-  const [selectedTeam, setSelectedTeam] = useState('all');
+const TURF_ZONES = ['Front Left', 'Front Right', 'Back Left', 'Back Center', 'Back Right'];
 
-  const { data: matches = [], isLoading: matchesLoading } = useQuery({
-    queryKey: ['matches'],
-    queryFn: () => base44.entities.Match.filter({ status: 'completed' })
+const RUN_FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: '0', label: '0' },
+  { key: '1', label: '1' },
+  { key: '2', label: '2' },
+  { key: '3', label: '3' },
+  { key: '4', label: '4' },
+  { key: '6', label: '6' },
+  { key: 'W', label: 'W' },
+];
+
+// ── Heatmap overlay for rectangular SVG ──────────────────────────────────
+function HeatmapOverlay({ deliveries, groundW, groundH, cx, cy, rX, rY }) {
+  const zoneCounts = {};
+  TURF_ZONES.forEach(z => { zoneCounts[z] = 0; });
+
+  deliveries.forEach(d => {
+    if (d.shot_x == null || d.shot_y == null) return;
+    const zone = d.turf_zone || getTurfZone(d.shot_x, d.shot_y);
+    zoneCounts[zone] = (zoneCounts[zone] || 0) + 1;
   });
 
-  const { data: teams = [] } = useQuery({
-    queryKey: ['teams'],
-    queryFn: () => base44.entities.Team.list()
+  const max = Math.max(...Object.values(zoneCounts), 1);
+
+  // Zone rectangles mapped to ground coordinates
+  // Ground: gX=12, gY=12, gW, gH; cx, cy center
+  const zoneRects = {
+    'Front Left':   { x: 0,      y: 0,      w: 0.5, h: 0.5 }, // top-left
+    'Front Right':  { x: 0.5,    y: 0,      w: 0.5, h: 0.5 }, // top-right
+    'Back Left':    { x: 0,      y: 0.5,    w: 0.34,h: 0.5 }, // bottom-left
+    'Back Center':  { x: 0.34,   y: 0.5,    w: 0.32,h: 0.5 }, // bottom-center
+    'Back Right':   { x: 0.66,   y: 0.5,    w: 0.34,h: 0.5 }, // bottom-right
+  };
+
+  const getHeatColor = (norm) => {
+    if (norm < 0.001) return 'rgba(59,130,246,0.05)';
+    if (norm < 0.25) return `rgba(59,130,246,${0.15 + norm * 0.6})`;
+    if (norm < 0.6) return `rgba(234,179,8,${0.3 + norm * 0.4})`;
+    return `rgba(239,68,68,${0.4 + norm * 0.5})`;
+  };
+
+  const pad = 12;
+
+  return (
+    <>
+      {TURF_ZONES.map(zone => {
+        const r = zoneRects[zone];
+        const norm = zoneCounts[zone] / max;
+        const color = getHeatColor(norm);
+        return (
+          <rect
+            key={zone}
+            x={pad + r.x * groundW}
+            y={pad + r.y * groundH}
+            width={r.w * groundW}
+            height={r.h * groundH}
+            fill={color}
+            rx="2"
+          />
+        );
+      })}
+      {TURF_ZONES.map(zone => {
+        const r = zoneRects[zone];
+        const norm = zoneCounts[zone] / max;
+        const labelX = pad + (r.x + r.w / 2) * groundW;
+        const labelY = pad + (r.y + r.h / 2) * groundH;
+        return (
+          <g key={`lbl-${zone}`}>
+            <text x={labelX} y={labelY - 7} textAnchor="middle" fill="white" fontSize="8" opacity="0.8">
+              {zone}
+            </text>
+            <text x={labelX} y={labelY + 7} textAnchor="middle" fill="white" fontSize="11" fontWeight="bold" opacity="0.95">
+              {zoneCounts[zone]}
+            </text>
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
+// ── GroundMap with optional heatmap ──────────────────────────────────────
+function GroundMapWithHeatmap({ shots, deliveries, showHeatmap, size }) {
+  const W = Math.round(size * 0.72);
+  const H = size;
+  const pad = 12;
+  const gW = W - pad * 2;
+  const gH = H - pad * 2;
+  const cx = W / 2;
+  const cy = H / 2;
+  const rX = gW / 2 * 0.87;
+  const rY = gH / 2 * 0.87;
+
+  if (!showHeatmap) {
+    return <GroundMap shots={shots} size={size} />;
+  }
+
+  // Render the ground ourselves + heatmap overlay (no click)
+  const pitchW = gW * 0.13;
+  const pitchH = gH * 0.44;
+  const pitchX = cx - pitchW / 2;
+  const pitchY = cy - pitchH / 2;
+  const so = [-pitchW * 0.32, 0, pitchW * 0.32];
+
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="select-none">
+      <rect x={0} y={0} width={W} height={H} fill="#0d1f0d" rx="6" />
+      <rect x={pad} y={pad} width={gW} height={gH} fill="#15803d" rx="3" />
+      {Array.from({ length: 8 }).map((_, i) => (
+        <rect key={i} x={pad} y={pad + i * gH / 8} width={gW} height={gH / 8}
+          fill={i % 2 === 0 ? '#166534' : '#15803d'} opacity="0.5" />
+      ))}
+
+      {/* Heatmap overlay */}
+      <HeatmapOverlay deliveries={deliveries} groundW={gW} groundH={gH} cx={cx} cy={cy} rX={rX} rY={rY} />
+
+      <rect x={pad + 3} y={pad + 3} width={gW - 6} height={gH - 6}
+        fill="none" stroke="white" strokeWidth="1.8" rx="2" />
+
+      {/* Pitch */}
+      <rect x={pitchX} y={pitchY} width={pitchW} height={pitchH}
+        fill="#78350f" stroke="#d97706" strokeWidth="1" rx="2" />
+      <line x1={pitchX - pitchW * 0.6} y1={pitchY + pitchH * 0.1}
+            x2={pitchX + pitchW * 1.6} y2={pitchY + pitchH * 0.1} stroke="white" strokeWidth="1" />
+      <line x1={pitchX - pitchW * 0.6} y1={pitchY + pitchH * 0.9}
+            x2={pitchX + pitchW * 1.6} y2={pitchY + pitchH * 0.9} stroke="white" strokeWidth="1" />
+      {so.map((off, i) => (
+        <g key={i}>
+          <line x1={cx + off} y1={pitchY + pitchH * 0.08} x2={cx + off} y2={pitchY - pitchH * 0.06}
+            stroke="#fbbf24" strokeWidth="2.2" strokeLinecap="round" />
+          <line x1={cx + off} y1={pitchY + pitchH * 0.92} x2={cx + off} y2={pitchY + pitchH * 1.06}
+            stroke="#fbbf24" strokeWidth="2.2" strokeLinecap="round" />
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+// ── Stat Card ─────────────────────────────────────────────────────────────
+function StatCard({ label, value, color = 'text-white', sub }) {
+  return (
+    <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50 text-center">
+      <div className={`text-2xl font-bold ${color}`}>{value}</div>
+      <div className="text-xs text-slate-400 mt-0.5">{label}</div>
+      {sub && <div className="text-xs text-slate-500 mt-0.5">{sub}</div>}
+    </div>
+  );
+}
+
+// ── Insight Card ─────────────────────────────────────────────────────────
+function InsightCard({ icon: Icon, title, value, color }) {
+  return (
+    <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50 flex items-center gap-3">
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${color}`}>
+        <Icon className="w-4 h-4" />
+      </div>
+      <div>
+        <div className="text-xs text-slate-400">{title}</div>
+        <div className="text-sm font-semibold text-white">{value || '—'}</div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────
+export default function Analytics() {
+  const [selectedPlayerId, setSelectedPlayerId] = useState(null);
+  const [activeFilters, setActiveFilters] = useState(['all']);
+  const [showHeatmap, setShowHeatmap] = useState(false);
+
+  const { data: players = [] } = useQuery({
+    queryKey: ['all-players-analytics'],
+    queryFn: () => base44.entities.Player.list(),
+  });
+
+  const { data: allDeliveries = [] } = useQuery({
+    queryKey: ['deliveries-analytics', selectedPlayerId],
+    queryFn: () => selectedPlayerId
+      ? base44.entities.Delivery.filter({ striker_id: selectedPlayerId, is_voided: false })
+      : base44.entities.Delivery.filter({ is_voided: false }),
+    enabled: true,
   });
 
   const { data: allPlayers = [] } = useQuery({
     queryKey: ['all-players'],
-    queryFn: () => base44.entities.Player.list()
+    queryFn: () => base44.entities.Player.list(),
   });
 
-  const { data: allBatterInnings = [] } = useQuery({
-    queryKey: ['all-batter-analytics'],
-    queryFn: () => base44.entities.BatterInnings.list()
-  });
+  const playersMap = useMemo(() =>
+    allPlayers.reduce((acc, p) => ({ ...acc, [p.id]: p }), {}), [allPlayers]);
 
-  const { data: allBowlerInnings = [] } = useQuery({
-    queryKey: ['all-bowler-analytics'],
-    queryFn: () => base44.entities.BowlerInnings.list()
-  });
-
-  const { data: allDeliveries = [] } = useQuery({
-    queryKey: ['all-deliveries-analytics'],
-    queryFn: () => base44.entities.Delivery.filter({ is_voided: false })
-  });
-
-  const { data: allPartnerships = [] } = useQuery({
-    queryKey: ['all-partnerships'],
-    queryFn: () => base44.entities.Partnership.list()
-  });
-
-  const { data: allInnings = [] } = useQuery({
-    queryKey: ['all-innings-analytics'],
-    queryFn: () => base44.entities.Innings.list()
-  });
-
-  const teamsMap = teams.reduce((acc, t) => ({ ...acc, [t.id]: t }), {});
-  const playersMap = allPlayers.reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
-
-  const filteredBatterInnings = allBatterInnings.filter((b) => {
-    if (selectedMatch !== 'all' && b.match_id !== selectedMatch) return false;
-    if (selectedTeam !== 'all') {
-      const player = playersMap[b.player_id];
-      if (player?.team_id !== selectedTeam) return false;
+  const toggleFilter = (key) => {
+    if (key === 'all') {
+      setActiveFilters(['all']);
+      return;
     }
-    return true;
-  });
-
-  const filteredBowlerInnings = allBowlerInnings.filter((b) => {
-    if (selectedMatch !== 'all' && b.match_id !== selectedMatch) return false;
-    if (selectedTeam !== 'all') {
-      const player = playersMap[b.player_id];
-      if (player?.team_id !== selectedTeam) return false;
-    }
-    return true;
-  });
-
-  const playerRuns = {};
-  filteredBatterInnings.forEach((b) => {
-    if (!playerRuns[b.player_id]) {
-      playerRuns[b.player_id] = { runs: 0, balls: 0, innings: 0, outs: 0, fours: 0, sixes: 0 };
-    }
-    playerRuns[b.player_id].runs += b.runs || 0;
-    playerRuns[b.player_id].balls += b.balls_faced || 0;
-    playerRuns[b.player_id].innings += 1;
-    playerRuns[b.player_id].outs += b.is_out ? 1 : 0;
-    playerRuns[b.player_id].fours += b.fours || 0;
-    playerRuns[b.player_id].sixes += b.sixes || 0;
-  });
-
-  const topBatters = Object.entries(playerRuns).
-  map(([playerId, stats]) => ({
-    name: playersMap[playerId]?.name || 'Unknown',
-    ...stats,
-    average: stats.outs > 0 ? (stats.runs / stats.outs).toFixed(1) : stats.runs.toFixed(1),
-    strikeRate: stats.balls > 0 ? (stats.runs / stats.balls * 100).toFixed(1) : '0.0'
-  })).
-  sort((a, b) => b.runs - a.runs).
-  slice(0, 10);
-
-  const playerWickets = {};
-  filteredBowlerInnings.forEach((b) => {
-    if (!playerWickets[b.player_id]) {
-      playerWickets[b.player_id] = { wickets: 0, runs: 0, overs: 0, balls: 0, dots: 0 };
-    }
-    playerWickets[b.player_id].wickets += b.wickets || 0;
-    playerWickets[b.player_id].runs += b.runs_conceded || 0;
-    playerWickets[b.player_id].overs += b.overs || 0;
-    playerWickets[b.player_id].balls += b.balls || 0;
-    playerWickets[b.player_id].dots += b.dots || 0;
-  });
-
-  const topBowlers = Object.entries(playerWickets).
-  map(([playerId, stats]) => ({
-    name: playersMap[playerId]?.name || 'Unknown',
-    ...stats,
-    economy: stats.overs + stats.balls / 6 > 0 ?
-    (stats.runs / (stats.overs + stats.balls / 6)).toFixed(2) :
-    '0.00'
-  })).
-  sort((a, b) => b.wickets - a.wickets).
-  slice(0, 10);
-
-  const dismissalTypes = {};
-  filteredBatterInnings.forEach((b) => {
-    if (b.is_out && b.dismissal_type) {
-      dismissalTypes[b.dismissal_type] = (dismissalTypes[b.dismissal_type] || 0) + 1;
-    }
-  });
-
-  const dismissalData = Object.entries(dismissalTypes).map(([type, count]) => ({
-    name: type.replace('_', ' ').charAt(0).toUpperCase() + type.replace('_', ' ').slice(1),
-    value: count
-  }));
-
-  const filteredDeliveries = allDeliveries.filter((d) => {
-    if (selectedMatch !== 'all' && d.match_id !== selectedMatch) return false;
-    return true;
-  });
-
-  const overRuns = {};
-  filteredDeliveries.forEach((d) => {
-    const over = d.over_number;
-    if (!overRuns[over]) {
-      overRuns[over] = { runs: 0, wickets: 0, balls: 0 };
-    }
-    overRuns[over].runs += d.runs_total || 0;
-    overRuns[over].wickets += d.is_wicket ? 1 : 0;
-    overRuns[over].balls += d.is_legal_delivery ? 1 : 0;
-  });
-
-  const runRateData = Object.entries(overRuns).
-  map(([over, stats]) => ({
-    over: parseInt(over) + 1,
-    runs: stats.runs,
-    wickets: stats.wickets
-  })).
-  sort((a, b) => a.over - b.over).
-  slice(0, 20);
-
-  const boundaryData = [
-  { name: 'Fours', value: Object.values(playerRuns).reduce((sum, p) => sum + p.fours, 0) },
-  { name: 'Sixes', value: Object.values(playerRuns).reduce((sum, p) => sum + p.sixes, 0) }];
-
-
-  // Compute partnerships from deliveries if no stored partnerships
-  const computedPartnerships = [];
-  if (allPartnerships.length === 0 && filteredDeliveries.length > 0) {
-    const inningsGroups = {};
-    filteredDeliveries.forEach((d) => {
-      if (!inningsGroups[d.innings_id]) inningsGroups[d.innings_id] = [];
-      inningsGroups[d.innings_id].push(d);
+    setActiveFilters(prev => {
+      const without = prev.filter(f => f !== 'all');
+      if (without.includes(key)) {
+        const next = without.filter(f => f !== key);
+        return next.length === 0 ? ['all'] : next;
+      }
+      return [...without, key];
     });
-
-    Object.entries(inningsGroups).forEach(([inningsId, deliveries]) => {
-      const sorted = deliveries.sort((a, b) => {
-        if (a.over_number !== b.over_number) return a.over_number - b.over_number;
-        return (a.delivery_number || 0) - (b.delivery_number || 0);
-      });
-
-      let currentPartnership = null;
-      sorted.forEach((d) => {
-        const pairKey = [d.striker_id, d.non_striker_id].sort().join('-');
-
-        if (!currentPartnership || currentPartnership.pairKey !== pairKey) {
-          if (currentPartnership) computedPartnerships.push(currentPartnership);
-          currentPartnership = {
-            pairKey,
-            innings_id: inningsId,
-            match_id: d.match_id,
-            batter1_id: d.striker_id,
-            batter2_id: d.non_striker_id,
-            runs: 0,
-            balls: 0,
-            batter1_runs: 0,
-            batter2_runs: 0
-          };
-        }
-
-        currentPartnership.runs += d.runs_total || 0;
-        currentPartnership.balls += d.is_legal_delivery ? 1 : 0;
-        if (d.striker_id === currentPartnership.batter1_id) {
-          currentPartnership.batter1_runs += d.runs_bat || 0;
-        } else {
-          currentPartnership.batter2_runs += d.runs_bat || 0;
-        }
-      });
-      if (currentPartnership) computedPartnerships.push(currentPartnership);
-    });
-  }
-
-  const partnerships = allPartnerships.length > 0 ? allPartnerships : computedPartnerships;
-
-  const filteredPartnerships = partnerships.filter((p) => {
-    if (selectedMatch !== 'all' && p.match_id !== selectedMatch) return false;
-    return true;
-  });
-
-  const topPartnerships = filteredPartnerships.
-  map((p) => ({
-    ...p,
-    batter1Name: playersMap[p.batter1_id]?.name || 'Unknown',
-    batter2Name: playersMap[p.batter2_id]?.name || 'Unknown',
-    runRate: p.balls > 0 ? (p.runs / p.balls * 6).toFixed(2) : '0.00'
-  })).
-  sort((a, b) => b.runs - a.runs).
-  slice(0, 10);
-
-  const exportHTML = () => {
-    const batterRows = topBatters.map((p, i) => `<tr>
-      <td>${i+1}</td><td>${p.name}</td>
-      <td>${p.innings}</td>
-      <td class="green" style="text-align:right;font-weight:700">${p.runs}</td>
-      <td style="text-align:right">${p.average}</td>
-      <td style="text-align:right">${p.strikeRate}</td>
-      <td style="text-align:right">${p.fours}</td>
-      <td style="text-align:right">${p.sixes}</td>
-    </tr>`).join('');
-
-    const bowlerRows = topBowlers.map((p, i) => `<tr>
-      <td>${i+1}</td><td>${p.name}</td>
-      <td class="red" style="text-align:right;font-weight:700">${p.wickets}</td>
-      <td style="text-align:right">${p.runs}</td>
-      <td style="text-align:right">${p.economy}</td>
-      <td style="text-align:right">${p.dots}</td>
-    </tr>`).join('');
-
-    const partnershipRows = topPartnerships.map((p, i) => `<tr>
-      <td>${i+1}</td>
-      <td>${p.batter1Name} &amp; ${p.batter2Name}</td>
-      <td class="cyan" style="text-align:right;font-weight:700">${p.runs}</td>
-      <td style="text-align:right">${p.balls}</td>
-      <td style="text-align:right">${p.runRate}</td>
-    </tr>`).join('');
-
-    const dismissalRows = dismissalData.map(d => `<tr><td>${d.name}</td><td style="text-align:right">${d.value}</td></tr>`).join('');
-
-    const totalRuns = Object.values(playerRuns).reduce((s, p) => s + p.runs, 0);
-    const totalWickets = Object.values(playerWickets).reduce((s, p) => s + p.wickets, 0);
-    const totalBoundaries = boundaryData.reduce((s, b) => s + b.value, 0);
-
-    const shotDeliveries = filteredDeliveries.filter(d => d.shot_x != null);
-    const pitchDeliveries = filteredDeliveries.filter(d => d.pitch_x != null);
-    const visualSection = (shotDeliveries.length > 0 || pitchDeliveries.length > 0) ? `
-      <h2>🗺️ Visual Analytics</h2>
-      <div class="grid2">
-        ${shotDeliveries.length > 0 ? `<div class="card" style="text-align:center">
-          <h3 style="margin-bottom:12px">Overall Wagon Wheel</h3>
-          ${generateWagonWheelSVG(filteredDeliveries, 240)}
-          ${wagonWheelLegend(shotDeliveries)}
-        </div>` : ''}
-        ${pitchDeliveries.length > 0 ? `<div class="card" style="text-align:center">
-          <h3 style="margin-bottom:12px">Overall Pitch Map</h3>
-          ${generatePitchMapSVG(filteredDeliveries, 130, 280)}
-          ${pitchLegend()}
-        </div>` : ''}
-      </div>
-    ` : '';
-
-    const html = `
-      <h1>Cricket Analytics Report</h1>
-      <p>Generated ${new Date().toLocaleDateString()}</p>
-      <div class="grid4">
-        <div class="stat-box"><div class="stat-val green">${totalRuns}</div><div class="stat-lbl">Total Runs</div></div>
-        <div class="stat-box"><div class="stat-val red">${totalWickets}</div><div class="stat-lbl">Total Wickets</div></div>
-        <div class="stat-box"><div class="stat-val amber">${totalBoundaries}</div><div class="stat-lbl">Boundaries</div></div>
-        <div class="stat-box"><div class="stat-val">${selectedMatch === 'all' ? matches.length : 1}</div><div class="stat-lbl">Matches</div></div>
-      </div>
-      ${visualSection}
-      <h2>🏏 Batting Leaderboard</h2>
-      <div class="card">
-        <table><thead><tr><th>#</th><th>Player</th><th>Inn</th><th style="text-align:right">Runs</th><th style="text-align:right">Avg</th><th style="text-align:right">SR</th><th style="text-align:right">4s</th><th style="text-align:right">6s</th></tr></thead>
-        <tbody>${batterRows}</tbody></table>
-      </div>
-      <h2>🎯 Bowling Leaderboard</h2>
-      <div class="card">
-        <table><thead><tr><th>#</th><th>Player</th><th style="text-align:right">Wkts</th><th style="text-align:right">Runs</th><th style="text-align:right">Econ</th><th style="text-align:right">Dots</th></tr></thead>
-        <tbody>${bowlerRows}</tbody></table>
-      </div>
-      <h2>🤝 Top Partnerships</h2>
-      <div class="card">
-        <table><thead><tr><th>#</th><th>Partnership</th><th style="text-align:right">Runs</th><th style="text-align:right">Balls</th><th style="text-align:right">RR</th></tr></thead>
-        <tbody>${partnershipRows || '<tr><td colspan="5" style="text-align:center;color:#64748b">No data</td></tr>'}</tbody></table>
-      </div>
-      <h2>📊 Dismissal Types</h2>
-      <div class="card">
-        <table><thead><tr><th>Type</th><th style="text-align:right">Count</th></tr></thead>
-        <tbody>${dismissalRows || '<tr><td colspan="2" style="text-align:center;color:#64748b">No data</td></tr>'}</tbody></table>
-      </div>
-    `;
-    downloadHTML(html, 'cricket_analytics_report');
   };
 
-  const exportCSV = () => {
-    let csv = 'CRICKET ANALYTICS REPORT\n\n';
-
-    csv += 'BATTING LEADERBOARD\n';
-    csv += '#,Player,Innings,Runs,Average,Strike Rate,4s,6s\n';
-    topBatters.forEach((p, i) => {
-      csv += `${i+1},${p.name},${p.innings},${p.runs},${p.average},${p.strikeRate},${p.fours},${p.sixes}\n`;
-    });
-
-    csv += '\nBOWLING LEADERBOARD\n';
-    csv += '#,Player,Wickets,Runs,Economy,Dots\n';
-    topBowlers.forEach((p, i) => {
-      csv += `${i+1},${p.name},${p.wickets},${p.runs},${p.economy},${p.dots}\n`;
-    });
-
-    csv += '\nDISMISSAL TYPES\n';
-    csv += 'Type,Count\n';
-    dismissalData.forEach(d => { csv += `${d.name},${d.value}\n`; });
-
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'cricket_analytics.csv';
-    a.click();
-  };
-
-  if (matchesLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
-      </div>);
-
-  }
-
-  // Visual analytics data
-  const shotDeliveries = filteredDeliveries.filter(d => d.shot_x != null);
-  const pitchDeliveries = filteredDeliveries.filter(d => d.pitch_x != null);
-
-  // Per-player wagon wheels (top 5 batters by shots)
-  const playerShotCounts = {};
-  shotDeliveries.forEach(d => {
-    playerShotCounts[d.striker_id] = (playerShotCounts[d.striker_id] || 0) + 1;
-  });
-  const topShotPlayers = Object.entries(playerShotCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([id]) => id);
-
-  // Per-player pitch maps (top bowlers)
-  const playerPitchCounts = {};
-  pitchDeliveries.forEach(d => {
-    playerPitchCounts[d.bowler_id] = (playerPitchCounts[d.bowler_id] || 0) + 1;
-  });
-  const topPitchPlayers = Object.entries(playerPitchCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([id]) => id);
-
-  return (
-    <div className="bg-transparent text-slate-50 pb-24 md:pb-6">
-      <div className="mb-6 flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Analytics</h1>
-          <p className="text-slate-400 text-sm">Performance insights and statistics</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={exportHTML}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500/20 border border-blue-500/40 text-blue-400 hover:bg-blue-500/30 transition-all text-sm font-medium"
-          >
-            <FileText className="w-4 h-4" />
-            HTML
-          </button>
-          <button
-            onClick={exportCSV}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/30 transition-all text-sm font-medium"
-          >
-            <Download className="w-4 h-4" />
-            CSV
-          </button>
-        </div>
-      </div>
-
-      <div className="flex gap-3 mb-6 flex-wrap">
-        <Select value={selectedMatch} onValueChange={setSelectedMatch}>
-          <SelectTrigger className="w-48 bg-slate-800 border-slate-700">
-            <SelectValue placeholder="All Matches" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Matches</SelectItem>
-            {matches.map((m) =>
-            <SelectItem key={m.id} value={m.id}>
-                {teamsMap[m.team1_id]?.short_name} vs {teamsMap[m.team2_id]?.short_name}
-              </SelectItem>
-            )}
-          </SelectContent>
-        </Select>
-
-        <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-          <SelectTrigger className="w-48 bg-slate-800 border-slate-700">
-            <SelectValue placeholder="All Teams" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Teams</SelectItem>
-            {teams.map((t) =>
-            <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-            )}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <Tabs defaultValue="stats" className="w-full mb-6">
-        <TabsList className="bg-slate-800/50 p-1 rounded-xl mb-4">
-          <TabsTrigger value="stats" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
-            📊 Stats
-          </TabsTrigger>
-          <TabsTrigger value="visual" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
-            🗺️ Visual
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="visual">
-          {shotDeliveries.length === 0 && pitchDeliveries.length === 0 ? (
-            <div className="text-center py-16 text-slate-500">
-              <div className="text-4xl mb-3">🏏</div>
-              <p className="font-medium text-white mb-1">No visual tracking data yet</p>
-              <p className="text-sm">Visual data is captured during live scoring when you click the Ground Map and Pitch Map</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Overall wagon wheel */}
-              <WagonWheel deliveries={filteredDeliveries} title="Overall Wagon Wheel" size={260} />
-              
-              {/* Overall pitch map */}
-              <PitchHeatmap deliveries={filteredDeliveries} title="Overall Pitch Map" />
-
-              {/* Per batter wagon wheels */}
-              {topShotPlayers.length > 0 && (
-                <div>
-                  <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
-                    <span>🏏</span> Batter Wagon Wheels
-                  </h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {topShotPlayers.map(pid => (
-                      <WagonWheel
-                        key={pid}
-                        deliveries={filteredDeliveries.filter(d => d.striker_id === pid)}
-                        title={playersMap[pid]?.name || 'Unknown'}
-                        size={220}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Per bowler pitch maps */}
-              {topPitchPlayers.length > 0 && (
-                <div>
-                  <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
-                    <span>🎯</span> Bowler Pitch Maps
-                  </h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {topPitchPlayers.map(pid => (
-                      <PitchHeatmap
-                        key={pid}
-                        deliveries={filteredDeliveries.filter(d => d.bowler_id === pid)}
-                        title={playersMap[pid]?.name || 'Unknown'}
-                        width={120}
-                        height={260}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="stats"><div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-emerald-400" />
-            </div>
-            <span className="text-slate-400 text-sm">Total Runs</span>
-          </div>
-          <span className="text-2xl font-bold text-white">
-            {Object.values(playerRuns).reduce((sum, p) => sum + p.runs, 0)}
-          </span>
-        </div>
-        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
-              <Target className="w-5 h-5 text-red-400" />
-            </div>
-            <span className="text-slate-400 text-sm">Total Wickets</span>
-          </div>
-          <span className="text-2xl font-bold text-white">
-            {Object.values(playerWickets).reduce((sum, p) => sum + p.wickets, 0)}
-          </span>
-        </div>
-        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
-              <Zap className="w-5 h-5 text-amber-400" />
-            </div>
-            <span className="text-slate-400 text-sm">Boundaries</span>
-          </div>
-          <span className="text-2xl font-bold text-white">
-            {boundaryData.reduce((sum, b) => sum + b.value, 0)}
-          </span>
-        </div>
-        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-              <Award className="w-5 h-5 text-purple-400" />
-            </div>
-            <span className="text-slate-400 text-sm">Matches</span>
-          </div>
-          <span className="text-2xl font-bold text-white">
-            {selectedMatch === 'all' ? matches.length : 1}
-          </span>
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-          <h3 className="font-semibold text-white mb-4">Top Run Scorers</h3>
-          {topBatters.length > 0 ?
-          <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={topBatters.slice(0, 5)} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis type="number" stroke="#94a3b8" />
-                <YAxis dataKey="name" type="category" stroke="#94a3b8" width={100} tick={{ fontSize: 12 }} />
-                <Tooltip
-                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                labelStyle={{ color: '#fff' }} />
-
-                <Bar dataKey="runs" fill="#10b981" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer> :
-
-          <div className="h-64 flex items-center justify-center text-slate-500">No data available</div>
-          }
-        </div>
-
-        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-          <h3 className="font-semibold text-white mb-4">Top Wicket Takers</h3>
-          {topBowlers.length > 0 ?
-          <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={topBowlers.slice(0, 5)} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis type="number" stroke="#94a3b8" />
-                <YAxis dataKey="name" type="category" stroke="#94a3b8" width={100} tick={{ fontSize: 12 }} />
-                <Tooltip
-                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                labelStyle={{ color: '#fff' }} />
-
-                <Bar dataKey="wickets" fill="#ef4444" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer> :
-
-          <div className="h-64 flex items-center justify-center text-slate-500">No data available</div>
-          }
-        </div>
-
-        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-          <h3 className="font-semibold text-white mb-4">Runs per Over (Average)</h3>
-          {runRateData.length > 0 ?
-          <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={runRateData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis dataKey="over" stroke="#94a3b8" />
-                <YAxis stroke="#94a3b8" />
-                <Tooltip
-                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                labelStyle={{ color: '#fff' }} />
-
-                <Area type="monotone" dataKey="runs" stroke="#10b981" fill="#10b981" fillOpacity={0.3} />
-              </AreaChart>
-            </ResponsiveContainer> :
-
-          <div className="h-64 flex items-center justify-center text-slate-500">No data available</div>
-          }
-        </div>
-
-        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-          <h3 className="font-semibold text-white mb-4">Dismissal Types</h3>
-          {dismissalData.length > 0 ?
-          <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                data={dismissalData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={100}
-                paddingAngle={2}
-                dataKey="value"
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-
-                  {dismissalData.map((entry, index) =>
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                )}
-                </Pie>
-                <Tooltip
-                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                labelStyle={{ color: '#fff' }} />
-
-              </PieChart>
-            </ResponsiveContainer> :
-
-          <div className="h-64 flex items-center justify-center text-slate-500">No data available</div>
-          }
-        </div>
-      </div>
-
-      {/* Partnership Section */}
-      <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden mb-8">
-        <div className="p-4 border-b border-slate-700/50 flex items-center gap-3">
-          <Users className="w-5 h-5 text-cyan-400" />
-          <h3 className="font-semibold text-white">Top Partnerships</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="text-xs text-slate-400 border-b border-slate-700/50">
-                <th className="text-left p-3">#</th>
-                <th className="text-left p-3">Partnership</th>
-                <th className="text-right p-3">Runs</th>
-                <th className="text-right p-3">Balls</th>
-                <th className="text-right p-3">RR</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topPartnerships.map((p, idx) =>
-              <tr key={idx} className="border-b border-slate-700/30">
-                  <td className="p-3 text-slate-500">{idx + 1}</td>
-                  <td className="p-3">
-                    <div className="font-medium text-white">{p.batter1Name} & {p.batter2Name}</div>
-                    <div className="text-xs text-slate-500">
-                      {p.batter1_runs || 0}* / {p.batter2_runs || 0}*
-                    </div>
-                  </td>
-                  <td className="text-right p-3 font-semibold text-cyan-400">{p.runs}</td>
-                  <td className="text-right p-3 text-slate-400">{p.balls}</td>
-                  <td className="text-right p-3 text-slate-400">{p.runRate}</td>
-                </tr>
-              )}
-              {topPartnerships.length === 0 &&
-              <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-500">No partnership data</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
-          <div className="p-4 border-b border-slate-700/50">
-            <h3 className="font-semibold text-white">Batting Leaderboard</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="text-xs text-slate-400 border-b border-slate-700/50">
-                  <th className="text-left p-3">#</th>
-                  <th className="text-left p-3">Player</th>
-                  <th className="text-right p-3">Runs</th>
-                  <th className="text-right p-3">Avg</th>
-                  <th className="text-right p-3">SR</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topBatters.slice(0, 10).map((player, idx) =>
-                <tr key={idx} className="border-b border-slate-700/30">
-                    <td className="p-3 text-slate-500">{idx + 1}</td>
-                    <td className="p-3 font-medium text-white">{player.name}</td>
-                    <td className="text-right p-3 font-semibold text-emerald-400">{player.runs}</td>
-                    <td className="text-right p-3 text-slate-400">{player.average}</td>
-                    <td className="text-right p-3 text-slate-400">{player.strikeRate}</td>
-                  </tr>
-                )}
-                {topBatters.length === 0 &&
-                <tr>
-                    <td colSpan={5} className="p-8 text-center text-slate-500">No batting data</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
-          <div className="p-4 border-b border-slate-700/50">
-            <h3 className="font-semibold text-white">Bowling Leaderboard</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="text-xs text-slate-400 border-b border-slate-700/50">
-                  <th className="text-left p-3">#</th>
-                  <th className="text-left p-3">Player</th>
-                  <th className="text-right p-3">Wkts</th>
-                  <th className="text-right p-3">Runs</th>
-                  <th className="text-right p-3">Econ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topBowlers.slice(0, 10).map((player, idx) =>
-                <tr key={idx} className="border-b border-slate-700/30">
-                    <td className="p-3 text-slate-500">{idx + 1}</td>
-                    <td className="p-3 font-medium text-white">{player.name}</td>
-                    <td className="text-right p-3 font-semibold text-red-400">{player.wickets}</td>
-                    <td className="text-right p-3 text-slate-400">{player.runs}</td>
-                    <td className="text-right p-3 text-slate-400">{player.economy}</td>
-                  </tr>
-                )}
-                {topBowlers.length === 0 &&
-                <tr>
-                    <td colSpan={5} className="p-8 text-center text-slate-500">No bowling data</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-        </div></TabsContent>
-      </Tabs>
-    </div>
+  const shotsWithZone = useMemo(() =>
+    allDeliveries
+      .filter(d => d.shot_x != null && d.shot_y != null)
+      .map(d => ({
+        ...d,
+        turf_zone: d.turf_zone || getTurfZone(d.shot_x, d.shot_y),
+      })),
+    [allDeliveries]
   );
 
+  const filteredDeliveries = useMemo(() => {
+    if (activeFilters.includes('all')) return shotsWithZone;
+    return shotsWithZone.filter(d => {
+      return activeFilters.some(f => {
+        if (f === 'W') return d.is_wicket;
+        return (d.runs_bat || 0) === parseInt(f);
+      });
+    });
+  }, [shotsWithZone, activeFilters]);
+
+  const shots = filteredDeliveries.map(d => ({
+    x: d.shot_x,
+    y: d.shot_y,
+    runs: d.runs_bat || 0,
+    is_wicket: d.is_wicket,
+  }));
+
+  // ── Performance stats (all deliveries for player, not just shots) ────
+  const statsDeliveries = useMemo(() =>
+    allDeliveries.filter(d => !d.is_voided && d.is_legal_delivery !== false),
+    [allDeliveries]
+  );
+
+  const totalRuns = statsDeliveries.reduce((s, d) => s + (d.runs_bat || 0), 0);
+  const ballsFaced = statsDeliveries.length;
+  const strikeRate = ballsFaced > 0 ? ((totalRuns / ballsFaced) * 100).toFixed(1) : '0.0';
+  const fours = statsDeliveries.filter(d => (d.runs_bat || 0) === 4).length;
+  const sixes = statsDeliveries.filter(d => (d.runs_bat || 0) === 6).length;
+  const wickets = statsDeliveries.filter(d => d.is_wicket).length;
+
+  // ── Zone analysis ─────────────────────────────────────────────────────
+  const zoneCounts = useMemo(() => {
+    const counts = {};
+    TURF_ZONES.forEach(z => { counts[z] = { shots: 0, runs: 0 }; });
+    shotsWithZone.forEach(d => {
+      const z = d.turf_zone;
+      if (counts[z]) {
+        counts[z].shots++;
+        counts[z].runs += d.runs_bat || 0;
+      }
+    });
+    return counts;
+  }, [shotsWithZone]);
+
+  const strongZone = TURF_ZONES.reduce((a, b) => zoneCounts[a].shots >= zoneCounts[b].shots ? a : b, TURF_ZONES[0]);
+  const weakZone = TURF_ZONES.reduce((a, b) => zoneCounts[a].shots <= zoneCounts[b].shots ? a : b, TURF_ZONES[0]);
+  const mostRunsZone = TURF_ZONES.reduce((a, b) => zoneCounts[a].runs >= zoneCounts[b].runs ? a : b, TURF_ZONES[0]);
+
+  // ── Pitch / length analysis ───────────────────────────────────────────
+  const lengthCounts = useMemo(() => {
+    const counts = {};
+    allDeliveries.forEach(d => {
+      if (d.length) counts[d.length] = (counts[d.length] || 0) + 1;
+    });
+    return counts;
+  }, [allDeliveries]);
+
+  const bestLength = Object.entries(lengthCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+  // ── Wicket zone ───────────────────────────────────────────────────────
+  const wicketDeliveries = shotsWithZone.filter(d => d.is_wicket);
+  const wicketZoneCounts = {};
+  wicketDeliveries.forEach(d => {
+    wicketZoneCounts[d.turf_zone] = (wicketZoneCounts[d.turf_zone] || 0) + 1;
+  });
+  const mostDangerousZone = Object.entries(wicketZoneCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+  // ── Catch drops ───────────────────────────────────────────────────────
+  const catchDrops = useMemo(() =>
+    allDeliveries.filter(d => d.is_catch_drop),
+    [allDeliveries]
+  );
+
+  const dropsByFielder = useMemo(() => {
+    const counts = {};
+    catchDrops.forEach(d => {
+      if (d.dropped_by) counts[d.dropped_by] = (counts[d.dropped_by] || 0) + 1;
+    });
+    return counts;
+  }, [catchDrops]);
+
+  return (
+    <div className="pb-24 md:pb-6">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <Link to={createPageUrl('Home')} className="text-slate-400 hover:text-white transition-colors">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
+        <div>
+          <h1 className="text-xl font-bold text-white">Analytics</h1>
+          <p className="text-slate-400 text-xs">Player performance insights</p>
+        </div>
+      </div>
+
+      {/* Player Selector */}
+      <div className="mb-5">
+        <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">Select Player</p>
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <button
+            onClick={() => setSelectedPlayerId(null)}
+            className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all border ${
+              !selectedPlayerId
+                ? 'bg-emerald-500 text-white border-emerald-500'
+                : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500'
+            }`}
+          >
+            All Players
+          </button>
+          {players.map(p => (
+            <button
+              key={p.id}
+              onClick={() => setSelectedPlayerId(p.id === selectedPlayerId ? null : p.id)}
+              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all border ${
+                selectedPlayerId === p.id
+                  ? 'bg-emerald-500 text-white border-emerald-500'
+                  : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500'
+              }`}
+            >
+              {p.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Performance Stats */}
+      <div className="mb-5">
+        <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">Performance</p>
+        <div className="grid grid-cols-3 gap-2">
+          <StatCard label="Runs" value={totalRuns} color="text-emerald-400" />
+          <StatCard label="Balls" value={ballsFaced} />
+          <StatCard label="Strike Rate" value={strikeRate} color="text-amber-400" />
+          <StatCard label="Fours" value={fours} color="text-emerald-400" />
+          <StatCard label="Sixes" value={sixes} color="text-amber-400" />
+          <StatCard label="Wickets" value={wickets} color="text-red-400" />
+        </div>
+      </div>
+
+      {/* Wagon Wheel Section */}
+      <div className="mb-5">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">Wagon Wheel</p>
+          {/* View toggle */}
+          <div className="flex bg-slate-800 rounded-lg p-0.5 gap-0.5">
+            <button
+              onClick={() => setShowHeatmap(false)}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                !showHeatmap ? 'bg-emerald-500 text-white' : 'text-slate-400'
+              }`}
+            >
+              Shots
+            </button>
+            <button
+              onClick={() => setShowHeatmap(true)}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                showHeatmap ? 'bg-amber-500 text-white' : 'text-slate-400'
+              }`}
+            >
+              Heatmap
+            </button>
+          </div>
+        </div>
+
+        {/* Run filters */}
+        <div className="flex gap-1.5 mb-3 flex-wrap">
+          {RUN_FILTERS.map(f => (
+            <button
+              key={f.key}
+              onClick={() => toggleFilter(f.key)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                activeFilters.includes(f.key)
+                  ? f.key === 'W'
+                    ? 'bg-red-500 border-red-500 text-white'
+                    : f.key === '4'
+                    ? 'bg-emerald-500 border-emerald-500 text-white'
+                    : f.key === '6'
+                    ? 'bg-amber-500 border-amber-500 text-white'
+                    : 'bg-slate-500 border-slate-500 text-white'
+                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Ground map */}
+        <div className="flex justify-center">
+          {shotsWithZone.length === 0 ? (
+            <div className="flex items-center justify-center h-48 text-slate-500 text-sm">
+              No shot data available
+            </div>
+          ) : (
+            <GroundMapWithHeatmap
+              shots={shots}
+              deliveries={filteredDeliveries}
+              showHeatmap={showHeatmap}
+              size={300}
+            />
+          )}
+        </div>
+
+        {/* Legend */}
+        {!showHeatmap && (
+          <div className="flex gap-3 justify-center mt-3 flex-wrap text-xs">
+            {[
+              { color: 'bg-slate-500', label: 'Dot' },
+              { color: 'bg-blue-400', label: '1-3' },
+              { color: 'bg-emerald-400', label: '4' },
+              { color: 'bg-amber-400', label: '6' },
+              { color: 'bg-red-400', label: 'W' },
+            ].map(({ color, label }) => (
+              <span key={label} className="flex items-center gap-1.5 text-slate-400">
+                <span className={`w-2.5 h-2.5 rounded-full ${color}`} />
+                {label}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {showHeatmap && (
+          <div className="flex gap-3 justify-center mt-3 flex-wrap text-xs">
+            {[
+              { color: 'bg-blue-500', label: 'Low' },
+              { color: 'bg-yellow-500', label: 'Medium' },
+              { color: 'bg-red-500', label: 'High' },
+            ].map(({ color, label }) => (
+              <span key={label} className="flex items-center gap-1.5 text-slate-400">
+                <span className={`w-2.5 h-2.5 rounded-full ${color}`} />
+                {label}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Quick Insights */}
+      {shotsWithZone.length > 0 && (
+        <div className="mb-5">
+          <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">Quick Insights</p>
+          <div className="grid grid-cols-1 gap-2">
+            <InsightCard icon={Zap} title="Strong Zone" value={`${strongZone} (${zoneCounts[strongZone].shots} shots)`} color="bg-emerald-500/20 text-emerald-400" />
+            <InsightCard icon={AlertTriangle} title="Weak Zone" value={`${weakZone} (${zoneCounts[weakZone].shots} shots)`} color="bg-amber-500/20 text-amber-400" />
+            <InsightCard icon={TrendingUp} title="Most Runs Zone" value={`${mostRunsZone} (${zoneCounts[mostRunsZone].runs} runs)`} color="bg-blue-500/20 text-blue-400" />
+          </div>
+        </div>
+      )}
+
+      {/* Advanced Insights */}
+      {allDeliveries.length > 0 && (
+        <div className="mb-5">
+          <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">Advanced Insights</p>
+          <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/50 space-y-3">
+            {[
+              { label: 'Most Used Zone', value: strongZone },
+              { label: 'Least Used Zone', value: weakZone },
+              { label: 'Strongest Length', value: bestLength ? bestLength.replace(/_/g, ' ') : '—' },
+              { label: 'Most Dangerous Zone', value: mostDangerousZone || '—' },
+            ].map(({ label, value }) => (
+              <div key={label} className="flex justify-between items-center text-sm py-2 border-b border-slate-700/40 last:border-0 last:pb-0">
+                <span className="text-slate-400">{label}</span>
+                <span className="text-white font-medium">{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Zone Breakdown */}
+      {shotsWithZone.length > 0 && (
+        <div className="mb-5">
+          <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">Zone Breakdown</p>
+          <div className="bg-slate-800/60 rounded-xl border border-slate-700/50 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-700/50">
+                  <th className="text-left p-3 text-slate-400 font-medium text-xs">Zone</th>
+                  <th className="text-right p-3 text-slate-400 font-medium text-xs">Shots</th>
+                  <th className="text-right p-3 text-slate-400 font-medium text-xs">Runs</th>
+                  <th className="text-right p-3 text-slate-400 font-medium text-xs">Avg/Shot</th>
+                </tr>
+              </thead>
+              <tbody>
+                {TURF_ZONES.map(zone => {
+                  const { shots: s, runs: r } = zoneCounts[zone];
+                  return (
+                    <tr key={zone} className="border-b border-slate-700/30 last:border-0">
+                      <td className="p-3 text-white font-medium">{zone}</td>
+                      <td className="p-3 text-right text-slate-300">{s}</td>
+                      <td className="p-3 text-right text-emerald-400 font-semibold">{r}</td>
+                      <td className="p-3 text-right text-slate-400">{s > 0 ? (r / s).toFixed(1) : '—'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Catch Drops */}
+      <div className="mb-5">
+        <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">Catch Drops</p>
+        {catchDrops.length === 0 ? (
+          <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/50 text-center text-slate-500 text-sm">
+            No dropped catches recorded
+          </div>
+        ) : (
+          <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/50">
+            <div className="flex items-center gap-3 mb-3 pb-3 border-b border-slate-700/50">
+              <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
+                <Users className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <div className="text-xl font-bold text-red-400">{catchDrops.length}</div>
+                <div className="text-xs text-slate-400">Total Drops</div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {Object.entries(dropsByFielder).sort((a, b) => b[1] - a[1]).map(([pid, count]) => (
+                <div key={pid} className="flex justify-between items-center text-sm">
+                  <span className="text-slate-300">{playersMap[pid]?.name || 'Unknown'}</span>
+                  <span className="px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full text-xs font-bold">
+                    {count} drop{count > 1 ? 's' : ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

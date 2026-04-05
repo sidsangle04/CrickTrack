@@ -886,6 +886,8 @@ export default function LiveScoring() {
         runs={pendingDelivery?.runs_bat}
         isWicket={pendingDelivery?.is_wicket}
         bowlerType={bowlerProfile[currentInnings?.current_bowler_id]?.type}
+        fieldingTeamPlayers={bowlingTeamPlayingXI.map(pid => playersMap[pid]).filter(Boolean)}
+        playersMap={playersMap}
       />
 
       <Dialog open={showMenuDialog} onOpenChange={setShowMenuDialog}>
