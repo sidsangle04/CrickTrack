@@ -346,8 +346,14 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
   const { data: allDeliveries = [] } = useQuery({
     queryKey: ['deliveries-analysis', selectedPlayerId],
     queryFn: () => selectedPlayerId
-      ? base44.entities.Delivery.filter({ striker_id: selectedPlayerId, is_voided: false })
-      : base44.entities.Delivery.filter({ is_voided: false }),
+      ? base44.entities.Delivery.filter({ striker_id: selectedPlayerId })
+      : base44.entities.Delivery.list(),
+  });
+
+  const { data: bowlerDeliveries = [] } = useQuery({
+    queryKey: ['bowler-deliveries-analysis', selectedPlayerId],
+    queryFn: () => base44.entities.Delivery.filter({ bowler_id: selectedPlayerId }),
+    enabled: !!selectedPlayerId,
   });
 
   const { data: allBatterInnings = [] } = useQuery({
@@ -456,7 +462,7 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
   }, [allBatterInnings]);
   const totalDismissals = Object.values(dismissalCounts).reduce((s, v) => s + v, 0);
 
-  // Pitch length stats
+  // Batter pitch length stats (as striker)
   const pitchLengthStats = useMemo(() => {
     const stats = {};
     LENGTH_ZONES_ORDER.forEach(l => { stats[l] = { balls: 0, runs: 0, wickets: 0 }; });
@@ -470,6 +476,20 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
     return stats;
   }, [allDeliveries]);
 
+  // Bowler pitch length stats (as bowler)
+  const bowlerPitchLengthStats = useMemo(() => {
+    const stats = {};
+    LENGTH_ZONES_ORDER.forEach(l => { stats[l] = { balls: 0, runs: 0, wickets: 0 }; });
+    bowlerDeliveries.filter(d => d.length && !d.is_voided && d.is_legal_delivery !== false).forEach(d => {
+      if (stats[d.length]) {
+        stats[d.length].balls++;
+        stats[d.length].runs += d.runs_total || 0;
+        if (d.is_wicket) stats[d.length].wickets++;
+      }
+    });
+    return stats;
+  }, [bowlerDeliveries]);
+
   const weakLengths = LENGTH_ZONES_ORDER.filter(l => {
     const { balls, runs } = pitchLengthStats[l];
     return balls >= 3 && (runs / balls) * 100 < 100;
@@ -478,6 +498,22 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
     const { balls, runs } = pitchLengthStats[l];
     return balls >= 3 && (runs / balls) * 100 > 150;
   });
+
+  // Most dismissals by length
+  const mostDismissalLength = LENGTH_ZONES_ORDER
+    .filter(l => pitchLengthStats[l].wickets > 0)
+    .sort((a, b) => pitchLengthStats[b].wickets - pitchLengthStats[a].wickets)[0];
+
+  // Bowler's worst length (highest economy)
+  const bowlerWorstLength = LENGTH_ZONES_ORDER
+    .filter(l => bowlerPitchLengthStats[l].balls >= 3)
+    .sort((a, b) => {
+      const econA = bowlerPitchLengthStats[a].runs / (bowlerPitchLengthStats[a].balls / 6);
+      const econB = bowlerPitchLengthStats[b].runs / (bowlerPitchLengthStats[b].balls / 6);
+      return econB - econA;
+    })[0];
+
+  const hasBowlerPitchData = bowlerDeliveries.some(d => d.length);
 
   const selectedPlayer = selectedPlayerId ? playersMap[selectedPlayerId] : null;
 
@@ -708,7 +744,7 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
 
         {/* WEAKNESSES */}
         <TabsContent value="weaknesses">
-          {/* Dismissal breakdown — sourced from BatterInnings.dismissal_type */}
+          {/* Dismissal breakdown */}
           <div className="mb-5">
             <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">How {selectedPlayer ? selectedPlayer.name : 'Players'} Got Out</p>
             {totalDismissals === 0 ? (
@@ -740,71 +776,144 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
             )}
           </div>
 
-          {/* Pitch Zone Performance */}
+          {/* Batter Pitch Zone Performance */}
           <div className="mb-5">
-            <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">Pitch Zone Performance</p>
+            <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">Batter — Pitch Zone Performance</p>
             <div className="text-xs text-slate-500 mb-3 flex gap-3 flex-wrap">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> Weak (&lt;100 SR)</span>
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> Average (100-150)</span>
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Strong (&gt;150 SR)</span>
             </div>
-            {allDeliveries.filter(d => d.length).length === 0 ? (
-              <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/50 text-center text-slate-500 text-sm">No pitch data</div>
+            {!allDeliveries.some(d => d.length) ? (
+              <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/50 text-center text-slate-500 text-sm">No pitch data recorded</div>
             ) : (
-              <div className="bg-slate-800/60 rounded-xl border border-slate-700/50 overflow-hidden">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-700/50">
-                      <th className="text-left p-2.5 text-slate-400">Length</th>
-                      <th className="text-right p-2.5 text-slate-400">Balls</th>
-                      <th className="text-right p-2.5 text-slate-400">Runs</th>
-                      <th className="text-right p-2.5 text-slate-400">SR</th>
-                      <th className="text-right p-2.5 text-slate-400">W</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {LENGTH_ZONES_ORDER.filter(l => pitchLengthStats[l].balls > 0).map(l => {
-                      const { balls, runs, wickets } = pitchLengthStats[l];
-                      const sr = ((runs / balls) * 100).toFixed(1);
-                      const srNum = parseFloat(sr);
-                      const srColor = srNum < 100 ? 'text-red-400' : srNum > 150 ? 'text-emerald-400' : 'text-amber-400';
-                      const bgColor = srNum < 100 ? 'bg-red-500/10 border-l-2 border-red-500/60' : srNum > 150 ? 'bg-emerald-500/5' : '';
-                      return (
-                        <tr key={l} className={`border-b border-slate-700/30 last:border-0 ${bgColor}`}>
-                          <td className="p-2.5 text-white font-medium">{LENGTH_LABEL[l]}</td>
-                          <td className="p-2.5 text-right text-slate-400">{balls}</td>
-                          <td className="p-2.5 text-right text-slate-300">{runs}</td>
-                          <td className={`p-2.5 text-right font-bold ${srColor}`}>{sr}</td>
-                          <td className="p-2.5 text-right text-red-400">{wickets || '—'}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <>
+                <div className="bg-slate-800/60 rounded-xl border border-slate-700/50 overflow-hidden mb-3">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-700/50">
+                        <th className="text-left p-2.5 text-slate-400">Length</th>
+                        <th className="text-right p-2.5 text-slate-400">Balls</th>
+                        <th className="text-right p-2.5 text-slate-400">Runs</th>
+                        <th className="text-right p-2.5 text-slate-400">SR</th>
+                        <th className="text-right p-2.5 text-slate-400">W</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {LENGTH_ZONES_ORDER.filter(l => pitchLengthStats[l].balls > 0).map(l => {
+                        const { balls, runs, wickets } = pitchLengthStats[l];
+                        const sr = ((runs / balls) * 100).toFixed(1);
+                        const srNum = parseFloat(sr);
+                        const srColor = srNum < 100 ? 'text-red-400' : srNum > 150 ? 'text-emerald-400' : 'text-amber-400';
+                        const isMostDismissals = l === mostDismissalLength;
+                        const bgColor = isMostDismissals ? 'bg-red-500/10 border-l-2 border-red-500/60' : srNum < 100 ? 'bg-red-500/5' : '';
+                        return (
+                          <tr key={l} className={`border-b border-slate-700/30 last:border-0 ${bgColor}`}>
+                            <td className="p-2.5">
+                              <span className="text-white font-medium">{LENGTH_LABEL[l]}</span>
+                              {isMostDismissals && <span className="ml-1.5 text-red-400 text-xs">⚠ Most dismissals</span>}
+                            </td>
+                            <td className="p-2.5 text-right text-slate-400">{balls}</td>
+                            <td className="p-2.5 text-right text-slate-300">{runs}</td>
+                            <td className={`p-2.5 text-right font-bold ${srColor}`}>{sr}</td>
+                            <td className="p-2.5 text-right text-red-400 font-bold">{wickets > 0 ? wickets : '—'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="space-y-2">
+                  {mostDismissalLength && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-start gap-3">
+                      <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="text-sm font-semibold text-red-400 mb-0.5">Most Dismissals</div>
+                        <div className="text-xs text-slate-300">{LENGTH_LABEL[mostDismissalLength]} — {pitchLengthStats[mostDismissalLength].wickets} wicket{pitchLengthStats[mostDismissalLength].wickets > 1 ? 's' : ''} at this length</div>
+                      </div>
+                    </div>
+                  )}
+                  {weakLengths.length > 0 && (
+                    <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 flex items-start gap-3">
+                      <ShieldAlert className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="text-sm font-semibold text-orange-400 mb-0.5">Low Strike Rate Lengths</div>
+                        <div className="text-xs text-slate-300">{weakLengths.map(l => LENGTH_LABEL[l]).join(', ')} — SR below 100</div>
+                      </div>
+                    </div>
+                  )}
+                  {strongLengths.length > 0 && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 flex items-start gap-3">
+                      <Zap className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="text-sm font-semibold text-emerald-400 mb-0.5">Power Lengths</div>
+                        <div className="text-xs text-slate-300">{strongLengths.map(l => LENGTH_LABEL[l]).join(', ')} — SR above 150</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
 
-          {/* Insights */}
-          {(weakLengths.length > 0 || strongLengths.length > 0) && (
-            <div className="space-y-2 mb-5">
-              {weakLengths.length > 0 && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-start gap-3">
-                  <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <div className="text-sm font-semibold text-red-400 mb-0.5">Vulnerable Lengths</div>
-                    <div className="text-xs text-slate-300">{weakLengths.map(l => LENGTH_LABEL[l]).join(', ')} — SR below 100</div>
+          {/* Bowler Pitch Zone Performance — only when a specific player is selected */}
+          {selectedPlayerId && (
+            <div className="mb-5">
+              <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">Bowler — Pitch Zone Performance</p>
+              <div className="text-xs text-slate-500 mb-3 flex gap-3 flex-wrap">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> Expensive (&gt;10 Econ)</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> Average (7-10)</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Good (&lt;7 Econ)</span>
+              </div>
+              {!hasBowlerPitchData ? (
+                <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/50 text-center text-slate-500 text-sm">No bowling pitch data recorded</div>
+              ) : (
+                <>
+                  <div className="bg-slate-800/60 rounded-xl border border-slate-700/50 overflow-hidden mb-3">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-700/50">
+                          <th className="text-left p-2.5 text-slate-400">Length</th>
+                          <th className="text-right p-2.5 text-slate-400">Balls</th>
+                          <th className="text-right p-2.5 text-slate-400">Runs</th>
+                          <th className="text-right p-2.5 text-slate-400">Econ</th>
+                          <th className="text-right p-2.5 text-slate-400">W</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {LENGTH_ZONES_ORDER.filter(l => bowlerPitchLengthStats[l].balls > 0).map(l => {
+                          const { balls, runs, wickets } = bowlerPitchLengthStats[l];
+                          const econ = (runs / (balls / 6)).toFixed(1);
+                          const econNum = parseFloat(econ);
+                          const econColor = econNum > 10 ? 'text-red-400' : econNum < 7 ? 'text-emerald-400' : 'text-amber-400';
+                          const isWorst = l === bowlerWorstLength;
+                          const bgColor = isWorst ? 'bg-red-500/10 border-l-2 border-red-500/60' : '';
+                          return (
+                            <tr key={l} className={`border-b border-slate-700/30 last:border-0 ${bgColor}`}>
+                              <td className="p-2.5">
+                                <span className="text-white font-medium">{LENGTH_LABEL[l]}</span>
+                                {isWorst && <span className="ml-1.5 text-red-400 text-xs">⚠ Most expensive</span>}
+                              </td>
+                              <td className="p-2.5 text-right text-slate-400">{balls}</td>
+                              <td className="p-2.5 text-right text-slate-300">{runs}</td>
+                              <td className={`p-2.5 text-right font-bold ${econColor}`}>{econ}</td>
+                              <td className="p-2.5 text-right text-emerald-400 font-bold">{wickets > 0 ? wickets : '—'}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                </div>
-              )}
-              {strongLengths.length > 0 && (
-                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 flex items-start gap-3">
-                  <Zap className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <div className="text-sm font-semibold text-emerald-400 mb-0.5">Power Lengths</div>
-                    <div className="text-xs text-slate-300">{strongLengths.map(l => LENGTH_LABEL[l]).join(', ')} — SR above 150</div>
-                  </div>
-                </div>
+                  {bowlerWorstLength && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-start gap-3">
+                      <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="text-sm font-semibold text-red-400 mb-0.5">Most Expensive Length</div>
+                        <div className="text-xs text-slate-300">{LENGTH_LABEL[bowlerWorstLength]} — {(bowlerPitchLengthStats[bowlerWorstLength].runs / (bowlerPitchLengthStats[bowlerWorstLength].balls / 6)).toFixed(1)} economy conceded at this length</div>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
