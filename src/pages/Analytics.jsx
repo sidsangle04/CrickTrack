@@ -179,7 +179,7 @@ function LeaderboardsTab({ allPlayers, teams, allBatterInnings, allBowlerInnings
       if (!map[b.player_id]) map[b.player_id] = { wickets: 0, runs: 0, balls: 0, maidens: 0 };
       map[b.player_id].wickets += b.wickets || 0;
       map[b.player_id].runs += b.runs_conceded || 0;
-      map[b.player_id].balls += (b.overs || 0) * 6 + (b.balls || 0);
+      map[b.player_id].balls += b.balls || 0;
       map[b.player_id].maidens += b.maidens || 0;
     });
     return Object.entries(map)
