@@ -327,7 +327,8 @@ export default function LiveScoring() {
     }
 
     if (needNewBatter && newTotalWickets < maxWickets) {
-      setPendingAction('new_batter');
+      // If over also ended, need bowler after batter
+      setPendingAction(needNewBowler ? 'new_batter_then_bowler' : 'new_batter');
       setShowSelectBatter(true);
     } else if (needNewBowler) {
       setPendingAction('new_bowler');
@@ -660,7 +661,7 @@ export default function LiveScoring() {
       setPendingAction('select_opening_bowler');
       await refetchAll();
       setShowSelectBowler(true);
-    } else if (currentPendingAction === 'new_batter') {
+    } else if (currentPendingAction === 'new_batter' || currentPendingAction === 'new_batter_then_bowler') {
       const latestInnings = await base44.entities.Innings.filter({ id: currentInnings.id });
       const inn = latestInnings[0];
 
@@ -674,8 +675,13 @@ export default function LiveScoring() {
         });
       }
       setShowSelectBatter(false);
-      setPendingAction(null);
       await refetchAll();
+      if (currentPendingAction === 'new_batter_then_bowler') {
+        setPendingAction('new_bowler');
+        setShowSelectBowler(true);
+      } else {
+        setPendingAction(null);
+      }
     }
   };
 
