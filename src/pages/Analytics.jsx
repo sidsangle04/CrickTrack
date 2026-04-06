@@ -355,6 +355,13 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
       : base44.entities.BatterInnings.list(),
   });
 
+  const { data: allBowlerInningsPlayer = [] } = useQuery({
+    queryKey: ['bowler-innings-analysis', selectedPlayerId],
+    queryFn: () => selectedPlayerId
+      ? base44.entities.BowlerInnings.filter({ player_id: selectedPlayerId })
+      : base44.entities.BowlerInnings.list(),
+  });
+
   const toggleFilter = (key) => {
     if (key === 'all') { setActiveFilters(['all']); return; }
     setActiveFilters(prev => {
@@ -394,6 +401,22 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
   const timesOut = allBatterInnings.filter(b => b.is_out).length;
   const totalInnings = allBatterInnings.filter(b => b.status !== 'yet_to_bat').length;
   const average = timesOut > 0 ? (totalRuns / timesOut).toFixed(1) : totalRuns > 0 ? '∞' : '0.0';
+
+  // Bowling performance stats
+  const bowlingTotals = useMemo(() => {
+    let wickets = 0, runs = 0, balls = 0, maidens = 0, dots = 0;
+    allBowlerInningsPlayer.forEach(b => {
+      wickets += b.wickets || 0;
+      runs += b.runs_conceded || 0;
+      balls += (b.overs || 0) * 6 + (b.balls || 0);
+      maidens += b.maidens || 0;
+      dots += b.dots || 0;
+    });
+    const oversDisplay = `${Math.floor(balls / 6)}.${balls % 6}`;
+    const economy = balls > 0 ? (runs / (balls / 6)).toFixed(2) : '0.00';
+    const avg = wickets > 0 ? (runs / wickets).toFixed(1) : '—';
+    return { wickets, runs, balls, maidens, dots, oversDisplay, economy, avg };
+  }, [allBowlerInningsPlayer]);
 
   // Zone analysis
   const zoneCounts = useMemo(() => {
@@ -535,7 +558,7 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
 
         {/* OVERVIEW */}
         <TabsContent value="overview">
-          {/* Batting Performance — no wickets here */}
+          {/* Batting Performance */}
           <div className="mb-5">
             <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">Batting Performance</p>
             <div className="grid grid-cols-3 gap-2">
@@ -547,6 +570,21 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
               <StatCard label="4s / 6s" value={`${fours}/${sixes}`} color="text-emerald-400" />
             </div>
           </div>
+
+          {/* Bowling Performance */}
+          {(bowlingTotals.balls > 0 || bowlingTotals.wickets > 0) && (
+            <div className="mb-5">
+              <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">Bowling Performance</p>
+              <div className="grid grid-cols-3 gap-2">
+                <StatCard label="Wickets" value={bowlingTotals.wickets} color="text-red-400" />
+                <StatCard label="Overs" value={bowlingTotals.oversDisplay} />
+                <StatCard label="Economy" value={bowlingTotals.economy} color="text-amber-400" />
+                <StatCard label="Runs Conceded" value={bowlingTotals.runs} />
+                <StatCard label="Avg" value={bowlingTotals.avg} color="text-blue-400" />
+                <StatCard label="Maidens" value={bowlingTotals.maidens} color="text-emerald-400" />
+              </div>
+            </div>
+          )}
 
           {/* Wagon Wheel */}
           <div className="mb-5">
