@@ -3,24 +3,25 @@ import React, { useRef } from 'react';
 export function classifyPitch(px, py) {
   // px: 0=off side, 1=leg side
   // py: 0=top (batter's end – full/yorker), 1=bottom (back of pitch – short/bouncer)
+  // Returns values matching entity enum format
 
   let line;
-  if (px < 0.12) line = 'Wide Outside Off';
-  else if (px < 0.3) line = 'Outside Off';
-  else if (px < 0.45) line = 'Off Stump';
-  else if (px < 0.55) line = 'Middle';
-  else if (px < 0.68) line = 'Leg Stump';
-  else if (px < 0.88) line = 'Outside Leg';
-  else line = 'Wide Outside Leg';
+  if (px < 0.12) line = 'wide_outside_off';
+  else if (px < 0.3) line = 'outside_off';
+  else if (px < 0.45) line = 'off_stump';
+  else if (px < 0.55) line = 'middle_stump';
+  else if (px < 0.68) line = 'leg_stump';
+  else if (px < 0.88) line = 'outside_leg';
+  else line = 'wide_outside_leg';
 
   let length;
-  if (py < 0.05) length = 'Full Toss';
-  else if (py < 0.18) length = 'Yorker';
-  else if (py < 0.35) length = 'Full';
-  else if (py < 0.55) length = 'Good Length';
-  else if (py < 0.72) length = 'Back of Length';
-  else if (py < 0.9) length = 'Short';
-  else length = 'Bouncer';
+  if (py < 0.05) length = 'full_toss';
+  else if (py < 0.18) length = 'yorker';
+  else if (py < 0.35) length = 'full';
+  else if (py < 0.55) length = 'good_length';
+  else if (py < 0.72) length = 'back_of_length';
+  else if (py < 0.9) length = 'short';
+  else length = 'bouncer';
 
   return { line, length };
 }

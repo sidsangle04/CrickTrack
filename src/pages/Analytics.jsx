@@ -20,6 +20,12 @@ function getTurfZone(x, y) {
 
 const TURF_ZONES = ['Front Left', 'Front Right', 'Back Left', 'Back Center', 'Back Right'];
 const LENGTH_ZONES_ORDER = ['full_toss', 'yorker', 'full', 'good_length', 'good', 'back_of_length', 'short', 'bouncer'];
+// Normalize legacy human-readable length values to enum format
+const LENGTH_NORMALIZE = {
+  'Full Toss': 'full_toss', 'Yorker': 'yorker', 'Full': 'full',
+  'Good Length': 'good_length', 'Good': 'good', 'Back of Length': 'back_of_length',
+  'Short': 'short', 'Bouncer': 'bouncer'
+};
 const LENGTH_LABEL = {
   full_toss: 'Full Toss', yorker: 'Yorker', full: 'Full', good_length: 'Good Length',
   good: 'Good', back_of_length: 'Back of Length', short: 'Short', bouncer: 'Bouncer'
@@ -488,10 +494,11 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
     const stats = {};
     LENGTH_ZONES_ORDER.forEach(l => { stats[l] = { balls: 0, runs: 0, wickets: 0 }; });
     allDeliveries.filter(d => d.length && !d.is_voided && d.is_legal_delivery !== false).forEach(d => {
-      if (stats[d.length]) {
-        stats[d.length].balls++;
-        stats[d.length].runs += d.runs_bat || 0;
-        if (d.is_wicket) stats[d.length].wickets++;
+      const key = LENGTH_NORMALIZE[d.length] || d.length;
+      if (stats[key]) {
+        stats[key].balls++;
+        stats[key].runs += d.runs_bat || 0;
+        if (d.is_wicket) stats[key].wickets++;
       }
     });
     return stats;
@@ -502,10 +509,11 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
     const stats = {};
     LENGTH_ZONES_ORDER.forEach(l => { stats[l] = { balls: 0, runs: 0, wickets: 0 }; });
     bowlerDeliveries.filter(d => d.length && !d.is_voided && d.is_legal_delivery !== false).forEach(d => {
-      if (stats[d.length]) {
-        stats[d.length].balls++;
-        stats[d.length].runs += d.runs_total || 0;
-        if (d.is_wicket) stats[d.length].wickets++;
+      const key = LENGTH_NORMALIZE[d.length] || d.length;
+      if (stats[key]) {
+        stats[key].balls++;
+        stats[key].runs += d.runs_total || 0;
+        if (d.is_wicket) stats[key].wickets++;
       }
     });
     return stats;
@@ -535,6 +543,7 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
     })[0];
 
   const hasBowlerPitchData = bowlerDeliveries.some(d => d.length);
+  const hasBatterPitchData = allDeliveries.some(d => d.length);
 
   const selectedPlayer = selectedPlayerId ? playersMap[selectedPlayerId] : null;
 
@@ -831,7 +840,7 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> Average (100-150)</span>
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Strong (&gt;150 SR)</span>
             </div>
-            {!allDeliveries.some(d => d.length) ? (
+            {!hasBatterPitchData ? (
               <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/50 text-center text-slate-500 text-sm">No pitch data recorded</div>
             ) : (
               <>
