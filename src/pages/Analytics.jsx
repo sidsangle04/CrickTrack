@@ -347,7 +347,7 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
     queryKey: ['deliveries-analysis', selectedPlayerId],
     queryFn: () => selectedPlayerId
       ? base44.entities.Delivery.filter({ striker_id: selectedPlayerId })
-      : base44.entities.Delivery.list(),
+      : base44.entities.Delivery.list('-created_date', 500),
   });
 
   const { data: bowlerDeliveries = [] } = useQuery({
@@ -368,6 +368,18 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
     queryFn: () => selectedPlayerId
       ? base44.entities.BowlerInnings.filter({ player_id: selectedPlayerId })
       : base44.entities.BowlerInnings.list(),
+  });
+
+  const { data: allCatchDropDeliveries = [] } = useQuery({
+    queryKey: ['catch-drops-analysis'],
+    queryFn: () => base44.entities.Delivery.filter({ is_catch_drop: true }),
+  });
+
+  const { data: playerPartnerships = [] } = useQuery({
+    queryKey: ['partnerships-analysis', selectedPlayerId],
+    queryFn: () => selectedPlayerId
+      ? base44.entities.Partnership.list()
+      : base44.entities.Partnership.list(),
   });
 
   const toggleFilter = (key) => {
@@ -447,10 +459,19 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
   wicketDeliveries.forEach(d => { wicketZoneCounts[d.turf_zone] = (wicketZoneCounts[d.turf_zone] || 0) + 1; });
   const mostDangerousZone = Object.entries(wicketZoneCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
 
-  // Catch drops
-  const catchDrops = allDeliveries.filter(d => d.is_catch_drop);
+  // Catch drops — use dedicated query for all catch drop deliveries
+  const catchDrops = allCatchDropDeliveries;
   const dropsByFielder = {};
   catchDrops.forEach(d => { if (d.dropped_by) dropsByFielder[d.dropped_by] = (dropsByFielder[d.dropped_by] || 0) + 1; });
+
+  // Partnerships involving selected player
+  const relevantPartnerships = useMemo(() => {
+    if (!selectedPlayerId) return [];
+    return playerPartnerships
+      .filter(p => p.batter1_id === selectedPlayerId || p.batter2_id === selectedPlayerId)
+      .sort((a, b) => b.runs - a.runs)
+      .slice(0, 5);
+  }, [playerPartnerships, selectedPlayerId]);
 
   // Dismissals (from BatterInnings — correct source)
   const dismissalCounts = useMemo(() => {
@@ -710,6 +731,32 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* Partnerships */}
+          {selectedPlayerId && (
+            <div className="mb-5">
+              <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">Partnerships</p>
+              {relevantPartnerships.length === 0 ? (
+                <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/50 text-center text-slate-500 text-sm">No partnership data</div>
+              ) : (
+                <div className="space-y-2">
+                  {relevantPartnerships.map((p, i) => {
+                    const partner = p.batter1_id === selectedPlayerId ? p.batter2_id : p.batter1_id;
+                    return (
+                      <div key={p.id} className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50 flex items-center gap-3">
+                        <div className="text-slate-500 text-xs w-5 text-center">{i + 1}</div>
+                        <div className="flex-1">
+                          <div className="text-sm text-white font-medium">with {playersMap[partner]?.name || '?'}</div>
+                          <div className="text-xs text-slate-400">{p.balls} balls</div>
+                        </div>
+                        <div className="text-xl font-bold text-emerald-400">{p.runs}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
