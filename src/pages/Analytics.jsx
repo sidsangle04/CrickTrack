@@ -184,9 +184,11 @@ function LeaderboardsTab({ allPlayers, teams, allBatterInnings, allBowlerInnings
     });
     return Object.entries(map)
       .map(([pid, s]) => {
-        const overs = Math.floor(s.balls / 6) + (s.balls % 6) / 10;
+        const oversNum = Math.floor(s.balls / 6);
+        const ballsRem = s.balls % 6;
+        const oversDisplay = `${oversNum}.${ballsRem}`;
         const economy = s.balls > 0 ? (s.runs / (s.balls / 6)).toFixed(2) : '0.00';
-        return { pid, ...s, overs: overs.toFixed(1), economy };
+        return { pid, ...s, overs: oversDisplay, economy };
       })
       .sort((a, b) => b.wickets - a.wickets || parseFloat(a.economy) - parseFloat(b.economy));
   }, [allBowlerInnings]);
@@ -408,11 +410,11 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
     allBowlerInningsPlayer.forEach(b => {
       wickets += b.wickets || 0;
       runs += b.runs_conceded || 0;
-      balls += b.balls || 0;  // b.balls is total legal balls; b.overs is derived from it
-      maidens += b.maidens || 0;
-      dots += b.dots || 0;
+      balls += b.balls || 0;
     });
-    const oversDisplay = `${Math.floor(balls / 6)}.${balls % 6}`;
+    const overs = Math.floor(balls / 6);
+    const remainingBalls = balls % 6;
+    const oversDisplay = `${overs}.${remainingBalls}`;
     const economy = balls > 0 ? (runs / (balls / 6)).toFixed(2) : '0.00';
     const avg = wickets > 0 ? (runs / wickets).toFixed(1) : '—';
     return { wickets, runs, balls, maidens, dots, oversDisplay, economy, avg };
