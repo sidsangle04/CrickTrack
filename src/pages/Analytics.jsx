@@ -408,7 +408,7 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
     allBowlerInningsPlayer.forEach(b => {
       wickets += b.wickets || 0;
       runs += b.runs_conceded || 0;
-      balls += (b.overs || 0) * 6 + (b.balls || 0);
+      balls += b.balls || 0;  // b.balls is total legal balls; b.overs is derived from it
       maidens += b.maidens || 0;
       dots += b.dots || 0;
     });
