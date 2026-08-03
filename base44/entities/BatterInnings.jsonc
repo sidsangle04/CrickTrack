@@ -1,0 +1,85 @@
+{
+  "name": "BatterInnings",
+  "type": "object",
+  "properties": {
+    "match_id": {
+      "type": "string"
+    },
+    "innings_id": {
+      "type": "string"
+    },
+    "player_id": {
+      "type": "string"
+    },
+    "batting_position": {
+      "type": "number",
+      "description": "Batting order position"
+    },
+    "runs": {
+      "type": "number",
+      "default": 0
+    },
+    "balls_faced": {
+      "type": "number",
+      "default": 0
+    },
+    "fours": {
+      "type": "number",
+      "default": 0
+    },
+    "sixes": {
+      "type": "number",
+      "default": 0
+    },
+    "strike_rate": {
+      "type": "number",
+      "default": 0
+    },
+    "is_out": {
+      "type": "boolean",
+      "default": false
+    },
+    "dismissal_type": {
+      "type": "string"
+    },
+    "dismissed_by_bowler_id": {
+      "type": "string"
+    },
+    "dismissed_by_fielder_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "yet_to_bat",
+        "batting",
+        "out",
+        "retired_hurt",
+        "retired_out",
+        "not_out"
+      ],
+      "default": "yet_to_bat"
+    },
+    "dots": {
+      "type": "number",
+      "default": 0
+    },
+    "singles": {
+      "type": "number",
+      "default": 0
+    },
+    "twos": {
+      "type": "number",
+      "default": 0
+    },
+    "threes": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "match_id",
+    "innings_id",
+    "player_id"
+  ]
+}

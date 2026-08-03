@@ -1,0 +1,130 @@
+{
+  "name": "Match",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Match date"
+    },
+    "venue": {
+      "type": "string",
+      "description": "Match venue"
+    },
+    "team1_id": {
+      "type": "string",
+      "description": "First team ID"
+    },
+    "team2_id": {
+      "type": "string",
+      "description": "Second team ID"
+    },
+    "team1_playing_xi": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Team 1 playing XI player IDs"
+    },
+    "team2_playing_xi": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Team 2 playing XI player IDs"
+    },
+    "overs_per_innings": {
+      "type": "number",
+      "default": 20,
+      "description": "Total overs per innings"
+    },
+    "max_overs_per_bowler": {
+      "type": "number",
+      "description": "Max overs a bowler can bowl"
+    },
+    "ball_type": {
+      "type": "string",
+      "enum": [
+        "leather",
+        "tennis",
+        "tape"
+      ],
+      "default": "leather"
+    },
+    "wide_runs": {
+      "type": "number",
+      "default": 1,
+      "description": "Runs awarded for wide"
+    },
+    "no_ball_runs": {
+      "type": "number",
+      "default": 1,
+      "description": "Runs awarded for no-ball"
+    },
+    "toss_winner_id": {
+      "type": "string",
+      "description": "Team that won toss"
+    },
+    "toss_decision": {
+      "type": "string",
+      "enum": [
+        "bat",
+        "bowl"
+      ],
+      "description": "Toss winner's decision"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "setup",
+        "live",
+        "innings_break",
+        "super_over",
+        "completed",
+        "abandoned"
+      ],
+      "default": "setup"
+    },
+    "current_innings": {
+      "type": "number",
+      "default": 1,
+      "description": "Current innings number (1 or 2)"
+    },
+    "batting_team_id": {
+      "type": "string",
+      "description": "Currently batting team"
+    },
+    "bowling_team_id": {
+      "type": "string",
+      "description": "Currently bowling team"
+    },
+    "result": {
+      "type": "string",
+      "description": "Match result text"
+    },
+    "winner_id": {
+      "type": "string",
+      "description": "Winning team ID"
+    },
+    "allow_multiple_super_overs": {
+      "type": "boolean",
+      "default": true
+    },
+    "super_over_count": {
+      "type": "number",
+      "default": 0
+    },
+    "unlimited_batters": {
+      "type": "boolean",
+      "default": false,
+      "description": "Allow more than 11 batters (casual mode)"
+    }
+  },
+  "required": [
+    "date",
+    "venue",
+    "team1_id",
+    "team2_id",
+    "overs_per_innings"
+  ]
+}

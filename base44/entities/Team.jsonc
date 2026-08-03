@@ -1,0 +1,30 @@
+{
+  "name": "Team",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Team name"
+    },
+    "short_name": {
+      "type": "string",
+      "description": "3-4 letter abbreviation"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "Team logo image URL"
+    },
+    "home_ground": {
+      "type": "string",
+      "description": "Home venue"
+    },
+    "primary_color": {
+      "type": "string",
+      "description": "Team primary color hex"
+    }
+  },
+  "required": [
+    "name",
+    "short_name"
+  ]
+}

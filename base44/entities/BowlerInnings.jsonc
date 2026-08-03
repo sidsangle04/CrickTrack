@@ -1,0 +1,78 @@
+{
+  "name": "BowlerInnings",
+  "type": "object",
+  "properties": {
+    "match_id": {
+      "type": "string"
+    },
+    "innings_id": {
+      "type": "string"
+    },
+    "player_id": {
+      "type": "string"
+    },
+    "overs": {
+      "type": "number",
+      "default": 0,
+      "description": "Completed overs"
+    },
+    "balls": {
+      "type": "number",
+      "default": 0,
+      "description": "Legal balls bowled"
+    },
+    "runs_conceded": {
+      "type": "number",
+      "default": 0
+    },
+    "wickets": {
+      "type": "number",
+      "default": 0
+    },
+    "maidens": {
+      "type": "number",
+      "default": 0
+    },
+    "economy": {
+      "type": "number",
+      "default": 0
+    },
+    "wides": {
+      "type": "number",
+      "default": 0
+    },
+    "no_balls": {
+      "type": "number",
+      "default": 0
+    },
+    "dots": {
+      "type": "number",
+      "default": 0
+    },
+    "fours_conceded": {
+      "type": "number",
+      "default": 0
+    },
+    "sixes_conceded": {
+      "type": "number",
+      "default": 0
+    },
+    "current_over_runs": {
+      "type": "number",
+      "default": 0,
+      "description": "Runs in current over"
+    },
+    "spell_overs": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "description": "Over numbers bowled"
+    }
+  },
+  "required": [
+    "match_id",
+    "innings_id",
+    "player_id"
+  ]
+}

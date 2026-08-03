@@ -1,0 +1,64 @@
+{
+  "name": "Player",
+  "type": "object",
+  "properties": {
+    "team_id": {
+      "type": "string",
+      "description": "Reference to Team"
+    },
+    "name": {
+      "type": "string",
+      "description": "Full name"
+    },
+    "jersey_number": {
+      "type": "number",
+      "description": "Jersey number"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "batsman",
+        "bowler",
+        "all_rounder",
+        "wicket_keeper"
+      ],
+      "description": "Primary role"
+    },
+    "batting_style": {
+      "type": "string",
+      "enum": [
+        "right_hand",
+        "left_hand"
+      ],
+      "default": "right_hand"
+    },
+    "bowling_style": {
+      "type": "string",
+      "enum": [
+        "right_arm_fast",
+        "right_arm_medium",
+        "right_arm_off_spin",
+        "right_arm_leg_spin",
+        "left_arm_fast",
+        "left_arm_medium",
+        "left_arm_orthodox",
+        "left_arm_chinaman",
+        "none"
+      ],
+      "default": "none"
+    },
+    "is_captain": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_wicket_keeper": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "team_id",
+    "name",
+    "role"
+  ]
+}
