@@ -373,6 +373,12 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
     queryFn: () => base44.entities.Delivery.filter({ is_catch_drop: true }),
   });
 
+  const { data: matchesForDrops = [] } = useQuery({
+    queryKey: ['matches-catchdrops'],
+    queryFn: () => base44.entities.Match.list(),
+  });
+  const matchesMap = useMemo(() => matchesForDrops.reduce((a, m) => ({ ...a, [m.id]: m }), {}), [matchesForDrops]);
+
   const { data: playerPartnerships = [] } = useQuery({
     queryKey: ['partnerships-analysis', selectedPlayerId],
     queryFn: () => selectedPlayerId
@@ -753,7 +759,7 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
 
           {/* Catch Drops */}
           <div className="mb-5">
-            <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">Catch Drops</p>
+            <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">Catch Drops (Past Matches)</p>
             {catchDrops.length === 0 ? (
               <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/50 text-center text-slate-500 text-sm">No dropped catches</div>
             ) : (
@@ -764,16 +770,46 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
                   </div>
                   <div>
                     <div className="text-xl font-bold text-red-400">{catchDrops.length}</div>
-                    <div className="text-xs text-slate-400">Total Drops</div>
+                    <div className="text-xs text-slate-400">Total Drops across all matches</div>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  {Object.entries(dropsByFielder).sort((a, b) => b[1] - a[1]).map(([pid, count]) => (
-                    <div key={pid} className="flex justify-between items-center text-sm">
-                      <span className="text-slate-300">{playersMap[pid]?.name || 'Unknown'}</span>
-                      <span className="px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full text-xs font-bold">{count} drop{count > 1 ? 's' : ''}</span>
-                    </div>
-                  ))}
+
+                {Object.keys(dropsByFielder).length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    <p className="text-xs text-slate-500 uppercase tracking-wide">By Fielder</p>
+                    {Object.entries(dropsByFielder).sort((a, b) => b[1] - a[1]).map(([pid, count]) => (
+                      <div key={pid} className="flex justify-between items-center text-sm">
+                        <span className="text-slate-300">{playersMap[pid]?.name || 'Unknown'}</span>
+                        <span className="px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full text-xs font-bold">{count} drop{count > 1 ? 's' : ''}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Dropped Catch Log</p>
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                  {[...catchDrops].sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).map(d => {
+                    const m = matchesMap[d.match_id];
+                    const t1 = m ? teamsMap[m.team1_id]?.short_name : null;
+                    const t2 = m ? teamsMap[m.team2_id]?.short_name : null;
+                    return (
+                      <div key={d.id} className="flex items-center gap-2 text-xs bg-slate-900/40 rounded-lg p-2.5 border border-slate-700/40">
+                        <div className="w-12 text-slate-500 flex-shrink-0">{d.over_number}.{d.ball_in_over || ''}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-slate-300 truncate">
+                            <span className="text-white font-medium">{playersMap[d.striker_id]?.name || 'Unknown'}</span>
+                            <span className="text-slate-500"> vs </span>
+                            <span className="text-white font-medium">{playersMap[d.bowler_id]?.name || 'Unknown'}</span>
+                          </div>
+                          <div className="text-slate-500">
+                            Dropped by <span className="text-red-400">{playersMap[d.dropped_by]?.name || 'Unknown'}</span>
+                            {t1 && t2 ? ` · ${t1} vs ${t2}` : ''}
+                            {d.runs_bat ? ` · ${d.runs_bat} run${d.runs_bat > 1 ? 's' : ''}` : ''}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
