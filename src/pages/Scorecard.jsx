@@ -19,6 +19,7 @@ import { downloadHTML } from '../components/utils/htmlExport';
 import { generateWagonWheelSVG, generatePitchMapSVG, wagonWheelLegend, pitchLegend } from '../components/utils/svgExport';
 import WagonWheel from '../components/analytics/WagonWheel';
 import PitchHeatmap from '../components/analytics/PitchHeatmap';
+import PartnershipTimeline from '../components/analytics/PartnershipTimeline';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -57,6 +58,12 @@ export default function Scorecard() {
   const { data: bowlerInnings = [] } = useQuery({
     queryKey: ['all-bowler-innings', matchId],
     queryFn: () => base44.entities.BowlerInnings.filter({ match_id: matchId }),
+    enabled: !!matchId
+  });
+
+  const { data: partnerships = [] } = useQuery({
+    queryKey: ['all-partnerships', matchId],
+    queryFn: () => base44.entities.Partnership.filter({ match_id: matchId }),
     enabled: !!matchId
   });
 
@@ -390,6 +397,12 @@ export default function Scorecard() {
                     </table>
                   </div>
                 </div>
+
+                <PartnershipTimeline
+                  deliveries={allDeliveries.filter(d => d.innings_id === inn.id)}
+                  partnerships={partnerships.filter(p => p.innings_id === inn.id)}
+                  playersMap={playersMap}
+                />
               </div>
             </TabsContent>
           );
