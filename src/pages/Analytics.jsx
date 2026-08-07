@@ -13,10 +13,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function getTurfZone(x, y) {
-  if (y >= 0) return x < 0 ? 'Front Left' : 'Front Right';
-  if (x < -0.3) return 'Back Left';
-  if (x > 0.3) return 'Back Right';
-  return 'Back Center';
+  // Top of ground (y >= 0, wicket-keeper end) = Back; bottom (bowler end) = Front
+  if (y >= 0) {
+    if (x < -0.3) return 'Back Left';
+    if (x > 0.3) return 'Back Right';
+    return 'Back Center';
+  }
+  return x < 0 ? 'Front Left' : 'Front Right';
 }
 
 const TURF_ZONES = ['Front Left', 'Front Right', 'Back Left', 'Back Center', 'Back Right'];
@@ -79,7 +82,7 @@ function HeatmapOverlay({ deliveries, groundW, groundH }) {
   TURF_ZONES.forEach(z => { zoneCounts[z] = 0; });
   deliveries.forEach(d => {
     if (d.shot_x == null || d.shot_y == null) return;
-    const zone = d.turf_zone || getTurfZone(d.shot_x, d.shot_y);
+    const zone = getTurfZone(d.shot_x, d.shot_y);
     zoneCounts[zone] = (zoneCounts[zone] || 0) + 1;
   });
   const max = Math.max(...Object.values(zoneCounts), 1);
@@ -400,7 +403,7 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
 
   const shotsWithZone = useMemo(() =>
     allDeliveries.filter(d => d.shot_x != null && d.shot_y != null)
-      .map(d => ({ ...d, turf_zone: d.turf_zone || getTurfZone(d.shot_x, d.shot_y) })),
+      .map(d => ({ ...d, turf_zone: getTurfZone(d.shot_x, d.shot_y) })),
     [allDeliveries]
   );
 
