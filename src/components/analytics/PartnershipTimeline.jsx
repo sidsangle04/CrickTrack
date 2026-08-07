@@ -8,25 +8,6 @@ function overStr(ball) {
   return `${Math.floor(ball / 6)}.${ball % 6}`;
 }
 
-function CustomTooltip({ active, payload, label, wickets }) {
-  if (!active || !payload?.length) return null;
-  const cumRuns = payload.find(p => p.dataKey === 'cumRuns')?.value;
-  const runRate = payload.find(p => p.dataKey === 'runRate')?.value;
-  const w = wickets?.find(wk => wk.ball === label);
-  return (
-    <div className="bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs">
-      <div className="text-slate-400 mb-1">Over {overStr(label)}</div>
-      <div className="text-emerald-400">Runs: {cumRuns ?? 0}</div>
-      <div className="text-amber-400">Run Rate: {runRate ?? 0}</div>
-      {w && (
-        <div className="text-red-400 mt-1 pt-1 border-t border-slate-700">
-          W{w.wicketNumber} — {w.type} ({w.playerOut || 'out'})
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function PartnershipTimeline({ deliveries, partnerships, playersMap }) {
   const { chartData, wickets, pships, totalBalls } = useMemo(() => {
     const sorted = [...deliveries]
@@ -91,7 +72,7 @@ export default function PartnershipTimeline({ deliveries, partnerships, playersM
             <XAxis dataKey="ball" tickFormatter={overStr} stroke="#475569" fontSize={11} tick={{ fill: '#94a3b8' }} />
             <YAxis yAxisId="left" stroke="#10b981" fontSize={11} tick={{ fill: '#94a3b8' }} />
             <YAxis yAxisId="right" orientation="right" stroke="#f59e0b" fontSize={11} tick={{ fill: '#94a3b8' }} />
-            <Tooltip content={<CustomTooltip wickets={wickets} />} />
+            <Tooltip />
             {wickets.map(w => (
               <ReferenceLine
                 key={w.wicketNumber}
@@ -100,29 +81,10 @@ export default function PartnershipTimeline({ deliveries, partnerships, playersM
                 stroke="#ef4444"
                 strokeDasharray="4 4"
                 strokeOpacity={0.45}
-                label={{ value: `W${w.wicketNumber}`, fill: '#ef4444', fontSize: 10, position: 'top' }}
               />
             ))}
-            <Area
-              yAxisId="left"
-              type="stepAfter"
-              dataKey="cumRuns"
-              stroke="#10b981"
-              fill="#10b981"
-              fillOpacity={0.15}
-              strokeWidth={2}
-              name="Runs"
-            />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="runRate"
-              stroke="#f59e0b"
-              strokeWidth={2}
-              dot={false}
-              name="Run Rate"
-            />
-            <Line yAxisId="left" dataKey="wicketRuns" stroke="none" dot={{ r: 4, fill: '#ef4444' }} connectNulls={false} name="Wickets" />
+            <Area yAxisId="left" type="stepAfter" dataKey="cumRuns" stroke="#10b981" fill="#10b981" fillOpacity={0.15} strokeWidth={2} name="Runs" />
+            <Line yAxisId="right" type="monotone" dataKey="runRate" stroke="#f59e0b" strokeWidth={2} dot={false} name="Run Rate" />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
