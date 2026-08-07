@@ -96,11 +96,30 @@ export default function WormGraph({ innings, deliveries, teamsMap, maxOvers }) {
               label={{ value: 'Runs', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 11 }}
             />
             <Tooltip
-              contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' }}
-              labelFormatter={(l) => `Over ${ovStr(Number(l))}`}
-              formatter={(v, name) => {
-                if (typeof name === 'string' && name.endsWith('_w')) return null;
-                return v == null ? null : [v, name];
+              content={({ active, payload, label }) => {
+                if (!active || !payload || !payload.length) return null;
+                const rows = series
+                  .map(s => {
+                    const entry = payload.find(p => p.dataKey === s.key);
+                    if (!entry || entry.value == null) return null;
+                    const wEntry = payload.find(p => p.dataKey === `${s.key}_w`);
+                    const isWk = wEntry && wEntry.value != null;
+                    return (
+                      <div key={s.key} className="flex items-center gap-2 text-xs">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
+                        <span style={{ color: s.color }} className="font-medium">{s.name}</span>
+                        <span className="text-slate-300">: {entry.value}{isWk ? ' (W)' : ''}</span>
+                      </div>
+                    );
+                  })
+                  .filter(Boolean);
+                if (!rows.length) return null;
+                return (
+                  <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0', padding: '8px 10px' }}>
+                    <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>Over {ovStr(Number(label))}</div>
+                    {rows}
+                  </div>
+                );
               }}
             />
             {series.map(s => (
