@@ -10,20 +10,20 @@ export default function PartnershipTable({ partnerships, playersMap, teamName })
     return (
       <div className="bg-white rounded-xl p-4 border border-slate-200 text-center text-slate-500 text-sm">
         No partnership data
-      </div>
-    );
+      </div>);
+
   }
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 text-center">
+      <div className="px-4 py-3 border-b border-slate-200 text-center bg-gray-950">
         <span className="text-sm font-semibold tracking-wide text-slate-700">
           {(teamName || 'TEAM').toUpperCase()} — INNINGS
         </span>
       </div>
 
       <div className="divide-y divide-slate-100">
-        {pships.map(p => {
+        {pships.map((p) => {
           const b1 = playersMap[p.batter1_id]?.name || 'Batter 1';
           const b2 = playersMap[p.batter2_id]?.name || 'Batter 2';
           const r1 = p.batter1_runs || 0;
@@ -32,8 +32,8 @@ export default function PartnershipTable({ partnerships, playersMap, teamName })
           const balls2 = p.batter2_balls || 0;
           const total = p.runs || 0;
           const denom = r1 + r2;
-          const w1 = denom > 0 ? (r1 / denom) * 100 : 50;
-          const w2 = denom > 0 ? (r2 / denom) * 100 : 50;
+          const w1 = denom > 0 ? r1 / denom * 100 : 50;
+          const w2 = denom > 0 ? r2 / denom * 100 : 50;
           const notOut = p.is_active;
 
           return (
@@ -55,10 +55,10 @@ export default function PartnershipTable({ partnerships, playersMap, teamName })
                 <div className="text-sm font-medium text-slate-800">{b2}</div>
                 <div className="text-xs text-slate-500">{r2} ({balls2})</div>
               </div>
-            </div>
-          );
+            </div>);
+
         })}
       </div>
-    </div>
-  );
+    </div>);
+
 }
