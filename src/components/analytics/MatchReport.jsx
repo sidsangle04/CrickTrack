@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Clipboard, Download, Award, Zap, Target, TrendingUp, Users, FileCode2 } from 'lucide-react';
+import { Clipboard, Download, Award, Zap, Target, TrendingUp, Users, FileCode2, ChevronDown, FileText } from 'lucide-react';
 import { downloadHTML } from '@/components/utils/htmlExport';
 
 const LENGTH_LABELS = {
@@ -19,6 +19,7 @@ function econOf(b) { return b && b.balls > 0 ? b.runs_conceded / (b.balls / 6) :
 
 export default function MatchReport({ match, innings, batterInnings, bowlerInnings, deliveries, partnerships, playersMap, teamsMap }) {
   const [copied, setCopied] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const data = useMemo(() => {
     const reg = innings.filter(i => !i.is_super_over).sort((a, b) => a.innings_number - b.innings_number);
@@ -260,14 +261,32 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
             <Clipboard className="w-3.5 h-3.5" />
             {copied ? 'Copied!' : 'Copy'}
           </button>
-          <button onClick={handleDownload} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium transition-colors">
-            <Download className="w-3.5 h-3.5" />
-            Share
-          </button>
-          <button onClick={handleDownloadHTML} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors">
-            <FileCode2 className="w-3.5 h-3.5" />
-            HTML
-          </button>
+          <div className="relative">
+            <button onClick={() => setMenuOpen(o => !o)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors">
+              <Download className="w-3.5 h-3.5" />
+              Report
+              <ChevronDown className="w-3 h-3" />
+            </button>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-lg bg-slate-800 border border-slate-700 shadow-xl py-1 overflow-hidden">
+                  <button onClick={() => { handleDownloadHTML(); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-200 hover:bg-slate-700 transition-colors">
+                    <FileCode2 className="w-3.5 h-3.5 text-emerald-400" />
+                    Download HTML
+                  </button>
+                  <button onClick={() => { handleDownload(); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-200 hover:bg-slate-700 transition-colors">
+                    <FileText className="w-3.5 h-3.5 text-sky-400" />
+                    Download Text
+                  </button>
+                  <button onClick={() => { handleCopy(); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-200 hover:bg-slate-700 transition-colors">
+                    <Clipboard className="w-3.5 h-3.5 text-amber-400" />
+                    Copy to clipboard
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
