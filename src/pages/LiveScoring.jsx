@@ -207,6 +207,9 @@ export default function LiveScoring() {
       delivery_variation: deliveryData.delivery_variation,
       bowler_hand: deliveryData.bowler_hand,
       bowler_type: deliveryData.bowler_type,
+      turf_zone: deliveryData.turf_zone,
+      is_catch_drop: deliveryData.is_catch_drop || false,
+      dropped_by: deliveryData.dropped_by,
       timestamp: new Date().toISOString()
     });
 
