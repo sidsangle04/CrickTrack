@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Scatter, ReferenceLine
+  ResponsiveContainer, ReferenceLine
 } from 'recharts';
 
 function overStr(ball) {
@@ -61,6 +61,7 @@ export default function PartnershipTimeline({ deliveries, partnerships, playersM
         over: overStr(legalBalls),
         cumRuns,
         runRate: legalBalls > 0 ? +((cumRuns / legalBalls) * 100).toFixed(1) : 0,
+        wicketRuns: d.is_wicket ? cumRuns : null,
       });
     });
 
@@ -120,7 +121,7 @@ export default function PartnershipTimeline({ deliveries, partnerships, playersM
               dot={false}
               name="Run Rate"
             />
-            <Scatter yAxisId="left" data={wickets} dataKey="cumRuns" fill="#ef4444" name="Wickets" />
+            <Line yAxisId="left" dataKey="wicketRuns" stroke="none" dot={{ r: 4, fill: '#ef4444' }} connectNulls={false} name="Wickets" />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
