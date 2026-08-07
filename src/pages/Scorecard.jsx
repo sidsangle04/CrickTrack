@@ -22,6 +22,7 @@ import PitchHeatmap from '../components/analytics/PitchHeatmap';
 import WormGraph from '../components/analytics/WormGraph';
 import PartnershipTable from '../components/analytics/PartnershipTable';
 import MatchReport from '../components/analytics/MatchReport';
+import PlayerOfMatch from '../components/analytics/PlayerOfMatch';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -342,6 +343,15 @@ export default function Scorecard() {
           />
         </div>
       )}
+
+      <PlayerOfMatch
+        innings={innings}
+        batterInnings={batterInnings}
+        bowlerInnings={bowlerInnings}
+        deliveries={allDeliveries}
+        playersMap={playersMap}
+        teamsMap={teamsMap}
+      />
 
       <WormGraph
         innings={innings}
