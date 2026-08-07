@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Clipboard, Download, Award, Zap, Target, TrendingUp, Users, FileCode2, ChevronDown, FileText } from 'lucide-react';
 import { downloadHTML } from '@/components/utils/htmlExport';
 import { generateWagonWheelSVG, generatePitchMapSVG, generateWormGraphSVG, wagonWheelLegend, pitchLegend } from '@/components/utils/svgExport';
+import PlayerOfMatch, { computePlayerRatings } from '@/components/analytics/PlayerOfMatch';
 
 const LENGTH_LABELS = {
   full_toss: 'Full Toss', yorker: 'Yorker', full: 'Full',
@@ -15,6 +16,7 @@ function normLen(l) {
 }
 
 function ovStr(balls) { return `${Math.floor(balls / 6)}.${balls % 6}`; }
+const fmt = (n) => (Math.round((n || 0) * 10) / 10).toFixed(1);
 function rr(runs, balls) { return balls > 0 ? (runs / (balls / 6)).toFixed(2) : '0.00'; }
 function econOf(b) { return b && b.balls > 0 ? b.runs_conceded / (b.balls / 6) : 0; }
 
@@ -117,6 +119,16 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
     lines.push(`${match?.date || ''} | ${match?.venue || ''}`);
     if (match?.result) lines.push(`Result: ${match.result}`);
     lines.push('');
+    const ranked = computePlayerRatings({ innings, batterInnings, bowlerInnings, deliveries });
+    if (ranked.length > 0) {
+      lines.push('--- PLAYER OF THE MATCH ---');
+      const w = ranked[0];
+      lines.push(`🏆 ${p(w.player_id)} (${t(w.team_id)}) — Rating ${fmt(w.total)} (Bat ${fmt(w.batting)}, Bowl ${fmt(w.bowling)}, Field ${fmt(w.fielding)})`);
+      lines.push('');
+      lines.push('Top 5 player ratings:');
+      ranked.slice(0, 5).forEach((r, i) => lines.push(`  ${i + 1}. ${p(r.player_id)} — ${fmt(r.total)} (Bat ${fmt(r.batting)}, Bowl ${fmt(r.bowling)}, Field ${fmt(r.fielding)})`));
+      lines.push('');
+    }
     lines.push('--- INNINGS ---');
     data.perInnings.forEach(({ inn, topBatters, topBowlers }) => {
       lines.push(`${t(inn.batting_team_id)}: ${inn.total_runs}/${inn.total_wickets} (${ovStr(inn.total_balls)} ov)`);
@@ -364,6 +376,20 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
       <h1>${t(match?.team1_id)} vs ${t(match?.team2_id)}</h1>
       <p class="meta">${match?.venue || ''} &nbsp;|&nbsp; ${match?.date || ''}</p>
       ${match?.result ? `<div class="result-box">🏆 ${match.result}</div>` : ''}
+      ${(() => {
+        const ranked = computePlayerRatings({ innings, batterInnings, bowlerInnings, deliveries });
+        if (ranked.length === 0) return '';
+        const w = ranked[0];
+        const rows = ranked.slice(0, 5).map((r, i) => `<tr><td style="color:${i === 0 ? '#f59e0b' : '#64748b'};font-weight:700">${i + 1}</td><td>${p(r.player_id)}</td><td style="text-align:right">${fmt(r.batting)}</td><td style="text-align:right">${fmt(r.bowling)}</td><td style="text-align:right">${fmt(r.fielding)}</td><td style="text-align:right;font-weight:700;color:#fff">${fmt(r.total)}</td></tr>`).join('');
+        return `<div class="card" style="background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.05));border:1px solid rgba(245,158,11,0.4);margin-bottom:12px">
+          <h3 style="color:#f59e0b;display:flex;align-items:center;gap:8px">🏆 Player of the Match</h3>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0">
+            <div><div style="font-size:1.2rem;font-weight:700;color:#fff">${p(w.player_id)}</div><div style="font-size:0.78rem;color:#f59e0b">${t(w.team_id)}</div></div>
+            <div style="font-size:2rem;font-weight:900;color:#f59e0b">${fmt(w.total)}</div>
+          </div>
+          <table style="margin-top:8px"><thead><tr><th>#</th><th>Player</th><th style="text-align:right">Bat</th><th style="text-align:right">Bowl</th><th style="text-align:right">Field</th><th style="text-align:right">Total</th></tr></thead><tbody>${rows}</tbody></table>
+        </div>`;
+      })()}
       <h2>Match Report</h2>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">${scoreline}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${batting}${bowling}${partnership}${trends}</div>
@@ -392,6 +418,19 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
     out.push(`Date,${q(match?.date || '')}`);
     if (match?.result) out.push(`Result,${q(match.result)}`);
     out.push('');
+
+    const ranked = computePlayerRatings({ innings, batterInnings, bowlerInnings, deliveries });
+    if (ranked.length > 0) {
+      out.push('PLAYER OF THE MATCH');
+      const w = ranked[0];
+      out.push(`Winner,${q(p(w.player_id))},${q(t(w.team_id))},${fmt(w.total)}`);
+      out.push('');
+      out.push('Rank,Player,Team,Batting,Bowling,Fielding,Total');
+      ranked.forEach((r, i) => {
+        out.push([i + 1, q(p(r.player_id)), q(t(r.team_id)), fmt(r.batting), fmt(r.bowling), fmt(r.fielding), fmt(r.total)].join(','));
+      });
+      out.push('');
+    }
 
     out.push('INNINGS SCORELINE');
     out.push('Innings,Score,Overs,Batter 1,Batter 1 SR,Batter 2,Batter 2 SR,Bowler 1,Bowler 1 Econ,Bowler 2,Bowler 2 Econ');
@@ -600,6 +639,15 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
           </div>
         </div>
       </div>
+
+      <PlayerOfMatch
+        innings={innings}
+        batterInnings={batterInnings}
+        bowlerInnings={bowlerInnings}
+        deliveries={deliveries}
+        playersMap={playersMap}
+        teamsMap={teamsMap}
+      />
 
       {/* Innings scoreline */}
       <div className="grid sm:grid-cols-2 gap-3 mb-3">
