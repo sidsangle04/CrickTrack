@@ -16,7 +16,7 @@ export default function PartnershipTable({ partnerships, playersMap, teamName })
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-200 text-center bg-gray-950">
+      <div className="px-4 py-3 border-b border-slate-200 text-center bg-gray-400">
         <span className="text-sm font-semibold tracking-wide text-slate-700">
           {(teamName || 'TEAM').toUpperCase()} — INNINGS
         </span>
@@ -37,7 +37,7 @@ export default function PartnershipTable({ partnerships, playersMap, teamName })
           const notOut = p.is_active;
 
           return (
-            <div key={p.id} className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-3">
+            <div key={p.id} className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-3 bg-gray-400">
               <div className="text-right">
                 <div className="text-sm font-medium text-slate-800">{b1}</div>
                 <div className="text-xs text-slate-500">{r1} ({balls1})</div>
