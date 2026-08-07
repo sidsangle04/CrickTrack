@@ -83,11 +83,11 @@ function HeatmapOverlay({ deliveries, groundW, groundH }) {
   });
   const max = Math.max(...Object.values(zoneCounts), 1);
   const zoneRects = {
-    'Front Left':  { x: 0,    y: 0,   w: 0.5,  h: 0.5 },
-    'Front Right': { x: 0.5,  y: 0,   w: 0.5,  h: 0.5 },
-    'Back Left':   { x: 0,    y: 0.5, w: 0.34, h: 0.5 },
-    'Back Center': { x: 0.34, y: 0.5, w: 0.32, h: 0.5 },
-    'Back Right':  { x: 0.66, y: 0.5, w: 0.34, h: 0.5 },
+    'Back Left':   { x: 0,    y: 0,   w: 0.34, h: 0.5 },
+    'Back Center': { x: 0.34, y: 0,   w: 0.32, h: 0.5 },
+    'Back Right':  { x: 0.66, y: 0,   w: 0.34, h: 0.5 },
+    'Front Left':  { x: 0,    y: 0.5, w: 0.5,  h: 0.5 },
+    'Front Right': { x: 0.5,  y: 0.5, w: 0.5,  h: 0.5 },
   };
   const getHeatColor = (norm) => {
     if (norm < 0.001) return 'rgba(59,130,246,0.05)';
