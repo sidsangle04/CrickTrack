@@ -193,7 +193,7 @@ export default function LiveScoring() {
       is_legal_delivery: isLegal,
       is_boundary: deliveryData.runs_bat === 4,
       is_six: deliveryData.runs_bat === 6,
-      is_dot_ball: isLegal && totalRuns === 0 && !deliveryData.is_wicket,
+      is_dot_ball: isLegal && totalRuns === 0,
       // Visual tracking fields
       shot_x: deliveryData.shot_x,
       shot_y: deliveryData.shot_y,

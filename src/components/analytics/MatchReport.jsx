@@ -64,7 +64,7 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
       wickets: allDels.filter(d => d.is_wicket).length,
       fours: allDels.filter(d => d.runs_bat === 4).length,
       sixes: allDels.filter(d => d.runs_bat === 6).length,
-      dots: allDels.filter(d => d.is_dot_ball || (d.runs_total === 0 && !d.is_wicket && d.is_legal_delivery !== false)).length,
+      dots: allDels.filter(d => d.is_legal_delivery !== false && (d.runs_total || 0) === 0).length,
       legal: allDels.filter(d => d.is_legal_delivery !== false).length,
     };
 
