@@ -31,8 +31,8 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
       const batters = batterInnings.filter(b => b.innings_id === inn.id);
       const bowlers = bowlerInnings.filter(b => b.innings_id === inn.id);
       const dels = deliveries.filter(d => d.innings_id === inn.id && !d.is_voided);
-      const topBatter = [...batters].sort((a, b) => b.runs - a.runs)[0];
-      const topBowler = [...bowlers].sort((a, b) => b.wickets - a.wickets || a.economy - b.economy)[0];
+      const topBatters = [...batters].sort((a, b) => b.runs - a.runs).slice(0, 2);
+      const topBowlers = [...bowlers].sort((a, b) => b.wickets - a.wickets || a.economy - b.economy).slice(0, 2);
 
       // phases
       const ppEnd = Math.floor(maxOvers * 0.3);
@@ -45,7 +45,7 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
         if (d.is_legal_delivery !== false) phases[key].b += 1;
       });
 
-      return { inn, batters, bowlers, dels, topBatter, topBowler, phases };
+      return { inn, batters, bowlers, dels, topBatters, topBowlers, phases };
     });
 
     const allBatters = batterInnings.filter(b => reg.some(i => i.id === b.innings_id));
@@ -118,10 +118,10 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
     if (match?.result) lines.push(`Result: ${match.result}`);
     lines.push('');
     lines.push('--- INNINGS ---');
-    data.perInnings.forEach(({ inn, topBatter, topBowler }) => {
+    data.perInnings.forEach(({ inn, topBatters, topBowlers }) => {
       lines.push(`${t(inn.batting_team_id)}: ${inn.total_runs}/${inn.total_wickets} (${ovStr(inn.total_balls)} ov)`);
-      if (topBatter) lines.push(`  Top batter: ${p(topBatter.player_id)} ${topBatter.runs} (${topBatter.balls_faced}), SR ${topBatter.balls_faced ? ((topBatter.runs / topBatter.balls_faced) * 100).toFixed(1) : '0.0'}`);
-      if (topBowler) lines.push(`  Top bowler: ${p(topBowler.player_id)} ${topBowler.wickets}/${topBowler.runs_conceded} (${topBowler.overs}.${topBowler.balls % 6}), econ ${econOf(topBowler).toFixed(2)}`);
+      topBatters.forEach(b => lines.push(`  ${p(b.player_id)} ${b.runs} (${b.balls_faced}), SR ${b.balls_faced ? ((b.runs / b.balls_faced) * 100).toFixed(1) : '0.0'}`));
+      topBowlers.forEach(b => lines.push(`  ${p(b.player_id)} ${b.wickets}/${b.runs_conceded} (${b.overs}.${b.balls % 6}), econ ${econOf(b).toFixed(2)}`));
     });
     lines.push('');
     lines.push('--- BATTING HIGHLIGHTS ---');
@@ -191,14 +191,14 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
         <span style="text-align:right"><strong style="color:#fff">${value}</strong>${sub ? `<span style="color:#64748b;margin-left:6px">${sub}</span>` : ''}</span>
       </div>`;
 
-    const scoreline = data.perInnings.map(({ inn, topBatter, topBowler }) => `
+    const scoreline = data.perInnings.map(({ inn, topBatters, topBowlers }) => `
       <div class="card" style="background:rgba(15,23,42,0.4)">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <span style="font-weight:600;color:#fff">${t(inn.batting_team_id)}</span>
           <span style="font-size:1.25rem;font-weight:700;color:#fff">${inn.total_runs}/${inn.total_wickets} <span style="font-size:0.75rem;color:#64748b;font-weight:400">(${ovStr(inn.total_balls)})</span></span>
         </div>
-        ${topBatter ? stat(`Bat: ${p(topBatter.player_id)}`, `${topBatter.runs}(${topBatter.balls_faced})`, `SR ${topBatter.balls_faced ? ((topBatter.runs / topBatter.balls_faced) * 100).toFixed(0) : 0}`) : ''}
-        ${topBowler ? stat(`Bowl: ${p(topBowler.player_id)}`, `${topBowler.wickets}/${topBowler.runs_conceded}`, `econ ${econOf(topBowler).toFixed(1)}`) : ''}
+        ${topBatters.map(b => stat(p(b.player_id), `${b.runs}(${b.balls_faced})`, `SR ${b.balls_faced ? ((b.runs / b.balls_faced) * 100).toFixed(0) : 0}`)).join('')}
+        ${topBowlers.map(b => stat(p(b.player_id), `${b.wickets}/${b.runs_conceded}`, `econ ${econOf(b).toFixed(1)}`)).join('')}
       </div>`).join('');
 
     const batting = section('award', 'Batting Highlights', `
@@ -394,17 +394,24 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
     out.push('');
 
     out.push('INNINGS SCORELINE');
-    out.push('Innings,Score,Overs,Top Batter,Batter SR,Top Bowler,Bowler Econ');
-    data.perInnings.forEach(({ inn, topBatter, topBowler }) => {
-      out.push([
+    out.push('Innings,Score,Overs,Batter 1,Batter 1 SR,Batter 2,Batter 2 SR,Bowler 1,Bowler 1 Econ,Bowler 2,Bowler 2 Econ');
+    data.perInnings.forEach(({ inn, topBatters, topBowlers }) => {
+      const row = [
         q(t(inn.batting_team_id)),
         `${inn.total_runs}/${inn.total_wickets}`,
         ovStr(inn.total_balls),
-        topBatter ? q(`${p(topBatter.player_id)} ${topBatter.runs}(${topBatter.balls_faced})`) : '',
-        topBatter ? (topBatter.balls_faced ? ((topBatter.runs / topBatter.balls_faced) * 100).toFixed(0) : 0) : '',
-        topBowler ? q(`${p(topBowler.player_id)} ${topBowler.wickets}/${topBowler.runs_conceded}`) : '',
-        topBowler ? econOf(topBowler).toFixed(1) : '',
-      ].join(','));
+      ];
+      for (let i = 0; i < 2; i++) {
+        const b = topBatters[i];
+        row.push(b ? q(`${p(b.player_id)} ${b.runs}(${b.balls_faced})`) : '');
+        row.push(b ? (b.balls_faced ? ((b.runs / b.balls_faced) * 100).toFixed(0) : 0) : '');
+      }
+      for (let i = 0; i < 2; i++) {
+        const b = topBowlers[i];
+        row.push(b ? q(`${p(b.player_id)} ${b.wickets}/${b.runs_conceded}`) : '');
+        row.push(b ? econOf(b).toFixed(1) : '');
+      }
+      out.push(row.join(','));
     });
     out.push('');
 
@@ -596,14 +603,18 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
 
       {/* Innings scoreline */}
       <div className="grid sm:grid-cols-2 gap-3 mb-3">
-        {data.perInnings.map(({ inn, topBatter, topBowler }) => (
+        {data.perInnings.map(({ inn, topBatters, topBowlers }) => (
           <div key={inn.id} className="bg-slate-900/40 rounded-xl p-3 border border-slate-700/40">
             <div className="flex items-center justify-between mb-1">
               <span className="text-sm font-semibold text-white">{t(inn.batting_team_id)}</span>
               <span className="text-lg font-bold text-white">{inn.total_runs}/{inn.total_wickets} <span className="text-xs text-slate-500 font-normal">({ovStr(inn.total_balls)})</span></span>
             </div>
-            {topBatter && <Stat label={`Bat: ${p(topBatter.player_id)}`} value={`${topBatter.runs}(${topBatter.balls_faced})`} sub={`SR ${topBatter.balls_faced ? ((topBatter.runs / topBatter.balls_faced) * 100).toFixed(0) : 0}`} />}
-            {topBowler && <Stat label={`Bowl: ${p(topBowler.player_id)}`} value={`${topBowler.wickets}/${topBowler.runs_conceded}`} sub={`econ ${econOf(topBowler).toFixed(1)}`} />}
+            {topBatters.map(b => (
+              <Stat key={`b_${b.id}`} label={p(b.player_id)} value={`${b.runs}(${b.balls_faced})`} sub={`SR ${b.balls_faced ? ((b.runs / b.balls_faced) * 100).toFixed(0) : 0}`} />
+            ))}
+            {topBowlers.map(b => (
+              <Stat key={`bl_${b.id}`} label={p(b.player_id)} value={`${b.wickets}/${b.runs_conceded}`} sub={`econ ${econOf(b).toFixed(1)}`} />
+            ))}
           </div>
         ))}
       </div>
