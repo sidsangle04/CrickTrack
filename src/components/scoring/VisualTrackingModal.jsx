@@ -25,13 +25,11 @@ const PACE_VARIATIONS = [
 ];
 
 function getTurfZone(x, y) {
-  // Top of ground (y >= 0, wicket-keeper end) = Back; bottom (bowler end) = Front
-  if (y >= 0) {
-    if (x < -0.3) return 'Back Left';
-    if (x > 0.3) return 'Back Right';
-    return 'Back Center';
-  }
-  return x < 0 ? 'Front Left' : 'Front Right';
+  // Top of ground (y >= 0, wicket-keeper end) = Back (two halves); bottom (bowler end) = Front (three thirds)
+  if (y >= 0) return x < 0 ? 'Back Left' : 'Back Right';
+  if (x < -0.3) return 'Front Left';
+  if (x > 0.3) return 'Front Right';
+  return 'Front Center';
 }
 
 // Step 1: Pitch map

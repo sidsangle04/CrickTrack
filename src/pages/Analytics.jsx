@@ -13,16 +13,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function getTurfZone(x, y) {
-  // Top of ground (y >= 0, wicket-keeper end) = Back; bottom (bowler end) = Front
-  if (y >= 0) {
-    if (x < -0.3) return 'Back Left';
-    if (x > 0.3) return 'Back Right';
-    return 'Back Center';
-  }
-  return x < 0 ? 'Front Left' : 'Front Right';
+  // Top of ground (y >= 0, wicket-keeper end) = Back (two halves); bottom (bowler end) = Front (three thirds)
+  if (y >= 0) return x < 0 ? 'Back Left' : 'Back Right';
+  if (x < -0.3) return 'Front Left';
+  if (x > 0.3) return 'Front Right';
+  return 'Front Center';
 }
 
-const TURF_ZONES = ['Front Left', 'Front Right', 'Back Left', 'Back Center', 'Back Right'];
+const TURF_ZONES = ['Front Left', 'Front Center', 'Front Right', 'Back Left', 'Back Right'];
 const LENGTH_ZONES_ORDER = ['full_toss', 'yorker', 'full', 'good_length', 'good', 'back_of_length', 'short', 'bouncer'];
 // Normalize legacy human-readable length values to enum format
 const LENGTH_NORMALIZE = {
@@ -87,11 +85,11 @@ function HeatmapOverlay({ deliveries, groundW, groundH }) {
   });
   const max = Math.max(...Object.values(zoneCounts), 1);
   const zoneRects = {
-    'Back Left':   { x: 0,    y: 0,   w: 0.34, h: 0.5 },
-    'Back Center': { x: 0.34, y: 0,   w: 0.32, h: 0.5 },
-    'Back Right':  { x: 0.66, y: 0,   w: 0.34, h: 0.5 },
-    'Front Left':  { x: 0,    y: 0.5, w: 0.5,  h: 0.5 },
-    'Front Right': { x: 0.5,  y: 0.5, w: 0.5,  h: 0.5 },
+    'Back Left':    { x: 0,    y: 0,   w: 0.5,  h: 0.5 },
+    'Back Right':   { x: 0.5,  y: 0,   w: 0.5,  h: 0.5 },
+    'Front Left':   { x: 0,    y: 0.5, w: 0.34, h: 0.5 },
+    'Front Center': { x: 0.34, y: 0.5, w: 0.32, h: 0.5 },
+    'Front Right':  { x: 0.66, y: 0.5, w: 0.34, h: 0.5 },
   };
   const getHeatColor = (norm) => {
     if (norm < 0.001) return 'rgba(59,130,246,0.05)';
