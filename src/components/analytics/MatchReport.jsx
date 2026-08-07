@@ -381,38 +381,132 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
   };
 
   const buildCSV = () => {
+    const q = (s) => `"${String(s ?? '').replace(/"/g, '""')}"`;
     const reg = innings.filter(i => !i.is_super_over).sort((a, b) => a.innings_number - b.innings_number);
-    let csv = 'Match Scorecard\n\n';
+    const allDeliveries = deliveries.filter(d => !d.is_voided);
+    const out = [];
+
+    out.push('MATCH REPORT');
+    out.push(`Match,${q(`${t(match?.team1_id)} vs ${t(match?.team2_id)}`)}`);
+    out.push(`Venue,${q(match?.venue || '')}`);
+    out.push(`Date,${q(match?.date || '')}`);
+    if (match?.result) out.push(`Result,${q(match.result)}`);
+    out.push('');
+
+    out.push('INNINGS SCORELINE');
+    out.push('Innings,Score,Overs,Top Batter,Batter SR,Top Bowler,Bowler Econ');
+    data.perInnings.forEach(({ inn, topBatter, topBowler }) => {
+      out.push([
+        q(t(inn.batting_team_id)),
+        `${inn.total_runs}/${inn.total_wickets}`,
+        ovStr(inn.total_balls),
+        topBatter ? q(`${p(topBatter.player_id)} ${topBatter.runs}(${topBatter.balls_faced})`) : '',
+        topBatter ? (topBatter.balls_faced ? ((topBatter.runs / topBatter.balls_faced) * 100).toFixed(0) : 0) : '',
+        topBowler ? q(`${p(topBowler.player_id)} ${topBowler.wickets}/${topBowler.runs_conceded}`) : '',
+        topBowler ? econOf(topBowler).toFixed(1) : '',
+      ].join(','));
+    });
+    out.push('');
+
+    out.push('BATTING HIGHLIGHTS');
+    out.push('Metric,Player,Detail');
+    if (data.topScorer) out.push(`Top Scorer,${q(p(data.topScorer.player_id))},${q(`${data.topScorer.runs}(${data.topScorer.balls_faced}), ${data.topScorer.fours}x4 ${data.topScorer.sixes}x6`)}`);
+    if (data.bestSR) out.push(`Best Strike Rate,${q(p(data.bestSR.player_id))},${q(`${data.bestSR.runs}(${data.bestSR.balls_faced})`)}`);
+    out.push('');
+
+    out.push('BOWLING HIGHLIGHTS');
+    out.push('Metric,Player,Detail');
+    if (data.topWicketTaker) out.push(`Top Wicket-taker,${q(p(data.topWicketTaker.player_id))},${q(`${data.topWicketTaker.wickets} wkts, ${data.topWicketTaker.runs_conceded}r`)}`);
+    if (data.mostEconomical) out.push(`Most Economical,${q(p(data.mostEconomical.player_id))},${q(`econ ${econOf(data.mostEconomical).toFixed(2)}`)}`);
+    out.push('');
+
+    out.push('KEY PARTNERSHIP');
+    out.push('Wicket,Batter 1,Batter 2,Runs,Balls');
+    if (data.highestPartnership) {
+      const hp = data.highestPartnership;
+      out.push(`${hp.wicket_number},${q(p(hp.batter1_id))},${q(p(hp.batter2_id))},${hp.runs},${hp.balls}`);
+    }
+    out.push('');
+
+    out.push('TACTICAL TRENDS');
+    out.push('Metric,Value');
+    out.push(`Boundaries,${data.totals.fours}x4 / ${data.totals.sixes}x6`);
+    out.push(`Dot ball %,${data.totals.legal ? ((data.totals.dots / data.totals.legal) * 100).toFixed(0) : 0}%`);
+    out.push(`Pace,${data.byType.pace.w} wkts / ${data.byType.pace.r} runs (econ ${rr(data.byType.pace.r, data.byType.pace.b)})`);
+    out.push(`Spin,${data.byType.spin.w} wkts / ${data.byType.spin.r} runs (econ ${rr(data.byType.spin.r, data.byType.spin.b)})`);
+    if (data.lenSorted[0]) out.push(`Top length,${q(data.lenSorted[0][0])} (${data.lenSorted[0][1]} balls)`);
+    out.push('');
+
+    out.push('PHASE BREAKDOWN');
+    out.push('Innings,Phase,Runs,Balls,Run Rate');
+    data.perInnings.forEach(({ inn, phases }) => {
+      ['Powerplay', 'Middle', 'Death'].forEach(ph => {
+        out.push([q(t(inn.batting_team_id)), ph, phases[ph].r, ovStr(phases[ph].b), rr(phases[ph].r, phases[ph].b)].join(','));
+      });
+    });
+    out.push('');
+
     reg.forEach(inn => {
       const batters = batterInnings.filter(b => b.innings_id === inn.id).sort((a, b) => a.batting_position - b.batting_position);
       const bowlers = bowlerInnings.filter(b => b.innings_id === inn.id);
-      csv += `${t(inn.batting_team_id)} Innings\n`;
-      csv += 'Batter,Runs,Balls,4s,6s,SR,Dismissal\n';
+      const innPart = partnerships.filter(pr => pr.innings_id === inn.id).sort((a, b) => a.wicket_number - b.wicket_number);
+      const extras = (inn.extras_wide || 0) + (inn.extras_no_ball || 0) + (inn.extras_byes || 0) + (inn.extras_leg_byes || 0);
+
+      out.push(`${t(inn.batting_team_id)} INNINGS`);
+      out.push(`Total,${inn.total_runs}/${inn.total_wickets} (${ovStr(inn.total_balls)} overs)`);
+      out.push(`Extras,${extras} (Wd ${inn.extras_wide || 0}, Nb ${inn.extras_no_ball || 0}, B ${inn.extras_byes || 0}, Lb ${inn.extras_leg_byes || 0})`);
+      out.push('');
+
+      out.push('Batting');
+      out.push('Batter,Runs,Balls,4s,6s,SR,Dismissal');
       batters.forEach(b => {
         const sr = b.balls_faced > 0 ? ((b.runs / b.balls_faced) * 100).toFixed(1) : '0.0';
-        csv += `${p(b.player_id)},${b.runs},${b.balls_faced},${b.fours},${b.sixes},${sr},"${(() => {
-          if (!b.is_out) return 'not out';
-          const bowler = playersMap[b.dismissed_by_bowler_id]?.name || 'Unknown';
-          const fielder = playersMap[b.dismissed_by_fielder_id]?.name || 'Unknown';
-          switch (b.dismissal_type) {
-            case 'bowled': return `b ${bowler}`;
-            case 'caught': return `c ${fielder} b ${bowler}`;
-            case 'lbw': return `lbw b ${bowler}`;
-            case 'stumped': return `st ${fielder} b ${bowler}`;
-            case 'run_out': return `run out (${fielder})`;
-            default: return b.dismissal_type || 'out';
-          }
-        })()}"\n`;
+        out.push([q(p(b.player_id)), b.runs, b.balls_faced, b.fours, b.sixes, sr, q(getDismissalText(b))].join(','));
       });
-      csv += `Total: ${inn.total_runs}/${inn.total_wickets} (${ovStr(inn.total_balls)} overs)\n\n`;
-      csv += 'Bowler,Overs,Runs,Wickets,Economy\n';
+      out.push('');
+
+      out.push('Bowling');
+      out.push('Bowler,Overs,Maidens,Runs,Wickets,Economy');
       bowlers.forEach(b => {
         const econ = b.balls > 0 ? (b.runs_conceded / (b.balls / 6)).toFixed(2) : '0.00';
-        csv += `${p(b.player_id)},${b.overs}.${b.balls % 6},${b.runs_conceded},${b.wickets},${econ}\n`;
+        out.push([q(p(b.player_id)), `${b.overs}.${b.balls % 6}`, b.maidens || 0, b.runs_conceded, b.wickets, econ].join(','));
       });
-      csv += '\n';
+      out.push('');
+
+      if (innPart.length > 0) {
+        out.push('Partnerships');
+        out.push('Wkt,Batter 1,B1 Runs,B1 Balls,Batter 2,B2 Runs,B2 Balls,Runs,Balls');
+        innPart.forEach(pr => {
+          out.push([pr.wicket_number, q(p(pr.batter1_id)), pr.batter1_runs, pr.batter1_balls, q(p(pr.batter2_id)), pr.batter2_runs, pr.batter2_balls, pr.runs, pr.balls].join(','));
+        });
+        out.push('');
+      }
     });
-    return csv;
+
+    if (includeBallLog && allDeliveries.length > 0) {
+      out.push('BALL-BY-BALL LOG');
+      out.push('Innings,Over.Ball,Bowler,Strriker,Description');
+      innings.forEach(inn => {
+        const innDeliveries = allDeliveries.filter(d => d.innings_id === inn.id).sort((a, b) =>
+          a.over_number !== b.over_number ? a.over_number - b.over_number : (a.ball_in_over || 0) - (b.ball_in_over || 0));
+        innDeliveries.forEach((d, idx) => {
+          let description = '';
+          if (d.is_wicket) description = `WICKET! ${playersMap[d.player_out_id]?.name || ''} ${d.wicket_type}`;
+          else if (d.is_wide) description = `Wide +${d.runs_bat || 0}`;
+          else if (d.is_no_ball) description = `No ball +${d.runs_bat || 0}`;
+          else if (d.is_bye) description = `${d.bye_runs} bye(s)`;
+          else if (d.is_leg_bye) description = `${d.leg_bye_runs} leg bye(s)`;
+          else if (d.runs_bat === 0) description = 'dot ball';
+          else if (d.runs_bat === 4) description = 'FOUR!';
+          else if (d.runs_bat === 6) description = 'SIX!';
+          else description = `${d.runs_bat} run(s)`;
+          out.push([q(`${t(inn.batting_team_id)}${inn.is_super_over ? ` (Super Over ${inn.super_over_number})` : ''}`), `${d.over_number}.${d.ball_in_over || (idx + 1)}`, q(playersMap[d.bowler_id]?.name || 'Unknown'), q(playersMap[d.striker_id]?.name || 'Unknown'), q(description)].join(','));
+        });
+      });
+      out.push('');
+    }
+
+    return out.join('\n');
   };
 
   const handleDownloadCSV = () => {
