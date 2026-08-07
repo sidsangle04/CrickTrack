@@ -19,7 +19,7 @@ import { downloadHTML } from '../components/utils/htmlExport';
 import { generateWagonWheelSVG, generatePitchMapSVG, wagonWheelLegend, pitchLegend } from '../components/utils/svgExport';
 import WagonWheel from '../components/analytics/WagonWheel';
 import PitchHeatmap from '../components/analytics/PitchHeatmap';
-import RunsProgression from '../components/analytics/RunsProgression';
+import WormGraph from '../components/analytics/WormGraph';
 import PartnershipTable from '../components/analytics/PartnershipTable';
 import MatchReport from '../components/analytics/MatchReport';
 import { Button } from '@/components/ui/button';
@@ -296,6 +296,13 @@ export default function Scorecard() {
         </div>
       )}
 
+      <WormGraph
+        innings={innings}
+        deliveries={allDeliveries}
+        teamsMap={teamsMap}
+        maxOvers={match?.overs_per_innings}
+      />
+
       <Tabs defaultValue="innings_1" className="w-full">
         <TabsList className="w-full bg-slate-800/50 p-1 rounded-xl mb-4">
           {regularInnings.map((inn, idx) => (
@@ -420,10 +427,6 @@ export default function Scorecard() {
                   </div>
                 </div>
 
-                <RunsProgression
-                  deliveries={allDeliveries.filter(d => d.innings_id === inn.id)}
-                  maxOvers={match?.overs_per_innings}
-                />
                 <PartnershipTable
                   partnerships={partnerships.filter(p => p.innings_id === inn.id)}
                   playersMap={playersMap}
