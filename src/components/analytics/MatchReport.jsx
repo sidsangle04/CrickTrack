@@ -380,6 +380,51 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
     downloadHTML(buildHTML(), `match_report_${t(match?.team1_id)}_vs_${t(match?.team2_id)}`);
   };
 
+  const buildCSV = () => {
+    const reg = innings.filter(i => !i.is_super_over).sort((a, b) => a.innings_number - b.innings_number);
+    let csv = 'Match Scorecard\n\n';
+    reg.forEach(inn => {
+      const batters = batterInnings.filter(b => b.innings_id === inn.id).sort((a, b) => a.batting_position - b.batting_position);
+      const bowlers = bowlerInnings.filter(b => b.innings_id === inn.id);
+      csv += `${t(inn.batting_team_id)} Innings\n`;
+      csv += 'Batter,Runs,Balls,4s,6s,SR,Dismissal\n';
+      batters.forEach(b => {
+        const sr = b.balls_faced > 0 ? ((b.runs / b.balls_faced) * 100).toFixed(1) : '0.0';
+        csv += `${p(b.player_id)},${b.runs},${b.balls_faced},${b.fours},${b.sixes},${sr},"${(() => {
+          if (!b.is_out) return 'not out';
+          const bowler = playersMap[b.dismissed_by_bowler_id]?.name || 'Unknown';
+          const fielder = playersMap[b.dismissed_by_fielder_id]?.name || 'Unknown';
+          switch (b.dismissal_type) {
+            case 'bowled': return `b ${bowler}`;
+            case 'caught': return `c ${fielder} b ${bowler}`;
+            case 'lbw': return `lbw b ${bowler}`;
+            case 'stumped': return `st ${fielder} b ${bowler}`;
+            case 'run_out': return `run out (${fielder})`;
+            default: return b.dismissal_type || 'out';
+          }
+        })()}"\n`;
+      });
+      csv += `Total: ${inn.total_runs}/${inn.total_wickets} (${ovStr(inn.total_balls)} overs)\n\n`;
+      csv += 'Bowler,Overs,Runs,Wickets,Economy\n';
+      bowlers.forEach(b => {
+        const econ = b.balls > 0 ? (b.runs_conceded / (b.balls / 6)).toFixed(2) : '0.00';
+        csv += `${p(b.player_id)},${b.overs}.${b.balls % 6},${b.runs_conceded},${b.wickets},${econ}\n`;
+      });
+      csv += '\n';
+    });
+    return csv;
+  };
+
+  const handleDownloadCSV = () => {
+    const blob = new Blob([buildCSV()], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `match_scorecard_${t(match?.team1_id)}_vs_${t(match?.team2_id)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const Section = ({ icon: Icon, title, children }) => (
     <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-700/50">
       <div className="flex items-center gap-2 mb-2">
@@ -435,6 +480,10 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
                   <button onClick={() => { handleDownloadHTML(); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-200 hover:bg-slate-700 transition-colors">
                     <FileCode2 className="w-3.5 h-3.5 text-emerald-400" />
                     Download HTML
+                  </button>
+                  <button onClick={() => { handleDownloadCSV(); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-200 hover:bg-slate-700 transition-colors">
+                    <Download className="w-3.5 h-3.5 text-emerald-400" />
+                    Download CSV
                   </button>
                   <button onClick={() => { handleDownload(); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-200 hover:bg-slate-700 transition-colors">
                     <FileText className="w-3.5 h-3.5 text-sky-400" />
