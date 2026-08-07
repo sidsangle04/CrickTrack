@@ -261,19 +261,36 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
           <td style="text-align:right">${econ}</td></tr>`;
       }).join('');
 
-      const partnershipRows = innPart.map(pr => `<tr>
-          <td style="text-align:right">${pr.wicket_number}</td>
-          <td>${p(pr.batter1_id)} <span style="color:#64748b">${pr.batter1_runs} (${pr.batter1_balls})</span></td>
-          <td>${p(pr.batter2_id)} <span style="color:#64748b">${pr.batter2_runs} (${pr.batter2_balls})</span></td>
-          <td style="text-align:right;font-weight:700">${pr.runs}</td>
-          <td style="text-align:right">${pr.balls}</td>
-        </tr>`).join('');
+      const partnershipRows = innPart.map(pr => {
+        const total = pr.runs || 0;
+        const b1 = pr.batter1_runs || 0;
+        const b2 = pr.batter2_runs || 0;
+        const w1 = total > 0 ? (b1 / total) * 100 : 50;
+        const w2 = 100 - w1;
+        return `<div style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
+            <div style="flex:1;text-align:right">
+              <div style="font-weight:700;color:#fff;font-size:0.95rem">${p(pr.batter1_id)}</div>
+              <div style="font-size:0.78rem;color:#64748b">${b1} (${pr.batter1_balls})</div>
+            </div>
+            <div style="text-align:center;min-width:80px">
+              <div style="font-weight:700;color:#fff;font-size:1.15rem">${total}</div>
+              <div style="margin-top:5px;width:140px;height:7px;border-radius:4px;overflow:hidden;display:flex;background:rgba(255,255,255,0.08)">
+                <div style="background:#2b6cb0;width:${w1}%"></div>
+                <div style="background:#7fb3e6;width:${w2}%"></div>
+              </div>
+              <div style="font-size:0.68rem;color:#64748b;margin-top:3px">wk ${pr.wicket_number} · ${pr.balls} balls</div>
+            </div>
+            <div style="flex:1;text-align:left">
+              <div style="font-weight:700;color:#fff;font-size:0.95rem">${p(pr.batter2_id)}</div>
+              <div style="font-size:0.78rem;color:#64748b">${b2} (${pr.batter2_balls})</div>
+            </div>
+          </div>`;
+      }).join('');
 
       const partnershipCard = innPart.length > 0 ? `
         <div class="card">
-          <h3>Partnerships</h3>
-          <table><thead><tr><th style="text-align:right">Wkt</th><th>Batter 1</th><th>Batter 2</th><th style="text-align:right">Runs</th><th style="text-align:right">Balls</th></tr></thead>
-          <tbody>${partnershipRows}</tbody></table>
+          <h3 style="text-align:center;text-transform:uppercase;letter-spacing:1px">${t(inn.batting_team_id)} — Partnerships</h3>
+          ${partnershipRows}
         </div>` : '';
 
       return `<h2>${t(inn.batting_team_id)} Innings</h2>
