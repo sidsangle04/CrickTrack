@@ -313,10 +313,6 @@ export default function Scorecard() {
             </h1>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={exportHTML} className="border-slate-700">
-              <FileText className="w-4 h-4 mr-2" />
-              HTML
-            </Button>
             <Button variant="outline" size="sm" onClick={exportCSV} className="border-slate-700">
               <Download className="w-4 h-4 mr-2" />
               CSV

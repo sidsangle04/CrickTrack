@@ -21,6 +21,7 @@ function econOf(b) { return b && b.balls > 0 ? b.runs_conceded / (b.balls / 6) :
 export default function MatchReport({ match, innings, batterInnings, bowlerInnings, deliveries, partnerships, playersMap, teamsMap }) {
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [includeBallLog, setIncludeBallLog] = useState(true);
 
   const data = useMemo(() => {
     const reg = innings.filter(i => !i.is_super_over).sort((a, b) => a.innings_number - b.innings_number);
@@ -371,7 +372,7 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
       ${wormSection}
       ${inningsRows}
       ${visualSection}
-      ${logSection}
+      ${includeBallLog ? logSection : ''}
     `;
   };
 
@@ -420,7 +421,17 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-lg bg-slate-800 border border-slate-700 shadow-xl py-1 overflow-hidden">
+                <div className="absolute right-0 top-full mt-1 z-20 w-52 rounded-lg bg-slate-800 border border-slate-700 shadow-xl py-1 overflow-hidden">
+                  <label className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-200 hover:bg-slate-700/50 transition-colors cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={includeBallLog}
+                      onChange={(e) => setIncludeBallLog(e.target.checked)}
+                      className="w-3.5 h-3.5 rounded accent-emerald-500"
+                    />
+                    Include ball-by-ball log
+                  </label>
+                  <div className="border-t border-slate-700 my-1" />
                   <button onClick={() => { handleDownloadHTML(); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-200 hover:bg-slate-700 transition-colors">
                     <FileCode2 className="w-3.5 h-3.5 text-emerald-400" />
                     Download HTML
