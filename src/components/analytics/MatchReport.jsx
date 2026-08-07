@@ -14,6 +14,7 @@ function normLen(l) {
 
 function ovStr(balls) { return `${Math.floor(balls / 6)}.${balls % 6}`; }
 function rr(runs, balls) { return balls > 0 ? (runs / (balls / 6)).toFixed(2) : '0.00'; }
+function econOf(b) { return b && b.balls > 0 ? b.runs_conceded / (b.balls / 6) : 0; }
 
 export default function MatchReport({ match, innings, batterInnings, bowlerInnings, deliveries, partnerships, playersMap, teamsMap }) {
   const [copied, setCopied] = useState(false);
@@ -49,8 +50,8 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
 
     const topScorer = [...allBatters].sort((a, b) => b.runs - a.runs)[0];
     const bestSR = [...allBatters].filter(b => b.balls_faced >= 5).sort((a, b) => (b.runs / Math.max(b.balls_faced, 1)) - (a.runs / Math.max(a.balls_faced, 1)))[0];
-    const topWicketTaker = [...allBowlers].sort((a, b) => b.wickets - a.wickets || a.economy - b.economy)[0];
-    const mostEconomical = [...allBowlers].filter(b => (b.overs + b.balls / 6) >= 1).sort((a, b) => a.economy - b.economy)[0];
+    const topWicketTaker = [...allBowlers].sort((a, b) => b.wickets - a.wickets || econOf(a) - econOf(b))[0];
+    const mostEconomical = [...allBowlers].filter(b => b.balls >= 6).sort((a, b) => econOf(a) - econOf(b))[0];
 
     const highestPartnership = [...partnerships].filter(p => reg.some(i => i.id === p.innings_id)).sort((a, b) => b.runs - a.runs)[0];
 
@@ -99,7 +100,7 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
     data.perInnings.forEach(({ inn, topBatter, topBowler }) => {
       lines.push(`${t(inn.batting_team_id)}: ${inn.total_runs}/${inn.total_wickets} (${ovStr(inn.total_balls)} ov)`);
       if (topBatter) lines.push(`  Top batter: ${p(topBatter.player_id)} ${topBatter.runs} (${topBatter.balls_faced}), SR ${topBatter.balls_faced ? ((topBatter.runs / topBatter.balls_faced) * 100).toFixed(1) : '0.0'}`);
-      if (topBowler) lines.push(`  Top bowler: ${p(topBowler.player_id)} ${topBowler.wickets}/${topBowler.runs_conceded} (${topBowler.overs}.${topBowler.balls % 6}), econ ${topBowler.economy?.toFixed(2) || '0.00'}`);
+      if (topBowler) lines.push(`  Top bowler: ${p(topBowler.player_id)} ${topBowler.wickets}/${topBowler.runs_conceded} (${topBowler.overs}.${topBowler.balls % 6}), econ ${econOf(topBowler).toFixed(2)}`);
     });
     lines.push('');
     lines.push('--- BATTING HIGHLIGHTS ---');
@@ -115,11 +116,11 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
     lines.push('--- BOWLING HIGHLIGHTS ---');
     if (data.topWicketTaker) {
       const b = data.topWicketTaker;
-      lines.push(`Top wicket-taker: ${p(b.player_id)} — ${b.wickets} wickets (${b.runs_conceded} runs, econ ${b.economy?.toFixed(2) || '0.00'})`);
+      lines.push(`Top wicket-taker: ${p(b.player_id)} — ${b.wickets} wickets (${b.runs_conceded} runs, econ ${econOf(b).toFixed(2)})`);
     }
     if (data.mostEconomical) {
       const b = data.mostEconomical;
-      lines.push(`Most economical: ${p(b.player_id)} — econ ${b.economy?.toFixed(2) || '0.00'} (${b.overs}.${b.balls % 6} ov)`);
+      lines.push(`Most economical: ${p(b.player_id)} — econ ${econOf(b).toFixed(2)} (${b.overs}.${b.balls % 6} ov)`);
     }
     lines.push('');
     lines.push('--- KEY PARTNERSHIP ---');
@@ -205,7 +206,7 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
               <span className="text-lg font-bold text-white">{inn.total_runs}/{inn.total_wickets} <span className="text-xs text-slate-500 font-normal">({ovStr(inn.total_balls)})</span></span>
             </div>
             {topBatter && <Stat label={`Bat: ${p(topBatter.player_id)}`} value={`${topBatter.runs}(${topBatter.balls_faced})`} sub={`SR ${topBatter.balls_faced ? ((topBatter.runs / topBatter.balls_faced) * 100).toFixed(0) : 0}`} />}
-            {topBowler && <Stat label={`Bowl: ${p(topBowler.player_id)}`} value={`${topBowler.wickets}/${topBowler.runs_conceded}`} sub={`econ ${topBowler.economy?.toFixed(1) || '0.0'}`} />}
+            {topBowler && <Stat label={`Bowl: ${p(topBowler.player_id)}`} value={`${topBowler.wickets}/${topBowler.runs_conceded}`} sub={`econ ${econOf(topBowler).toFixed(1)}`} />}
           </div>
         ))}
       </div>
@@ -218,7 +219,7 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
 
         <Section icon={Target} title="Bowling Highlights">
           {data.topWicketTaker && <Stat label="Top Wicket-taker" value={p(data.topWicketTaker.player_id)} sub={`${data.topWicketTaker.wickets}wkts, ${data.topWicketTaker.runs_conceded}r`} />}
-          {data.mostEconomical && <Stat label="Most Economical" value={p(data.mostEconomical.player_id)} sub={`econ ${data.mostEconomical.economy?.toFixed(2) || '0.00'}`} />}
+          {data.mostEconomical && <Stat label="Most Economical" value={p(data.mostEconomical.player_id)} sub={`econ ${econOf(data.mostEconomical).toFixed(2)}`} />}
         </Section>
 
         <Section icon={Users} title="Key Partnership">

@@ -127,7 +127,7 @@ export default function Scorecard() {
 
       const bowlerRows = inningsBowlers.map(b => {
         const player = playersMap[b.player_id];
-        const totalOv = b.overs + b.balls/6;
+        const totalOv = b.balls/6;
         const econ = totalOv > 0 ? (b.runs_conceded/totalOv).toFixed(2) : '0.00';
         return `<tr><td>${player?.name||'Unknown'}</td>
           <td style="text-align:right">${b.overs}.${b.balls%6}</td>
@@ -205,7 +205,7 @@ export default function Scorecard() {
       csv += 'Bowler,Overs,Runs,Wickets,Economy\n';
       bowlers.forEach(b => {
         const player = playersMap[b.player_id];
-        const econ = (b.overs + b.balls / 6) > 0 ? (b.runs_conceded / (b.overs + b.balls / 6)).toFixed(2) : '0.00';
+        const econ = (b.balls / 6) > 0 ? (b.runs_conceded / (b.balls / 6)).toFixed(2) : '0.00';
         csv += `${player?.name || 'Unknown'},${b.overs}.${b.balls % 6},${b.runs_conceded},${b.wickets},${econ}\n`;
       });
       csv += '\n';
@@ -399,8 +399,8 @@ export default function Scorecard() {
                       <tbody>
                         {inningsBowlers.map(bowler => {
                           const player = playersMap[bowler.player_id];
-                          const totalOvers = bowler.overs + bowler.balls / 6;
-                          const econ = totalOvers > 0 
+                          const totalOvers = bowler.balls / 6;
+                          const econ = bowler.balls > 0 
                             ? (bowler.runs_conceded / totalOvers).toFixed(2) 
                             : '0.00';
                           
