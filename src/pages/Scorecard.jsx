@@ -19,7 +19,8 @@ import { downloadHTML } from '../components/utils/htmlExport';
 import { generateWagonWheelSVG, generatePitchMapSVG, wagonWheelLegend, pitchLegend } from '../components/utils/svgExport';
 import WagonWheel from '../components/analytics/WagonWheel';
 import PitchHeatmap from '../components/analytics/PitchHeatmap';
-import PartnershipTimeline from '../components/analytics/PartnershipTimeline';
+import RunsProgression from '../components/analytics/RunsProgression';
+import PartnershipTable from '../components/analytics/PartnershipTable';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -398,10 +399,14 @@ export default function Scorecard() {
                   </div>
                 </div>
 
-                <PartnershipTimeline
+                <RunsProgression
                   deliveries={allDeliveries.filter(d => d.innings_id === inn.id)}
+                  maxOvers={match?.overs_per_innings}
+                />
+                <PartnershipTable
                   partnerships={partnerships.filter(p => p.innings_id === inn.id)}
                   playersMap={playersMap}
+                  teamName={teamsMap[inn.batting_team_id]?.name}
                 />
               </div>
             </TabsContent>
