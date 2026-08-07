@@ -31,6 +31,7 @@ export default function WormGraph({ innings, deliveries, teamsMap, maxOvers }) {
           over: +(legal / 6).toFixed(2),
           runs: cum,
           wicketRuns: d.is_wicket ? cum : null,
+          wkNum: d.is_wicket ? wk : null,
         });
       });
 
@@ -55,6 +56,7 @@ export default function WormGraph({ innings, deliveries, teamsMap, maxOvers }) {
         const p = s.points.find(pp => pp.over === o);
         entry[s.key] = p ? p.runs : null;
         entry[`${s.key}_w`] = p && p.wicketRuns != null ? p.wicketRuns : null;
+        entry[`${s.key}_wk`] = p && p.wkNum != null ? p.wkNum : null;
       });
       return entry;
     });
@@ -102,13 +104,13 @@ export default function WormGraph({ innings, deliveries, teamsMap, maxOvers }) {
                   .map(s => {
                     const entry = payload.find(p => p.dataKey === s.key);
                     if (!entry || entry.value == null) return null;
-                    const wEntry = payload.find(p => p.dataKey === `${s.key}_w`);
-                    const isWk = wEntry && wEntry.value != null;
+                    const wEntry = payload.find(p => p.dataKey === `${s.key}_wk`);
+                    const wkNum = wEntry && wEntry.value != null ? wEntry.value : null;
                     return (
                       <div key={s.key} className="flex items-center gap-2 text-xs">
                         <span className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
                         <span style={{ color: s.color }} className="font-medium">{s.name}</span>
-                        <span className="text-slate-300">: {entry.value}{isWk ? ' (W)' : ''}</span>
+                        <span className="text-slate-300">: {entry.value}{wkNum != null ? `/${wkNum}` : ''}</span>
                       </div>
                     );
                   })
