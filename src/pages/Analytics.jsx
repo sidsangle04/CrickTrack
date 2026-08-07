@@ -8,6 +8,7 @@ import {
   ShieldAlert, BarChart2, Trophy, ChevronDown, ChevronRight
 } from 'lucide-react';
 import GroundMap from '../components/scoring/GroundMap';
+import PartnershipCard from '../components/analytics/PartnershipCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -311,16 +312,7 @@ function LeaderboardsTab({ allPlayers, teams, allBatterInnings, allBowlerInnings
         ) : (
           <div className="space-y-2">
             {topPartnerships.map((p, i) => (
-              <div key={p.id} className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50 flex items-center gap-3">
-                <div className="text-slate-500 text-xs w-5 text-center">{i + 1}</div>
-                <div className="flex-1">
-                  <div className="text-sm text-white font-medium">
-                    {playersMap[p.batter1_id]?.name || '?'} & {playersMap[p.batter2_id]?.name || '?'}
-                  </div>
-                  <div className="text-xs text-slate-400">{p.balls} balls</div>
-                </div>
-                <div className="text-xl font-bold text-emerald-400">{p.runs}</div>
-              </div>
+              <PartnershipCard key={p.id} partnership={p} playersMap={playersMap} rank={i + 1} />
             ))}
           </div>
         )}
@@ -751,19 +743,9 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
                 <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/50 text-center text-slate-500 text-sm">No partnership data</div>
               ) : (
                 <div className="space-y-2">
-                  {relevantPartnerships.map((p, i) => {
-                    const partner = p.batter1_id === selectedPlayerId ? p.batter2_id : p.batter1_id;
-                    return (
-                      <div key={p.id} className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50 flex items-center gap-3">
-                        <div className="text-slate-500 text-xs w-5 text-center">{i + 1}</div>
-                        <div className="flex-1">
-                          <div className="text-sm text-white font-medium">with {playersMap[partner]?.name || '?'}</div>
-                          <div className="text-xs text-slate-400">{p.balls} balls</div>
-                        </div>
-                        <div className="text-xl font-bold text-emerald-400">{p.runs}</div>
-                      </div>
-                    );
-                  })}
+                  {relevantPartnerships.map((p, i) => (
+                    <PartnershipCard key={p.id} partnership={p} playersMap={playersMap} rank={i + 1} />
+                  ))}
                 </div>
               )}
             </div>
