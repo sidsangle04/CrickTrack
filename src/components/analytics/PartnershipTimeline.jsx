@@ -95,6 +95,7 @@ export default function PartnershipTimeline({ deliveries, partnerships, playersM
             {wickets.map(w => (
               <ReferenceLine
                 key={w.wicketNumber}
+                yAxisId="left"
                 x={w.ball}
                 stroke="#ef4444"
                 strokeDasharray="4 4"
