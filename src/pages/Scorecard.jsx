@@ -21,6 +21,7 @@ import WagonWheel from '../components/analytics/WagonWheel';
 import PitchHeatmap from '../components/analytics/PitchHeatmap';
 import RunsProgression from '../components/analytics/RunsProgression';
 import PartnershipTable from '../components/analytics/PartnershipTable';
+import MatchReport from '../components/analytics/MatchReport';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -28,6 +29,7 @@ export default function Scorecard() {
   const urlParams = new URLSearchParams(window.location.search);
   const matchId = urlParams.get('matchId');
   const [expandedInnings, setExpandedInnings] = useState(null);
+  const [showReport, setShowReport] = useState(false);
 
   const { data: match, isLoading: matchLoading } = useQuery({
     queryKey: ['match', matchId],
@@ -264,6 +266,10 @@ export default function Scorecard() {
               <Download className="w-4 h-4 mr-2" />
               CSV
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowReport(s => !s)} className="border-slate-700">
+              <FileText className="w-4 h-4 mr-2" />
+              Report
+            </Button>
           </div>
         </div>
 
@@ -274,6 +280,21 @@ export default function Scorecard() {
           </div>
         )}
       </div>
+
+      {showReport && (
+        <div className="mb-6">
+          <MatchReport
+            match={match}
+            innings={innings}
+            batterInnings={batterInnings}
+            bowlerInnings={bowlerInnings}
+            deliveries={allDeliveries}
+            partnerships={partnerships}
+            playersMap={playersMap}
+            teamsMap={teamsMap}
+          />
+        </div>
+      )}
 
       <Tabs defaultValue="innings_1" className="w-full">
         <TabsList className="w-full bg-slate-800/50 p-1 rounded-xl mb-4">
