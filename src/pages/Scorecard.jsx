@@ -16,7 +16,7 @@ import {
   FileText
 } from 'lucide-react';
 import { downloadHTML } from '../components/utils/htmlExport';
-import { generateWagonWheelSVG, generatePitchMapSVG, wagonWheelLegend, pitchLegend } from '../components/utils/svgExport';
+import { generateWagonWheelSVG, generatePitchMapSVG, generateWormGraphSVG, wagonWheelLegend, pitchLegend } from '../components/utils/svgExport';
 import WagonWheel from '../components/analytics/WagonWheel';
 import PitchHeatmap from '../components/analytics/PitchHeatmap';
 import WormGraph from '../components/analytics/WormGraph';
@@ -111,6 +111,7 @@ export default function Scorecard() {
     const inningsRows = regularInnings.map(inn => {
       const inningsBatters = batterInnings.filter(b => b.innings_id === inn.id).sort((a, b) => a.batting_position - b.batting_position);
       const inningsBowlers = bowlerInnings.filter(b => b.innings_id === inn.id);
+      const innPartnerships = partnerships.filter(p => p.innings_id === inn.id).sort((a, b) => a.wicket_number - b.wicket_number);
       const teamName = teamsMap[inn.batting_team_id]?.name || 'Team';
       const extras = (inn.extras_wide||0)+(inn.extras_no_ball||0)+(inn.extras_byes||0)+(inn.extras_leg_byes||0);
 
@@ -137,6 +138,25 @@ export default function Scorecard() {
           <td style="text-align:right">${econ}</td></tr>`;
       }).join('');
 
+      const partnershipRows = innPartnerships.map(p => {
+        const b1 = playersMap[p.batter1_id]?.name || 'Unknown';
+        const b2 = playersMap[p.batter2_id]?.name || 'Unknown';
+        return `<tr>
+          <td style="text-align:right">${p.wicket_number}</td>
+          <td>${b1} <span style="color:#64748b">${p.batter1_runs} (${p.batter1_balls})</span></td>
+          <td>${b2} <span style="color:#64748b">${p.batter2_runs} (${p.batter2_balls})</span></td>
+          <td style="text-align:right;font-weight:700">${p.runs}</td>
+          <td style="text-align:right">${p.balls}</td>
+        </tr>`;
+      }).join('');
+
+      const partnershipCard = innPartnerships.length > 0 ? `
+        <div class="card">
+          <h3>Partnerships</h3>
+          <table><thead><tr><th style="text-align:right">Wkt</th><th>Batter 1</th><th>Batter 2</th><th style="text-align:right">Runs</th><th style="text-align:right">Balls</th></tr></thead>
+          <tbody>${partnershipRows}</tbody></table>
+        </div>` : '';
+
       return `<h2>${teamName} Innings</h2>
         <div class="card">
           <div style="font-size:2rem;font-weight:900;color:#fff">${inn.total_runs}/${inn.total_wickets} <span style="font-size:1rem;color:#64748b">(${getOversDisplay(inn.total_balls)} ov)</span></div>
@@ -151,8 +171,41 @@ export default function Scorecard() {
           <h3>Bowling</h3>
           <table><thead><tr><th>Bowler</th><th style="text-align:right">O</th><th style="text-align:right">M</th><th style="text-align:right">R</th><th style="text-align:right">W</th><th style="text-align:right">Econ</th></tr></thead>
           <tbody>${bowlerRows}</tbody></table>
-        </div>`;
+        </div>
+        ${partnershipCard}`;
     }).join('');
+
+    const wormSection = (allDeliveries.length > 0 && regularInnings.length > 0) ? `
+      <h2>📈 Worm Graph</h2>
+      <div class="card" style="text-align:center">
+        ${generateWormGraphSVG(regularInnings, allDeliveries, teamsMap, match?.overs_per_innings, 520, 260)}
+      </div>` : '';
+
+    const logSection = allDeliveries.length > 0 ? `
+      <h2>📝 Ball-by-Ball Log</h2>
+      <div class="card">
+        ${innings.map(inn => {
+          const innDeliveries = allDeliveries.filter(d => d.innings_id === inn.id).sort((a, b) =>
+            a.over_number !== b.over_number ? a.over_number - b.over_number : (a.ball_in_over || 0) - (b.ball_in_over || 0));
+          const rows = innDeliveries.map((d, idx) => {
+            const striker = playersMap[d.striker_id]?.name || 'Unknown';
+            const bowler = playersMap[d.bowler_id]?.name || 'Unknown';
+            let description = '';
+            if (d.is_wicket) description = `WICKET! ${playersMap[d.player_out_id]?.name || ''} ${d.wicket_type}`;
+            else if (d.is_wide) description = `Wide +${d.runs_bat || 0}`;
+            else if (d.is_no_ball) description = `No ball +${d.runs_bat || 0}`;
+            else if (d.is_bye) description = `${d.bye_runs} bye(s)`;
+            else if (d.is_leg_bye) description = `${d.leg_bye_runs} leg bye(s)`;
+            else if (d.runs_bat === 0) description = 'dot ball';
+            else if (d.runs_bat === 4) description = 'FOUR!';
+            else if (d.runs_bat === 6) description = 'SIX!';
+            else description = `${d.runs_bat} run(s)`;
+            const cls = d.is_wicket ? 'color:#ef4444' : d.runs_bat >= 4 ? 'color:#10b981' : 'color:#94a3b8';
+            return `<div style="font-size:0.78rem;padding:2px 0"><span style="color:#64748b;display:inline-block;width:46px">${d.over_number}.${d.ball_in_over || (idx + 1)}</span> <span style="color:#64748b">${bowler} to ${striker}:</span> <span style="${cls}">${description}</span></div>`;
+          }).join('');
+          return `<div style="margin-bottom:18px"><h4 style="color:#10b981;margin-bottom:6px">${teamsMap[inn.batting_team_id]?.name || 'Team'} Innings${inn.is_super_over ? ` (Super Over ${inn.super_over_number})` : ''}</h4>${rows}</div>`;
+        }).join('')}
+      </div>` : '';
 
     const team1 = teamsMap[match?.team1_id]?.name || 'Team 1';
     const team2 = teamsMap[match?.team2_id]?.name || 'Team 2';
@@ -179,8 +232,10 @@ export default function Scorecard() {
       <h1>${team1} vs ${team2}</h1>
       <p class="meta">${match?.venue || ''} &nbsp;|&nbsp; ${match?.date || ''}</p>
       ${match?.result ? `<div class="result-box">🏆 ${match.result}</div>` : ''}
+      ${wormSection}
       ${inningsRows}
       ${visualSection}
+      ${logSection}
     `;
     downloadHTML(html, `scorecard_${team1}_vs_${team2}`);
   };

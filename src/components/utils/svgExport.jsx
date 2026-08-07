@@ -156,6 +156,74 @@ export function wagonWheelLegend(shots) {
   </div>`;
 }
 
+// ── Worm Graph (both teams run progression) ───────────────────────────────────
+
+export function generateWormGraphSVG(innings = [], deliveries = [], teamsMap = {}, maxOvers, width = 520, height = 260) {
+  const regular = innings.filter(i => !i.is_super_over).sort((a, b) => a.innings_number - b.innings_number);
+  if (!regular.length) return '';
+
+  const series = regular.map((inn, idx) => {
+    const team = teamsMap[inn.batting_team_id];
+    const color = team?.primary_color || (idx === 0 ? '#38bdf8' : '#f59e0b');
+    const dels = deliveries
+      .filter(d => d.innings_id === inn.id && !d.is_voided)
+      .sort((a, b) => a.over_number !== b.over_number ? a.over_number - b.over_number : (a.ball_in_over || 0) - (b.ball_in_over || 0));
+    let cum = 0, legal = 0, wk = 0;
+    const pts = [{ over: 0, runs: 0, wk: false }];
+    dels.forEach(d => {
+      cum += d.runs_total || 0;
+      if (d.is_legal_delivery !== false) legal++;
+      if (d.is_wicket) wk++;
+      pts.push({ over: +(legal / 6).toFixed(2), runs: cum, wk: !!d.is_wicket });
+    });
+    return { color, name: team?.short_name || team?.name || `Team ${idx + 1}`, pts };
+  });
+
+  const maxRuns = Math.max(...series.flatMap(s => s.pts.map(p => p.runs)), 1);
+  const maxOv = maxOvers || Math.max(...series.flatMap(s => s.pts.map(p => p.over)), 1);
+
+  const padL = 36, padR = 16, padT = 16, padB = 30;
+  const X = over => padL + (over / maxOv) * (width - padL - padR);
+  const Y = runs => height - padB - (runs / maxRuns) * (height - padT - padB);
+
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map(f => {
+    const r = Math.round(maxRuns * f);
+    const y = Y(r);
+    return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${width - padR}" y2="${y.toFixed(1)}" stroke="#334155" stroke-width="0.5" stroke-dasharray="3,3"/>
+<text x="${padL - 6}" y="${(y + 3).toFixed(1)}" fill="#94a3b8" font-size="9" text-anchor="end">${r}</text>`;
+  }).join('');
+
+  const xTicks = Array.from({ length: Math.ceil(maxOv) + 1 }).map((_, o) => {
+    const x = X(o);
+    return `<text x="${x.toFixed(1)}" y="${height - padB + 14}" fill="#94a3b8" font-size="9" text-anchor="middle">${o}</text>`;
+  }).join('');
+
+  const lines = series.map(s => {
+    const path = s.pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${X(p.over).toFixed(1)},${Y(p.runs).toFixed(1)}`).join(' ');
+    const dots = s.pts.filter(p => p.wk).map(p =>
+      `<circle cx="${X(p.over).toFixed(1)}" cy="${Y(p.runs).toFixed(1)}" r="3.5" fill="${s.color}" stroke="#0f172a" stroke-width="1"/>`
+    ).join('');
+    return `<path d="${path}" stroke="${s.color}" stroke-width="2.4" fill="none" opacity="0.92"/>${dots}`;
+  }).join('');
+
+  const legend = series.map(s =>
+    `<span style="display:inline-flex;align-items:center;margin-right:14px;font-size:0.78rem;color:#cbd5e1">
+      <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${s.color};margin-right:5px"></span>${s.name}
+    </span>`
+  ).join('');
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  <rect x="0" y="0" width="${width}" height="${height}" fill="#0f172a" rx="6"/>
+  ${yTicks}
+  <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${height - padB}" stroke="#475569" stroke-width="1"/>
+  <line x1="${padL}" y1="${height - padB}" x2="${width - padR}" y2="${height - padB}" stroke="#475569" stroke-width="1"/>
+  ${xTicks}
+  <text x="${padL}" y="${padT - 4}" fill="#94a3b8" font-size="9">Runs</text>
+  ${lines}
+</svg>
+<div style="margin-top:8px">${legend}<span style="font-size:0.72rem;color:#64748b;margin-left:8px">● = wicket</span></div>`;
+}
+
 export function pitchLegend() {
   return `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:0.75rem;color:#94a3b8">
     <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;margin-right:4px"></span>Wicket</span>
