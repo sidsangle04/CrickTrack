@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Clipboard, Download, Award, Zap, Target, TrendingUp, Users } from 'lucide-react';
+import { Clipboard, Download, Award, Zap, Target, TrendingUp, Users, FileCode2 } from 'lucide-react';
+import { downloadHTML } from '@/components/utils/htmlExport';
 
 const LENGTH_LABELS = {
   full_toss: 'Full Toss', yorker: 'Yorker', full: 'Full',
@@ -158,6 +159,75 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
     URL.revokeObjectURL(url);
   };
 
+  const buildHTML = () => {
+    const section = (icon, title, inner) => `
+      <div class="card">
+        <h3>${title}</h3>
+        ${inner}
+      </div>`;
+    const stat = (label, value, sub) => `
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.82rem;border-bottom:1px solid rgba(255,255,255,0.05)">
+        <span style="color:#94a3b8">${label}</span>
+        <span style="text-align:right"><strong style="color:#fff">${value}</strong>${sub ? `<span style="color:#64748b;margin-left:6px">${sub}</span>` : ''}</span>
+      </div>`;
+
+    const scoreline = data.perInnings.map(({ inn, topBatter, topBowler }) => `
+      <div class="card" style="background:rgba(15,23,42,0.4)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-weight:600;color:#fff">${t(inn.batting_team_id)}</span>
+          <span style="font-size:1.25rem;font-weight:700;color:#fff">${inn.total_runs}/${inn.total_wickets} <span style="font-size:0.75rem;color:#64748b;font-weight:400">(${ovStr(inn.total_balls)})</span></span>
+        </div>
+        ${topBatter ? stat(`Bat: ${p(topBatter.player_id)}`, `${topBatter.runs}(${topBatter.balls_faced})`, `SR ${topBatter.balls_faced ? ((topBatter.runs / topBatter.balls_faced) * 100).toFixed(0) : 0}`) : ''}
+        ${topBowler ? stat(`Bowl: ${p(topBowler.player_id)}`, `${topBowler.wickets}/${topBowler.runs_conceded}`, `econ ${econOf(topBowler).toFixed(1)}`) : ''}
+      </div>`).join('');
+
+    const batting = section('award', 'Batting Highlights', `
+      ${data.topScorer ? stat('Top Scorer', p(data.topScorer.player_id), `${data.topScorer.runs}(${data.topScorer.balls_faced}), ${data.topScorer.fours}x4 ${data.topScorer.sixes}x6`) : ''}
+      ${data.bestSR ? stat('Best Strike Rate', p(data.bestSR.player_id), `${data.bestSR.runs}(${data.bestSR.balls_faced})`) : ''}`);
+
+    const bowling = section('target', 'Bowling Highlights', `
+      ${data.topWicketTaker ? stat('Top Wicket-taker', p(data.topWicketTaker.player_id), `${data.topWicketTaker.wickets}wkts, ${data.topWicketTaker.runs_conceded}r`) : ''}
+      ${data.mostEconomical ? stat('Most Economical', p(data.mostEconomical.player_id), `econ ${econOf(data.mostEconomical).toFixed(2)}`) : ''}`);
+
+    const partnership = section('users', 'Key Partnership', data.highestPartnership
+      ? stat(`Highest (Wk ${data.highestPartnership.wicket_number})`, p(data.highestPartnership.batter1_id), `& ${p(data.highestPartnership.batter2_id)} — ${data.highestPartnership.runs}(${data.highestPartnership.balls})`)
+      : '<p style="color:#64748b;font-size:0.8rem">No partnership data</p>');
+
+    const trends = section('zap', 'Tactical Trends', `
+      ${stat('Boundaries', `${data.totals.fours}x4 / ${data.totals.sixes}x6`, '')}
+      ${stat('Dot ball %', `${data.totals.legal ? ((data.totals.dots / data.totals.legal) * 100).toFixed(0) : 0}%`, '')}
+      ${stat('Pace vs Spin', `${data.byType.pace.w}/${data.byType.pace.r} | ${data.byType.spin.w}/${data.byType.spin.r}`, 'wkts/runs')}
+      ${data.lenSorted[0] ? stat('Top length', data.lenSorted[0][0], `${data.lenSorted[0][1]} balls`) : ''}`);
+
+    const phases = data.perInnings.map(({ inn, phases }) => `
+      <div style="margin-bottom:10px">
+        <p style="color:#94a3b8;font-size:0.8rem;margin-bottom:6px">${t(inn.batting_team_id)}</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:0.8rem">
+          ${['Powerplay', 'Middle', 'Death'].map(ph => `
+            <div style="background:rgba(15,23,42,0.4);border-radius:8px;padding:8px;text-align:center">
+              <div style="color:#64748b">${ph}</div>
+              <div style="color:#fff;font-weight:600">${phases[ph].r}/${ovStr(phases[ph].b)}</div>
+              <div style="color:#10b981">${rr(phases[ph].r, phases[ph].b)} RR</div>
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+
+    return `
+      <h1>${t(match?.team1_id)} vs ${t(match?.team2_id)}</h1>
+      <p class="meta">${match?.venue || ''} &nbsp;|&nbsp; ${match?.date || ''}</p>
+      ${match?.result ? `<div class="result-box">🏆 ${match.result}</div>` : ''}
+      <h2>Match Report</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">${scoreline}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${batting}${bowling}${partnership}${trends}</div>
+      <h2>Phase Breakdown</h2>
+      <div class="card">${phases}</div>
+    `;
+  };
+
+  const handleDownloadHTML = () => {
+    downloadHTML(buildHTML(), `match_report_${t(match?.team1_id)}_vs_${t(match?.team2_id)}`);
+  };
+
   const Section = ({ icon: Icon, title, children }) => (
     <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-700/50">
       <div className="flex items-center gap-2 mb-2">
@@ -190,9 +260,13 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
             <Clipboard className="w-3.5 h-3.5" />
             {copied ? 'Copied!' : 'Copy'}
           </button>
-          <button onClick={handleDownload} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors">
+          <button onClick={handleDownload} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium transition-colors">
             <Download className="w-3.5 h-3.5" />
             Share
+          </button>
+          <button onClick={handleDownloadHTML} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors">
+            <FileCode2 className="w-3.5 h-3.5" />
+            HTML
           </button>
         </div>
       </div>
