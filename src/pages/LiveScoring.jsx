@@ -103,6 +103,14 @@ export default function LiveScoring() {
     enabled: !!currentInnings?.id
   });
 
+  const { data: partnerships = [], refetch: refetchPartnerships } = useQuery({
+    queryKey: ['partnerships', currentInnings?.id],
+    queryFn: () => currentInnings ?
+    base44.entities.Partnership.filter({ innings_id: currentInnings.id }) :
+    [],
+    enabled: !!currentInnings?.id
+  });
+
   const teamsMap = teams.reduce((acc, t) => ({ ...acc, [t.id]: t }), {});
   const playersMap = allPlayers.reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
   const batterInningsMap = batterInnings.reduce((acc, b) => ({ ...acc, [b.player_id]: b }), {});
@@ -145,7 +153,8 @@ export default function LiveScoring() {
     refetchInnings(),
     refetchDeliveries(),
     refetchBatterInnings(),
-    refetchBowlerInnings()]
+    refetchBowlerInnings(),
+    refetchPartnerships()]
     );
   };
 
@@ -233,6 +242,38 @@ export default function LiveScoring() {
         sixes_conceded: (bowlerStats.sixes_conceded || 0) + (!isByeOrLegBye && runsScoredByBat === 6 ? 1 : 0)
       });
     }
+
+    // Partnership tracking — ensure an active partnership exists, then accumulate runs/balls
+    const activePships = await base44.entities.Partnership.filter({ innings_id: currentInnings.id, is_active: true });
+    let partnership = activePships[0];
+    if (!partnership) {
+      partnership = await base44.entities.Partnership.create({
+        match_id: matchId,
+        innings_id: currentInnings.id,
+        wicket_number: (currentInnings.total_wickets || 0) + 1,
+        batter1_id: currentInnings.current_striker_id,
+        batter2_id: currentInnings.current_non_striker_id,
+        is_active: true
+      });
+    }
+    const strikerIsBatter1 = partnership.batter1_id === currentInnings.current_striker_id;
+    const ballFaced = isLegal || deliveryData.is_no_ball;
+    const partnershipUpdate = {
+      runs: (partnership.runs || 0) + totalRuns,
+      balls: (partnership.balls || 0) + (isLegal ? 1 : 0)
+    };
+    if (strikerIsBatter1) {
+      partnershipUpdate.batter1_runs = (partnership.batter1_runs || 0) + runsScoredByBat;
+      partnershipUpdate.batter1_balls = (partnership.batter1_balls || 0) + (ballFaced ? 1 : 0);
+    } else {
+      partnershipUpdate.batter2_runs = (partnership.batter2_runs || 0) + runsScoredByBat;
+      partnershipUpdate.batter2_balls = (partnership.batter2_balls || 0) + (ballFaced ? 1 : 0);
+    }
+    if (deliveryData.is_wicket) {
+      partnershipUpdate.is_active = false;
+      partnershipUpdate.how_ended = deliveryData.wicket_type;
+    }
+    await base44.entities.Partnership.update(partnership.id, partnershipUpdate);
 
     let newBallInOver = currentInnings.current_ball_in_over + (isLegal ? 1 : 0);
     let newOverNumber = currentInnings.current_over_number;
@@ -341,6 +382,14 @@ export default function LiveScoring() {
       status: 'completed',
       end_reason: reason
     });
+
+    // Finalize any still-active partnership for this innings
+    const finalActivePships = await base44.entities.Partnership.filter({ innings_id: currentInnings.id, is_active: true });
+    if (finalActivePships.length > 0) {
+      await base44.entities.Partnership.bulkUpdate(
+        finalActivePships.map(p => ({ id: p.id, is_active: false, how_ended: p.how_ended || reason }))
+      );
+    }
 
     const updatedInnings = await base44.entities.Innings.filter({ match_id: matchId });
     
@@ -627,6 +676,33 @@ export default function LiveScoring() {
         wides: bowlerStats.wides - (lastDelivery.is_wide ? 1 : 0),
         no_balls: bowlerStats.no_balls - (lastDelivery.is_no_ball ? 1 : 0)
       });
+    }
+
+    // Reverse partnership contribution for the undone delivery
+    const undoPships = await base44.entities.Partnership.filter({ innings_id: currentInnings.id });
+    const undoPartnership = undoPships.find(p =>
+      (p.batter1_id === lastDelivery.striker_id && p.batter2_id === lastDelivery.non_striker_id) ||
+      (p.batter1_id === lastDelivery.non_striker_id && p.batter2_id === lastDelivery.striker_id)
+    );
+    if (undoPartnership) {
+      const undoStrikerIsBatter1 = undoPartnership.batter1_id === lastDelivery.striker_id;
+      const undoBallFaced = lastDelivery.is_legal_delivery || lastDelivery.is_no_ball;
+      const undoPUpdate = {
+        runs: (undoPartnership.runs || 0) - (lastDelivery.runs_total || 0),
+        balls: (undoPartnership.balls || 0) - (lastDelivery.is_legal_delivery ? 1 : 0)
+      };
+      if (undoStrikerIsBatter1) {
+        undoPUpdate.batter1_runs = (undoPartnership.batter1_runs || 0) - (lastDelivery.runs_bat || 0);
+        undoPUpdate.batter1_balls = (undoPartnership.batter1_balls || 0) - (undoBallFaced ? 1 : 0);
+      } else {
+        undoPUpdate.batter2_runs = (undoPartnership.batter2_runs || 0) - (lastDelivery.runs_bat || 0);
+        undoPUpdate.batter2_balls = (undoPartnership.batter2_balls || 0) - (undoBallFaced ? 1 : 0);
+      }
+      if (lastDelivery.is_wicket) {
+        undoPUpdate.is_active = true;
+        undoPUpdate.how_ended = null;
+      }
+      await base44.entities.Partnership.update(undoPartnership.id, undoPUpdate);
     }
 
     await refetchAll();
