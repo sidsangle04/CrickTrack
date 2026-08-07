@@ -3,6 +3,23 @@ import PitchMap from '../scoring/PitchMap';
 
 const LENGTH_ORDER = ['Full Toss', 'Yorker', 'Full', 'Good Length', 'Back of Length', 'Short', 'Bouncer'];
 
+const LENGTH_LABELS = {
+  full_toss: 'Full Toss',
+  yorker: 'Yorker',
+  full: 'Full',
+  good_length: 'Good Length',
+  good: 'Good Length',
+  back_of_length: 'Back of Length',
+  short: 'Short',
+  bouncer: 'Bouncer',
+};
+
+function normLen(l) {
+  if (!l) return null;
+  const key = String(l).trim().toLowerCase().replace(/\s+/g, '_');
+  return LENGTH_LABELS[key] ? key : null;
+}
+
 export default function PitchHeatmap({ deliveries = [], title = 'Pitch Map', width = 130, height = 300 }) {
   const marks = deliveries
     .filter(d => d.pitch_x != null && d.pitch_y != null && !d.is_voided)
@@ -18,7 +35,11 @@ export default function PitchHeatmap({ deliveries = [], title = 'Pitch Map', wid
   // Length distribution
   const lengthCounts = {};
   marks.forEach(m => {
-    if (m.length) lengthCounts[m.length] = (lengthCounts[m.length] || 0) + 1;
+    const key = normLen(m.length);
+    if (key) {
+      const label = LENGTH_LABELS[key];
+      lengthCounts[label] = (lengthCounts[label] || 0) + 1;
+    }
   });
 
   const maxCount = Math.max(...Object.values(lengthCounts), 1);
