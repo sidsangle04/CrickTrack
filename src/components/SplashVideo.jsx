@@ -43,8 +43,8 @@ export default function SplashVideo() {
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-2xl shadow-emerald-500/40">
           <Trophy className="w-8 h-8 text-white" />
         </div>
-        <h1 className="text-2xl font-extrabold text-white tracking-tight drop-shadow-lg">CricketScore</h1>
-        <p className="text-xs text-emerald-300/90 tracking-widest uppercase">Pro Scoring Engine</p>
+        <h1 className="text-3xl font-extrabold text-white tracking-tight drop-shadow-lg">TURF Cricket</h1>
+        <p className="text-xs text-emerald-300/90 tracking-widest uppercase">Tag | Analyse | Elevate</p>
       </div>
 
       <button
