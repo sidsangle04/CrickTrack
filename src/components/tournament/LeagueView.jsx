@@ -5,7 +5,7 @@ function TeamChip({ team, teamId, isWinner }) {
   const name = team?.name || (teamId ? 'Team' : 'TBD');
   return (
     <div
-      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg flex-1 min-w-0 ${
+      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg flex-1 min-w-0 overflow-hidden ${
         isWinner
           ? 'bg-emerald-500/20 text-emerald-300'
           : teamId
@@ -122,13 +122,13 @@ export default function LeagueView({
       {/* Fixtures */}
       <div className="rounded-2xl bg-slate-800/50 border border-slate-700/50 p-4">
         <h2 className="text-sm font-semibold text-white uppercase tracking-wide mb-4">Fixtures</h2>
-        <div className="space-y-5">
+        <div className="space-y-5 min-w-0">
           {rounds.map((r) => (
-            <div key={r}>
+            <div key={r} className="min-w-0">
               <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
                 Round {r}
               </div>
-              <div className="grid sm:grid-cols-2 gap-2">
+              <div className="grid sm:grid-cols-2 gap-2 min-w-0">
                 {byRound[r]
                   .sort((a, b) => a.match_index - b.match_index)
                   .map((m) => {
@@ -142,9 +142,9 @@ export default function LeagueView({
                     return (
                       <div
                         key={m.id}
-                        className="rounded-xl bg-slate-900/60 border border-slate-700/40 p-3"
+                        className="rounded-xl bg-slate-900/60 border border-slate-700/40 p-3 w-full min-w-0 overflow-hidden"
                       >
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 w-full min-w-0">
                           <TeamChip team={t1} teamId={m.team1_id} isWinner={decided && res === m.team1_id} />
                           <span className="text-[10px] text-slate-600">vs</span>
                           <TeamChip team={t2} teamId={m.team2_id} isWinner={decided && res === m.team2_id} />
