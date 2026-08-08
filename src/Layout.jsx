@@ -37,7 +37,7 @@ export default function Layout({ children, currentPageName }) {
                 <Trophy className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-white tracking-tight">TUCricket</h1>
+                <h1 className="text-lg font-bold text-white tracking-tight">TURF Cricket</h1>
                 <p className="text-[10px] text-slate-400 -mt-0.5">Pro Scoring Engine</p>
               </div>
             </Link>
