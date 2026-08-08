@@ -1,0 +1,105 @@
+{
+  "name": "TournamentMatch",
+  "type": "object",
+  "properties": {
+    "tournament_id": {
+      "type": "string",
+      "description": "Reference to Tournament"
+    },
+    "round": {
+      "type": "number",
+      "description": "Round number (1 = first round)"
+    },
+    "match_index": {
+      "type": "number",
+      "description": "Position within the round (0-based)"
+    },
+    "stage_label": {
+      "type": "string",
+      "description": "Human label e.g. Semifinal 1, Final"
+    },
+    "team1_id": {
+      "type": "string",
+      "default": "",
+      "description": "Team 1 id (empty for byes / undecided slots)"
+    },
+    "team2_id": {
+      "type": "string",
+      "default": "",
+      "description": "Team 2 id (empty for byes / undecided slots)"
+    },
+    "winner_team_id": {
+      "type": "string",
+      "default": "",
+      "description": "Manually set winner (overrides linked match result)"
+    },
+    "match_id": {
+      "type": "string",
+      "default": "",
+      "description": "Linked Match entity id once a game is started"
+    },
+    "next_round": {
+      "type": "number",
+      "default": 0,
+      "description": "Round the winner advances to (0 = final)"
+    },
+    "next_index": {
+      "type": "number",
+      "default": 0,
+      "description": "Match index in the next round"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "scheduled",
+        "in_progress",
+        "completed"
+      ],
+      "default": "pending"
+    }
+  },
+  "required": [
+    "tournament_id",
+    "round",
+    "match_index"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

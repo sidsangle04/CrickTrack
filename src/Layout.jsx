@@ -78,6 +78,16 @@ export default function Layout({ children, currentPageName }) {
                 <ArrowLeftRight className="w-4 h-4 inline mr-2" />
                 Compare
               </Link>
+              <Link
+                to={createPageUrl('Tournaments')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                currentPageName === 'Tournaments' ?
+                'bg-emerald-500/20 text-emerald-400' :
+                'text-slate-400 hover:text-white hover:bg-slate-800'}`
+                }>
+                <Trophy className="w-4 h-4 inline mr-2" />
+                Tournaments
+              </Link>
             </nav>
             
             <Link
@@ -125,6 +135,14 @@ export default function Layout({ children, currentPageName }) {
             
             <ArrowLeftRight className="w-5 h-5" />
             <span className="text-xs mt-1">Compare</span>
+          </Link>
+          <Link
+            to={createPageUrl('Tournaments')}
+            className={`flex flex-col items-center py-2 px-4 rounded-lg ${
+            currentPageName === 'Tournaments' ? 'text-emerald-400' : 'text-slate-500'}`
+            }>
+            <Trophy className="w-5 h-5" />
+            <span className="text-xs mt-1">Cup</span>
           </Link>
         </div>
       </nav>

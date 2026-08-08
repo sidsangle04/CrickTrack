@@ -10,6 +10,7 @@ import {
 import GroundMap from '../components/scoring/GroundMap';
 import PartnershipCard from '../components/analytics/PartnershipCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function getTurfZone(x, y) {
@@ -325,12 +326,14 @@ function LeaderboardsTab({ allPlayers, teams, allBatterInnings, allBowlerInnings
 // ══════════════════════════════════════════════════════════════════════════
 // PLAYER ANALYSIS TAB
 // ══════════════════════════════════════════════════════════════════════════
-function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
+function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap, scopeMatchIds }) {
   const [selectedTeamId, setSelectedTeamId] = useState(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState(null);
   const [activeFilters, setActiveFilters] = useState(['all']);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [teamExpanded, setTeamExpanded] = useState({});
+
+  const inScope = (d) => !scopeMatchIds || (d && scopeMatchIds.has(d.match_id));
 
   // Players sorted by team
   const playersByTeam = useMemo(() => {
@@ -400,9 +403,9 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
   };
 
   const shotsWithZone = useMemo(() =>
-    allDeliveries.filter(d => d.shot_x != null && d.shot_y != null)
+    allDeliveries.filter(d => d.shot_x != null && d.shot_y != null && inScope(d))
       .map(d => ({ ...d, turf_zone: getTurfZone(d.shot_x, d.shot_y) })),
-    [allDeliveries]
+    [allDeliveries, scopeMatchIds]
   );
 
   const filteredDeliveries = useMemo(() => {
@@ -416,21 +419,22 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
 
   // Batting performance stats (NO wickets — that's bowling)
   const statsDeliveries = useMemo(() =>
-    allDeliveries.filter(d => !d.is_voided && d.is_legal_delivery !== false), [allDeliveries]);
+    allDeliveries.filter(d => !d.is_voided && d.is_legal_delivery !== false && inScope(d)), [allDeliveries, scopeMatchIds]);
 
   const totalRuns = statsDeliveries.reduce((s, d) => s + (d.runs_bat || 0), 0);
   const ballsFaced = statsDeliveries.length;
   const strikeRate = ballsFaced > 0 ? ((totalRuns / ballsFaced) * 100).toFixed(1) : '0.0';
   const fours = statsDeliveries.filter(d => (d.runs_bat || 0) === 4).length;
   const sixes = statsDeliveries.filter(d => (d.runs_bat || 0) === 6).length;
-  const timesOut = allBatterInnings.filter(b => b.is_out).length;
-  const totalInnings = allBatterInnings.filter(b => b.status !== 'yet_to_bat').length;
+  const timesOut = allBatterInnings.filter(b => b.is_out && inScope(b)).length;
+  const totalInnings = allBatterInnings.filter(b => b.status !== 'yet_to_bat' && inScope(b)).length;
   const average = timesOut > 0 ? (totalRuns / timesOut).toFixed(1) : totalRuns > 0 ? '∞' : '0.0';
 
   // Bowling performance stats
   const bowlingTotals = useMemo(() => {
     let wickets = 0, runs = 0, balls = 0, maidens = 0, dots = 0;
     allBowlerInningsPlayer.forEach(b => {
+      if (!inScope(b)) return;
       wickets += b.wickets || 0;
       runs += b.runs_conceded || 0;
       balls += b.balls || 0;
@@ -441,7 +445,7 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
     const economy = balls > 0 ? (runs / (balls / 6)).toFixed(2) : '0.00';
     const avg = wickets > 0 ? (runs / wickets).toFixed(1) : '—';
     return { wickets, runs, balls, maidens, dots, oversDisplay, economy, avg };
-  }, [allBowlerInningsPlayer]);
+  }, [allBowlerInningsPlayer, scopeMatchIds]);
 
   // Zone analysis
   const zoneCounts = useMemo(() => {
@@ -467,32 +471,32 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
   // Catch drops — use dedicated query for all catch drop deliveries
   const catchDrops = allCatchDropDeliveries;
   const dropsByFielder = {};
-  catchDrops.forEach(d => { if (d.dropped_by) dropsByFielder[d.dropped_by] = (dropsByFielder[d.dropped_by] || 0) + 1; });
+  catchDrops.forEach(d => { if (inScope(d) && d.dropped_by) dropsByFielder[d.dropped_by] = (dropsByFielder[d.dropped_by] || 0) + 1; });
 
   // Partnerships involving selected player
   const relevantPartnerships = useMemo(() => {
     if (!selectedPlayerId) return [];
     return playerPartnerships
-      .filter(p => p.batter1_id === selectedPlayerId || p.batter2_id === selectedPlayerId)
+      .filter(p => inScope(p) && (p.batter1_id === selectedPlayerId || p.batter2_id === selectedPlayerId))
       .sort((a, b) => b.runs - a.runs)
       .slice(0, 5);
-  }, [playerPartnerships, selectedPlayerId]);
+  }, [playerPartnerships, selectedPlayerId, scopeMatchIds]);
 
   // Dismissals (from BatterInnings — correct source)
   const dismissalCounts = useMemo(() => {
     const counts = {};
-    allBatterInnings.filter(b => b.is_out && b.dismissal_type).forEach(b => {
+    allBatterInnings.filter(b => b.is_out && b.dismissal_type && inScope(b)).forEach(b => {
       counts[b.dismissal_type] = (counts[b.dismissal_type] || 0) + 1;
     });
     return counts;
-  }, [allBatterInnings]);
+  }, [allBatterInnings, scopeMatchIds]);
   const totalDismissals = Object.values(dismissalCounts).reduce((s, v) => s + v, 0);
 
   // Batter pitch length stats (as striker)
   const pitchLengthStats = useMemo(() => {
     const stats = {};
     LENGTH_ZONES_ORDER.forEach(l => { stats[l] = { balls: 0, runs: 0, wickets: 0 }; });
-    allDeliveries.filter(d => d.length && !d.is_voided && d.is_legal_delivery !== false).forEach(d => {
+    allDeliveries.filter(d => d.length && !d.is_voided && d.is_legal_delivery !== false && inScope(d)).forEach(d => {
       const key = LENGTH_NORMALIZE[d.length] || d.length;
       if (stats[key]) {
         stats[key].balls++;
@@ -501,13 +505,13 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
       }
     });
     return stats;
-  }, [allDeliveries]);
+  }, [allDeliveries, scopeMatchIds]);
 
   // Bowler pitch length stats (as bowler)
   const bowlerPitchLengthStats = useMemo(() => {
     const stats = {};
     LENGTH_ZONES_ORDER.forEach(l => { stats[l] = { balls: 0, runs: 0, wickets: 0 }; });
-    bowlerDeliveries.filter(d => d.length && !d.is_voided && d.is_legal_delivery !== false).forEach(d => {
+    bowlerDeliveries.filter(d => d.length && !d.is_voided && d.is_legal_delivery !== false && inScope(d)).forEach(d => {
       const key = LENGTH_NORMALIZE[d.length] || d.length;
       if (stats[key]) {
         stats[key].balls++;
@@ -516,7 +520,7 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
       }
     });
     return stats;
-  }, [bowlerDeliveries]);
+  }, [bowlerDeliveries, scopeMatchIds]);
 
   const weakLengths = LENGTH_ZONES_ORDER.filter(l => {
     const { balls, runs } = pitchLengthStats[l];
@@ -541,8 +545,8 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap }) {
       return econB - econA;
     })[0];
 
-  const hasBowlerPitchData = bowlerDeliveries.some(d => d.length);
-  const hasBatterPitchData = allDeliveries.some(d => d.length);
+  const hasBowlerPitchData = bowlerDeliveries.some(d => d.length && inScope(d));
+  const hasBatterPitchData = allDeliveries.some(d => d.length && inScope(d));
 
   const selectedPlayer = selectedPlayerId ? playersMap[selectedPlayerId] : null;
 
@@ -1022,6 +1026,52 @@ export default function Analytics() {
     queryKey: ['all-partnerships-lb'],
     queryFn: () => base44.entities.Partnership.list(),
   });
+  const { data: tournaments = [] } = useQuery({
+    queryKey: ['tournaments'],
+    queryFn: () => base44.entities.Tournament.list('-created_date', 50)
+  });
+  const [tournamentId, setTournamentId] = useState('all');
+  const scopeActive = tournamentId && tournamentId !== 'all';
+  const { data: tmMatches = [] } = useQuery({
+    queryKey: ['tournament-matches-scope', tournamentId],
+    queryFn: () => scopeActive
+      ? base44.entities.TournamentMatch.filter({ tournament_id: tournamentId })
+      : [],
+    enabled: scopeActive
+  });
+  const selectedTournament = tournaments.find(t => t.id === tournamentId);
+
+  const scopeMatchIds = useMemo(() => {
+    if (!scopeActive) return null;
+    const s = new Set();
+    tmMatches.forEach(tm => { if (tm.match_id) s.add(tm.match_id); });
+    return s;
+  }, [tmMatches, scopeActive]);
+  const scopeTeamIds = useMemo(() => {
+    if (!scopeActive || !selectedTournament?.team_ids?.length) return null;
+    return new Set(selectedTournament.team_ids);
+  }, [selectedTournament, scopeActive]);
+
+  const scopedPlayers = useMemo(
+    () => scopeTeamIds ? allPlayers.filter(p => scopeTeamIds.has(p.team_id)) : allPlayers,
+    [allPlayers, scopeTeamIds]
+  );
+  const scopedTeams = useMemo(
+    () => scopeTeamIds ? teams.filter(t => scopeTeamIds.has(t.id)) : teams,
+    [teams, scopeTeamIds]
+  );
+  const scopedBatterInnings = useMemo(
+    () => scopeMatchIds ? allBatterInnings.filter(b => scopeMatchIds.has(b.match_id)) : allBatterInnings,
+    [allBatterInnings, scopeMatchIds]
+  );
+  const scopedBowlerInnings = useMemo(
+    () => scopeMatchIds ? allBowlerInnings.filter(b => scopeMatchIds.has(b.match_id)) : allBowlerInnings,
+    [allBowlerInnings, scopeMatchIds]
+  );
+  const scopedPartnerships = useMemo(
+    () => scopeMatchIds ? allPartnerships.filter(p => scopeMatchIds.has(p.match_id)) : allPartnerships,
+    [allPartnerships, scopeMatchIds]
+  );
 
   const playersMap = useMemo(() => allPlayers.reduce((a, p) => ({ ...a, [p.id]: p }), {}), [allPlayers]);
   const teamsMap = useMemo(() => teams.reduce((a, t) => ({ ...a, [t.id]: t }), {}), [teams]);
@@ -1032,10 +1082,21 @@ export default function Analytics() {
         <Link to={createPageUrl('Home')} className="text-slate-400 hover:text-white transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <div>
+        <div className="flex-1">
           <h1 className="text-xl font-bold text-white">Analytics</h1>
           <p className="text-slate-400 text-xs">Stats, leaderboards & player insights</p>
         </div>
+        <Select value={tournamentId} onValueChange={setTournamentId}>
+          <SelectTrigger className="w-40 bg-slate-800 border-slate-700 text-white text-xs h-9">
+            <SelectValue placeholder="All matches" />
+          </SelectTrigger>
+          <SelectContent className="bg-slate-900 border-slate-700 max-h-60">
+            <SelectItem value="all" className="text-white">All matches</SelectItem>
+            {tournaments.map(t => (
+              <SelectItem key={t.id} value={t.id} className="text-white">{t.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <Tabs defaultValue="leaderboards" className="w-full">
@@ -1050,20 +1111,21 @@ export default function Analytics() {
 
         <TabsContent value="leaderboards">
           <LeaderboardsTab
-            allPlayers={allPlayers}
-            teams={teams}
-            allBatterInnings={allBatterInnings}
-            allBowlerInnings={allBowlerInnings}
-            allPartnerships={allPartnerships}
+            allPlayers={scopedPlayers}
+            teams={scopedTeams}
+            allBatterInnings={scopedBatterInnings}
+            allBowlerInnings={scopedBowlerInnings}
+            allPartnerships={scopedPartnerships}
           />
         </TabsContent>
 
         <TabsContent value="player">
           <PlayerAnalysisTab
-            allPlayers={allPlayers}
-            teams={teams}
+            allPlayers={scopedPlayers}
+            teams={scopedTeams}
             playersMap={playersMap}
             teamsMap={teamsMap}
+            scopeMatchIds={scopeMatchIds}
           />
         </TabsContent>
       </Tabs>

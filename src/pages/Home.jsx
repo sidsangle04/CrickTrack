@@ -104,7 +104,7 @@ export default function Home() {
 
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
         <Link 
           to={createPageUrl('MatchSetup')}
           className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/30 hover:border-emerald-500/50 transition-all group"
@@ -120,6 +120,14 @@ export default function Home() {
           <Trophy className="w-8 h-8 text-purple-400 mb-3 group-hover:scale-110 transition-transform" />
           <h3 className="font-semibold text-white">Teams</h3>
           <p className="text-sm text-slate-400">Manage squads & players</p>
+        </Link>
+        <Link 
+          to={createPageUrl('Tournaments')}
+          className="p-5 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/30 hover:border-amber-500/50 transition-all group"
+        >
+          <Trophy className="w-8 h-8 text-amber-400 mb-3 group-hover:scale-110 transition-transform" />
+          <h3 className="font-semibold text-white">Tournaments</h3>
+          <p className="text-sm text-slate-400">Knockout brackets & cup</p>
         </Link>
       </div>
 

@@ -8,6 +8,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import SplashVideo from '@/components/SplashVideo';
+import Tournaments from '@/pages/Tournaments';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -59,6 +60,11 @@ const AuthenticatedApp = () => {
           }
         />
       ))}
+      <Route path="/Tournaments" element={
+        <LayoutWrapper currentPageName="Tournaments">
+          <Tournaments />
+        </LayoutWrapper>
+      } />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

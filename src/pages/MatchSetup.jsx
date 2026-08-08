@@ -45,7 +45,8 @@ export default function MatchSetup() {
     toss_winner_id: '',
     toss_decision: 'bat',
     allow_multiple_super_overs: true,
-    unlimited_batters: false
+    unlimited_batters: false,
+    tournament_match_id: ''
   });
 
   const { data: teams = [] } = useQuery({
@@ -86,6 +87,21 @@ export default function MatchSetup() {
       });
     }
   }, [existingMatch]);
+
+  useEffect(() => {
+    if (matchId) return;
+    const t1 = urlParams.get('team1_id');
+    const t2 = urlParams.get('team2_id');
+    const tm = urlParams.get('tournament_match_id');
+    if (t1 || t2 || tm) {
+      setFormData((prev) => ({
+        ...prev,
+        team1_id: t1 || prev.team1_id,
+        team2_id: t2 || prev.team2_id,
+        tournament_match_id: tm || ''
+      }));
+    }
+  }, []);
 
   const team1Players = allPlayers.filter((p) => p.team_id === formData.team1_id);
   const team2Players = allPlayers.filter((p) => p.team_id === formData.team2_id);
@@ -147,6 +163,12 @@ export default function MatchSetup() {
         bowling_team_id: data.bowling_team_id,
         status: 'not_started'
       });
+      if (data.tournament_match_id) {
+        await base44.entities.TournamentMatch.update(data.tournament_match_id, {
+          match_id: match.id,
+          status: 'in_progress'
+        });
+      }
       queryClient.invalidateQueries(['matches']);
       navigate(createPageUrl('LiveScoring') + `?matchId=${match.id}`);
     }
