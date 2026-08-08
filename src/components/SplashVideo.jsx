@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Trophy, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
+import Logo from '@/components/Logo';
 
 const VIDEO_URL = 'https://media.base44.com/videos/public/69cd6e7dda99287bd2ab65f2/23ed60f74_generate_the_video_in_for.mov';
 
@@ -39,10 +40,8 @@ export default function SplashVideo() {
       )}
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none" />
 
-      <div className="relative z-10 flex flex-col items-center gap-3 pointer-events-none">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-2xl shadow-emerald-500/40">
-          <Trophy className="w-8 h-8 text-white" />
-        </div>
+      <div className="relative z-10 flex flex-col items-center gap-4 pointer-events-none">
+        <Logo className="w-20 h-20 drop-shadow-2xl" />
         <h1 className="text-3xl font-extrabold text-white tracking-tight drop-shadow-lg">TURF Cricket</h1>
         <p className="text-xs text-emerald-300/90 tracking-widest uppercase">Tag | Analyse | Elevate</p>
       </div>
