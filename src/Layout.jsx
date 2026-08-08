@@ -36,11 +36,11 @@ export default function Layout({ children, currentPageName }) {
               <img
                 src="https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/61a392177_Samplelogoturfcricket.png"
                 alt="TURF Cricket"
-                className="h-10 w-auto rounded-lg shadow-lg shrink-0"
-              />
+                className="h-10 w-auto rounded-lg shadow-lg shrink-0" />
+              
               <div>
                 <h1 className="text-lg font-bold text-white tracking-tight">TURF Cricket</h1>
-                <p className="text-[10px] text-slate-400 -mt-0.5">Tag | Analyse |Elevate </p>
+                <p className="text-[10px] text-slate-400 -mt-0.5">Tag | Analyse | Elevate </p>
               </div>
             </Link>
             
