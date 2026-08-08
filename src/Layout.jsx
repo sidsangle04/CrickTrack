@@ -38,7 +38,7 @@ export default function Layout({ children, currentPageName }) {
               </div>
               <div>
                 <h1 className="text-lg font-bold text-white tracking-tight">TURF Cricket</h1>
-                <p className="text-[10px] text-slate-400 -mt-0.5">Tag. Analyse. Elevate </p>
+                <p className="text-[10px] text-slate-400 -mt-0.5">Tag | Analyse |Elevate </p>
               </div>
             </Link>
             
