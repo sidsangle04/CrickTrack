@@ -6,9 +6,18 @@
       "type": "string",
       "description": "Reference to Tournament"
     },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "league",
+        "knockout"
+      ],
+      "default": "knockout",
+      "description": "League round-robin fixture or knockout bracket match"
+    },
     "round": {
       "type": "number",
-      "description": "Round number (1 = first round)"
+      "description": "Round number (league round-robin round, or knockout bracket round 1 = first round)"
     },
     "match_index": {
       "type": "number",
@@ -16,7 +25,7 @@
     },
     "stage_label": {
       "type": "string",
-      "description": "Human label e.g. Semifinal 1, Final"
+      "description": "Human label e.g. League R3, Semifinal 1, Final"
     },
     "team1_id": {
       "type": "string",

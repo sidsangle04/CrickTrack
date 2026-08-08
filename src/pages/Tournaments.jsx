@@ -14,7 +14,8 @@ import {
 import { Button } from '@/components/ui/button';
 import CreateTournamentModal from '@/components/tournament/CreateTournamentModal';
 import BracketView from '@/components/tournament/BracketView';
-import { deriveBracket } from '@/lib/bracket';
+import { deriveBracket, computeStandings, leagueComplete, seedKnockoutRound1 } from '@/lib/bracket';
+import LeagueView from '@/components/tournament/LeagueView';
 
 export default function Tournaments() {
   const navigate = useNavigate();
@@ -57,14 +58,26 @@ export default function Tournaments() {
 
   const derived = useMemo(() => {
     if (!tmMatches.length) return null;
-    return deriveBracket(tmMatches, matchesMap);
-  }, [tmMatches, matchesMap]);
+    if (selected?.format === 'league_knockout') {
+      const leagueMatches = tmMatches.filter((m) => m.stage === 'league');
+      const knockoutMatches = tmMatches.filter((m) => m.stage !== 'league');
+      const standings = computeStandings(leagueMatches, matchesMap);
+      const done = leagueComplete(leagueMatches, matchesMap);
+      const round1Teams = done ? seedKnockoutRound1(standings, selected.knockout_teams || 4) : null;
+      const knockout = knockoutMatches.length
+        ? deriveBracket(knockoutMatches, matchesMap, { round1Teams })
+        : null;
+      return { format: 'league_knockout', leagueMatches, standings, leagueComplete: done, knockout };
+    }
+    return { format: 'knockout', knockout: deriveBracket(tmMatches, matchesMap) };
+  }, [tmMatches, matchesMap, selected]);
 
   // Persist champion + completed status once the final is decided.
   const championRef = useRef('');
   useEffect(() => {
     if (!derived || !selected) return;
-    const finalMatch = derived.state[derived.totalRounds]?.[0];
+    const ko = derived.knockout;
+    const finalMatch = ko?.state[ko?.totalRounds]?.[0];
     const champion = finalMatch?.winner;
     const key = `${selected.id}|${champion}`;
     if (champion && selected.champion_team_id !== champion && championRef.current !== key) {
@@ -108,20 +121,17 @@ export default function Tournaments() {
   };
 
   if (selected) {
+    const isLeagueKO = selected.format === 'league_knockout';
+    const formatLabel = isLeagueKO ? 'League + Knockout' : 'Knockout';
     return (
       <div className="pb-24 md:pb-6">
         <div className="flex items-center gap-3 mb-6">
-          <button
-            onClick={() => setSelectedId(null)}
-            className="text-slate-400 hover:text-white"
-          >
+          <button onClick={() => setSelectedId(null)} className="text-slate-400 hover:text-white">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold text-white truncate">{selected.name}</h1>
-            <p className="text-slate-400 text-xs">
-              Knockout bracket · {selected.num_teams} teams
-            </p>
+            <p className="text-slate-400 text-xs">{formatLabel} · {selected.num_teams} teams</p>
           </div>
           {selected.status === 'completed' && (
             <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/20 text-amber-400 text-sm font-medium shrink-0">
@@ -142,9 +152,41 @@ export default function Tournaments() {
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
           </div>
+        ) : isLeagueKO ? (
+          <>
+            <LeagueView
+              leagueMatches={derived.leagueMatches}
+              standings={derived.standings}
+              teamsMap={teamsMap}
+              matchesMap={matchesMap}
+              leagueComplete={derived.leagueComplete}
+              knockoutTeams={selected.knockout_teams || 4}
+              onSetWinner={handleSetWinner}
+              onStartGame={handleStartGame}
+              onOpenMatch={handleOpenMatch}
+            />
+            {derived.knockout && (
+              <div className="mt-8">
+                <div className="flex items-center gap-2 mb-3">
+                  <h2 className="text-sm font-semibold text-white uppercase tracking-wide">Knockout</h2>
+                  {!derived.leagueComplete && (
+                    <span className="text-xs text-slate-500">· seeds after league stage</span>
+                  )}
+                </div>
+                <BracketView
+                  derived={derived.knockout}
+                  teamsMap={teamsMap}
+                  matchesMap={matchesMap}
+                  onSetWinner={handleSetWinner}
+                  onStartGame={handleStartGame}
+                  onOpenMatch={handleOpenMatch}
+                />
+              </div>
+            )}
+          </>
         ) : (
           <BracketView
-            derived={derived}
+            derived={derived.knockout}
             teamsMap={teamsMap}
             matchesMap={matchesMap}
             onSetWinner={handleSetWinner}
@@ -225,7 +267,7 @@ export default function Tournaments() {
                 </div>
                 <h3 className="font-semibold text-white mb-1">{t.name}</h3>
                 <p className="text-sm text-slate-400">
-                  {t.num_teams} teams · Knockout
+                  {t.num_teams} teams · {t.format === 'league_knockout' ? 'League + KO' : 'Knockout'}
                 </p>
                 {champ && (
                   <p className="text-sm text-amber-400 mt-2">🏆 {champ.name}</p>

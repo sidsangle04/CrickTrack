@@ -21,10 +21,16 @@
     "format": {
       "type": "string",
       "enum": [
-        "knockout"
+        "knockout",
+        "league_knockout"
       ],
       "default": "knockout",
-      "description": "Tournament format"
+      "description": "Tournament format: pure knockout or round-robin league then knockout"
+    },
+    "knockout_teams": {
+      "type": "number",
+      "default": 4,
+      "description": "How many teams qualify from the league stage to the knockout (power of two)"
     },
     "status": {
       "type": "string",

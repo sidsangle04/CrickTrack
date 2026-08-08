@@ -1,4 +1,6 @@
-// Single-elimination bracket generation & derivation helpers.
+// Tournament fixture generation & derivation helpers.
+// Supports two formats: pure knockout (single elimination) and
+// league + knockout (round-robin league stage feeding a seeded bracket).
 
 export function nextPowerOfTwo(n) {
   let p = 1;
@@ -16,10 +18,25 @@ export function stageLabel(round, totalRounds) {
 }
 
 /**
+ * Standard bracket seeding order for a power-of-two slot count.
+ * slots=4 -> [1,4,2,3]; slots=8 -> [1,8,4,5,2,7,3,6].
+ */
+export function seedOrder(slots) {
+  let order = [1, 2];
+  while (order.length < slots) {
+    const total = order.length * 2;
+    const next = [];
+    for (let i = 0; i < order.length; i++) {
+      next.push(order[i]);
+      next.push(total + 1 - order[i]);
+    }
+    order = next;
+  }
+  return order;
+}
+
+/**
  * Generate the full set of TournamentMatch records for a knockout bracket.
- * Round 1 is seeded with the given teams (byes fill empty slots when the
- * team count is not a power of two). Later rounds are created as empty slots
- * whose participants are derived in the UI from previous-round winners.
  */
 export function generateBracket(tournamentId, teamIds) {
   const n = (teamIds || []).length;
@@ -32,11 +49,11 @@ export function generateBracket(tournamentId, teamIds) {
 
   const matches = [];
 
-  // Round 1 — seeded teams
   const r1Count = slots / 2;
   for (let i = 0; i < r1Count; i++) {
     matches.push({
       tournament_id: tournamentId,
+      stage: 'knockout',
       round: 1,
       match_index: i,
       stage_label: stageLabel(1, totalRounds),
@@ -50,12 +67,97 @@ export function generateBracket(tournamentId, teamIds) {
     });
   }
 
-  // Later rounds — empty slots
   for (let r = 2; r <= totalRounds; r++) {
     const count = slots / Math.pow(2, r);
     for (let i = 0; i < count; i++) {
       matches.push({
         tournament_id: tournamentId,
+        stage: 'knockout',
+        round: r,
+        match_index: i,
+        stage_label: stageLabel(r, totalRounds),
+        team1_id: '',
+        team2_id: '',
+        winner_team_id: '',
+        match_id: '',
+        next_round: r < totalRounds ? r + 1 : 0,
+        next_index: Math.floor(i / 2),
+        status: 'pending'
+      });
+    }
+  }
+
+  return matches;
+}
+
+/**
+ * Generate round-robin league fixtures (single round-robin): every team
+ * plays every other team once. Uses the circle method so fixtures are
+ * grouped into rounds (n-1 rounds for even n, n rounds for odd n with byes).
+ */
+export function generateLeague(tournamentId, teamIds) {
+  const ids = (teamIds || []).filter(Boolean);
+  const n = ids.length;
+  if (n < 2) return [];
+
+  const arr = ids.slice();
+  if (arr.length % 2 !== 0) arr.push(null); // bye placeholder
+  const totalRounds = arr.length - 1;
+  const half = arr.length / 2;
+
+  const matches = [];
+  const fixed = arr[0];
+  let rotating = arr.slice(1);
+
+  for (let r = 0; r < totalRounds; r++) {
+    const week = [fixed, ...rotating];
+    let mi = 0;
+    for (let i = 0; i < half; i++) {
+      const a = week[i];
+      const b = week[week.length - 1 - i];
+      if (!a || !b) {
+        mi++;
+        continue; // bye — no fixture
+      }
+      matches.push({
+        tournament_id: tournamentId,
+        stage: 'league',
+        round: r + 1,
+        match_index: mi,
+        stage_label: `League R${r + 1}`,
+        team1_id: a,
+        team2_id: b,
+        winner_team_id: '',
+        match_id: '',
+        next_round: 0,
+        next_index: 0,
+        status: 'pending'
+      });
+      mi++;
+    }
+    // rotate: move last to front
+    rotating = [rotating[rotating.length - 1], ...rotating.slice(0, -1)];
+  }
+
+  return matches;
+}
+
+/**
+ * Generate an empty knockout bracket for the league+knockout format.
+ * Round-1 teams are filled at derivation time from the league standings.
+ */
+export function generateLeagueKnockoutBracket(tournamentId, knockoutTeams) {
+  const k = Math.max(2, knockoutTeams || 4);
+  const slots = nextPowerOfTwo(k);
+  const totalRounds = Math.round(Math.log2(slots));
+  const matches = [];
+
+  for (let r = 1; r <= totalRounds; r++) {
+    const count = slots / Math.pow(2, r);
+    for (let i = 0; i < count; i++) {
+      matches.push({
+        tournament_id: tournamentId,
+        stage: 'knockout',
         round: r,
         match_index: i,
         stage_label: stageLabel(r, totalRounds),
@@ -75,8 +177,6 @@ export function generateBracket(tournamentId, teamIds) {
 
 /**
  * Resolve the winner of a single bracket match.
- * Priority: manual winner_team_id, then a completed linked Match's winner_id,
- * then (round 1 only) an automatic bye for an unopposed team.
  */
 export function matchWinner(tm, matchesMap, round) {
   if (tm.winner_team_id) return tm.winner_team_id;
@@ -90,19 +190,20 @@ export function matchWinner(tm, matchesMap, round) {
 }
 
 /**
- * Derive the full bracket state (teams + winners) for every round from the
- * round-1 seeds and the linked Match results. Later-round participants are
- * computed from previous-round winners, so advancement never needs to be
- * persisted separately.
+ * Derive the knockout bracket state. `round1Teams` optionally overrides
+ * the stored round-1 participants (used by league+knockout to seed from
+ * standings); each entry is { team1, team2 } indexed by match_index.
  */
-export function deriveBracket(tmMatches, matchesMap) {
+export function deriveBracket(tmMatches, matchesMap, options = {}) {
+  const { round1Teams } = options;
   const byRound = {};
   tmMatches.forEach((m) => {
     if (!byRound[m.round]) byRound[m.round] = {};
     byRound[m.round][m.match_index] = m;
   });
 
-  const totalRounds = Math.max(...Object.keys(byRound).map(Number));
+  const roundKeys = Object.keys(byRound).map(Number);
+  const totalRounds = roundKeys.length ? Math.max(...roundKeys) : 0;
   const state = {};
 
   for (let r = 1; r <= totalRounds; r++) {
@@ -112,7 +213,10 @@ export function deriveBracket(tmMatches, matchesMap) {
       const tm = byRound[r][i] || {};
       let t1 = tm.team1_id || '';
       let t2 = tm.team2_id || '';
-      if (r > 1) {
+      if (r === 1 && round1Teams && round1Teams[i]) {
+        t1 = round1Teams[i].team1 || '';
+        t2 = round1Teams[i].team2 || '';
+      } else if (r > 1) {
         t1 = state[r - 1][i * 2]?.winner || '';
         t2 = state[r - 1][i * 2 + 1]?.winner || '';
       }
@@ -134,4 +238,85 @@ export function deriveBracket(tmMatches, matchesMap) {
   }
 
   return { state, totalRounds };
+}
+
+/**
+ * Compute league standings from league fixtures. Points: win = 2,
+ * loss = 0, tie/no-result = 1 each. Sorted by points desc, then wins desc,
+ * then losses asc.
+ */
+export function computeStandings(leagueMatches, matchesMap) {
+  const teams = {};
+  const ensure = (id) => {
+    if (id && !teams[id]) teams[id] = { id, p: 0, w: 0, l: 0, nr: 0, pts: 0 };
+  };
+
+  leagueMatches.forEach((m) => {
+    ensure(m.team1_id);
+    ensure(m.team2_id);
+    const t1 = teams[m.team1_id];
+    const t2 = teams[m.team2_id];
+    if (!t1 || !t2) return;
+
+    let winner = m.winner_team_id || '';
+    const linked = m.match_id ? matchesMap[m.match_id] : null;
+    const completed = linked && linked.status === 'completed';
+    if (completed && !winner) winner = linked.winner_id || '';
+
+    if (!completed && !winner) return; // not yet decided
+
+    t1.p++;
+    t2.p++;
+    if (winner === t1.id) {
+      t1.w++;
+      t1.pts += 2;
+      t2.l++;
+    } else if (winner === t2.id) {
+      t2.w++;
+      t2.pts += 2;
+      t1.l++;
+    } else {
+      t1.nr++;
+      t2.nr++;
+      t1.pts++;
+      t2.pts++;
+    }
+  });
+
+  return Object.values(teams).sort(
+    (a, b) => b.pts - a.pts || b.w - a.w || a.l - b.l
+  );
+}
+
+/**
+ * True when every league fixture has a decided result.
+ */
+export function leagueComplete(leagueMatches, matchesMap) {
+  if (!leagueMatches.length) return false;
+  return leagueMatches.every((m) => {
+    if (m.winner_team_id) return true;
+    const linked = m.match_id ? matchesMap[m.match_id] : null;
+    return linked && linked.status === 'completed';
+  });
+}
+
+/**
+ * Build the round-1 knockout team pairs seeded from the final league
+ * standings, using standard bracket seeding order.
+ */
+export function seedKnockoutRound1(standings, knockoutTeams) {
+  const k = Math.max(2, knockoutTeams || 4);
+  const slots = nextPowerOfTwo(k);
+  const order = seedOrder(slots);
+  const count = slots / 2;
+  const res = [];
+  for (let i = 0; i < count; i++) {
+    const s1 = order[2 * i];
+    const s2 = order[2 * i + 1];
+    res.push({
+      team1: (standings[s1 - 1] && standings[s1 - 1].id) || '',
+      team2: (standings[s2 - 1] && standings[s2 - 1].id) || ''
+    });
+  }
+  return res;
 }
