@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
 import { Home, PlusCircle, BarChart3, Trophy, Upload, ArrowLeftRight } from 'lucide-react';
-import Logo from '@/components/Logo';
 
 export default function Layout({ children, currentPageName }) {
   const isScoring = currentPageName === 'LiveScoring' || currentPageName === 'ImportMatch';
@@ -34,7 +33,11 @@ export default function Layout({ children, currentPageName }) {
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <Link to={createPageUrl('Home')} className="flex items-center gap-3">
-              <Logo className="w-10 h-10 shrink-0" />
+              <img
+                src="https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/61a392177_Samplelogoturfcricket.png"
+                alt="TURF Cricket"
+                className="h-10 w-auto rounded-lg shadow-lg shrink-0"
+              />
               <div>
                 <h1 className="text-lg font-bold text-white tracking-tight">TURF Cricket</h1>
                 <p className="text-[10px] text-slate-400 -mt-0.5">Tag | Analyse |Elevate </p>
