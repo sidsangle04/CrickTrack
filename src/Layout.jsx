@@ -33,8 +33,15 @@ export default function Layout({ children, currentPageName }) {
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <Link to={createPageUrl('Home')} className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                <Trophy className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-md flex items-center justify-center shadow-lg shadow-emerald-500/20 overflow-hidden" style={{ background: '#263238', border: '2px solid #28C76F' }}>
+                <svg viewBox="0 0 40 40" className="w-full h-full">
+                  {/* T monogram with cricket bat as the stem */}
+                  <rect x="10" y="13" width="20" height="4.5" fill="#FFFFFF" rx="1" />
+                  <rect x="18" y="17.5" width="4" height="11" fill="#FFFFFF" rx="1.2" />
+                  {/* negative-space bat detail within the stem */}
+                  <rect x="18.7" y="18.2" width="2.6" height="4" fill="#263238" rx="0.6" />
+                  <rect x="18.4" y="22.4" width="3.2" height="5.2" fill="#28C76F" opacity="0.7" rx="0.6" />
+                </svg>
               </div>
               <div>
                 <h1 className="text-lg font-bold text-white tracking-tight">TURF Cricket</h1>
