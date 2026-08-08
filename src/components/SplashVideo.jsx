@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Trophy } from 'lucide-react';
 
-const VIDEO_URL = 'https://media.base44.com/videos/public/69cd6e7dda99287bd2ab65f2/793b4cf41_App_Intro_Video.mp4';
+const VIDEO_URL = 'https://media.base44.com/videos/public/69cd6e7dda99287bd2ab65f2/daec233b1_App_Intro_Video_v2.mp4';
 const STORAGE_KEY = 'cricketscore_intro_played';
 
 export default function SplashVideo() {
