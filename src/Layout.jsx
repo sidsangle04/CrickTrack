@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Home, PlusCircle, BarChart3, Trophy, Upload, ArrowLeftRight } from 'lucide-react';
+import { Home, PlusCircle, BarChart3, Trophy, Upload, ArrowLeftRight, UserPlus } from 'lucide-react';
+import InviteUserModal from '@/components/InviteUserModal';
 
 export default function Layout({ children, currentPageName }) {
   const isScoring = currentPageName === 'LiveScoring' || currentPageName === 'ImportMatch';
+  const [showInvite, setShowInvite] = useState(false);
 
   if (isScoring) {
     return (
@@ -90,13 +92,23 @@ export default function Layout({ children, currentPageName }) {
               </Link>
             </nav>
             
-            <Link
-              to={createPageUrl('MatchSetup')}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg font-medium text-sm shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all hover:scale-105">
-              
-              <PlusCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">New Match</span>
-            </Link>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowInvite(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-slate-800 text-slate-300 rounded-lg font-medium text-sm hover:text-white hover:bg-slate-700 transition-all"
+                title="Invite a person to join TURF Cricket"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span className="hidden sm:inline">Invite</span>
+              </button>
+              <Link
+                to={createPageUrl('MatchSetup')}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg font-medium text-sm shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all hover:scale-105">
+                
+                <PlusCircle className="w-4 h-4" />
+                <span className="hidden sm:inline">New Match</span>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
@@ -143,9 +155,10 @@ export default function Layout({ children, currentPageName }) {
             }>
             <Trophy className="w-5 h-5" />
             <span className="text-xs mt-1">Cup</span>
-          </Link>
-        </div>
-      </nav>
-    </div>);
+            </Link>
+            </div>
+            </nav>
 
-}
+            <InviteUserModal open={showInvite} onOpenChange={setShowInvite} />
+            </div>);
+            }
