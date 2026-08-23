@@ -800,8 +800,17 @@ export default function LiveScoring() {
     const undoRunsByBat = isByeOrLegBye ? 0 : (lastDelivery.runs_bat || 0);
     const newTotalBalls = currentInnings.total_balls - (isLegal ? 1 : 0);
 
+    // If this delivery completed an over, the app advanced to a new over and
+    // prompted for a new bowler. Undoing it must hand the ball back to the
+    // previous bowler and drop the new bowler's fresh (0/0) spell so they can
+    // be chosen again cleanly.
+    const overCompletedByThisBall = isLegal && currentInnings.current_ball_in_over === 0;
+    const previousBowlerId = lastDelivery.bowler_id;
+    const newBowlerId = currentInnings.current_bowler_id;
+    const revertBowler = overCompletedByThisBall && newBowlerId && newBowlerId !== previousBowlerId;
+
     const undoPromises = [];
-    undoPromises.push(base44.entities.Innings.update(currentInnings.id, {
+    const inningsUndo = {
       total_runs: currentInnings.total_runs - lastDelivery.runs_total,
       total_wickets: currentInnings.total_wickets - (lastDelivery.is_wicket ? 1 : 0),
       total_balls: newTotalBalls,
@@ -814,7 +823,18 @@ export default function LiveScoring() {
       extras_no_ball: currentInnings.extras_no_ball - (lastDelivery.no_ball_runs || 0),
       extras_byes: currentInnings.extras_byes - (lastDelivery.bye_runs || 0),
       extras_leg_byes: currentInnings.extras_leg_byes - (lastDelivery.leg_bye_runs || 0)
-    }));
+    };
+    if (revertBowler) {
+      inningsUndo.current_bowler_id = previousBowlerId;
+    }
+    undoPromises.push(base44.entities.Innings.update(currentInnings.id, inningsUndo));
+
+    if (revertBowler) {
+      const newBowlerStats = bowlerInningsMap[newBowlerId];
+      if (newBowlerStats && (newBowlerStats.balls || 0) === 0 && (newBowlerStats.runs_conceded || 0) === 0 && (newBowlerStats.wickets || 0) === 0) {
+        undoPromises.push(base44.entities.BowlerInnings.delete(newBowlerStats.id));
+      }
+    }
 
     // Reverse the striker's batting stats (runs, balls, 4s, 6s, dots, dismissal)
     if (!lastDelivery.is_wide) {
