@@ -2,17 +2,22 @@ import React from 'react';
 import { ArrowLeft, MoreVertical } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../../utils';
+import { isTestMatch, getLeadTrailBanner, oversRemaining } from '../../lib/testCricket';
 
 export default function ScoreHeader({ 
   match, 
   innings, 
+  allInnings,
   team1Name, 
   team2Name,
   onMenuOpen 
 }) {
   const battingTeamName = innings?.batting_team_id === match?.team1_id ? team1Name : team2Name;
   const overs = innings ? `${innings.current_over_number}.${innings.current_ball_in_over}` : '0.0';
-  const maxOvers = innings?.is_super_over ? 1 : match?.overs_per_innings || 20;
+  const isTest = isTestMatch(match);
+  const maxOvers = innings?.is_super_over ? 1 : (isTest ? Infinity : (match?.overs_per_innings || 20));
+  const banner = getLeadTrailBanner(match, allInnings || [], innings, team1Name, team2Name);
+  const oversLeft = isTest && match?.is_over_limited ? oversRemaining(match, allInnings || []) : null;
   
   return (
     <div className="bg-gradient-to-b from-slate-900 to-slate-950 px-4 pt-2 pb-4">
@@ -56,10 +61,11 @@ export default function ScoreHeader({
         <div className="mt-2 flex items-center justify-center gap-4">
           <span className="text-slate-400">
             <span className="text-white font-semibold">{overs}</span>
-            <span className="text-slate-500"> / {maxOvers} ov</span>
+            {Number.isFinite(maxOvers) ? <span className="text-slate-500"> / {maxOvers} ov</span> : <span className="text-slate-500"> ov</span>}
+            {oversLeft !== null && oversLeft !== Infinity && <span className="text-slate-500"> · {oversLeft} ov left</span>}
           </span>
           
-          {innings?.target && (
+          {innings?.target && !isTest && (
             <>
               <span className="text-slate-600">•</span>
               {(innings?.total_runs || 0) >= innings.target ? (
@@ -84,13 +90,20 @@ export default function ScoreHeader({
                 {((innings.total_runs || 0) / ((innings.current_over_number || 0) + (innings.current_ball_in_over || 0) / 6) || 0).toFixed(2)}
               </span>
             </span>
-            {innings?.target && innings.current_over_number < maxOvers && (
+            {innings?.target && Number.isFinite(maxOvers) && innings.current_over_number < maxOvers && (
               <span className="text-slate-500">
                 RRR: <span className="text-amber-400 font-medium">
                   {(((innings.target - innings.total_runs) / (maxOvers - innings.current_over_number - innings.current_ball_in_over / 6)) || 0).toFixed(2)}
                 </span>
               </span>
             )}
+          </div>
+        )}
+
+        {/* Test cricket live lead / trail / target banner */}
+        {banner && (
+          <div className="mt-3 py-2 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-medium">
+            {banner}
           </div>
         )}
       </div>

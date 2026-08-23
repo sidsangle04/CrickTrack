@@ -36,7 +36,7 @@
     "overs_per_innings": {
       "type": "number",
       "default": 20,
-      "description": "Total overs per innings"
+      "description": "Total overs per innings (limited-overs)"
     },
     "max_overs_per_bowler": {
       "type": "number",
@@ -88,7 +88,7 @@
     "current_innings": {
       "type": "number",
       "default": 1,
-      "description": "Current innings number (1 or 2)"
+      "description": "Current innings number (1-4 for test, 1-2 for limited)"
     },
     "batting_team_id": {
       "type": "string",
@@ -123,6 +123,34 @@
       "type": "boolean",
       "default": false,
       "description": "Allow more than 11 batters (casual mode)"
+    },
+    "format": {
+      "type": "string",
+      "enum": [
+        "limited",
+        "test"
+      ],
+      "default": "limited",
+      "description": "Match format: limited-overs or multi-innings Test"
+    },
+    "players_per_team": {
+      "type": "number",
+      "default": 11,
+      "description": "Players per team (Test: drives Max_Wickets = players_per_team - 1)"
+    },
+    "is_over_limited": {
+      "type": "boolean",
+      "default": false,
+      "description": "Test: whether a global match over cap is enforced"
+    },
+    "total_match_overs": {
+      "type": "number",
+      "description": "Test: global over limit for the entire match"
+    },
+    "follow_on_enforced": {
+      "type": "boolean",
+      "default": false,
+      "description": "Test: whether the team batting first enforced the follow-on"
     }
   },
   "required": [

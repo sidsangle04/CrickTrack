@@ -46,7 +46,11 @@ export default function MatchSetup() {
     toss_decision: 'bat',
     allow_multiple_super_overs: true,
     unlimited_batters: false,
-    tournament_match_id: ''
+    tournament_match_id: '',
+    format: 'limited',
+    players_per_team: 11,
+    is_over_limited: false,
+    total_match_overs: 90
   });
 
   const { data: teams = [] } = useQuery({
@@ -83,7 +87,11 @@ export default function MatchSetup() {
         toss_winner_id: m.toss_winner_id || '',
         toss_decision: m.toss_decision || 'bat',
         allow_multiple_super_overs: m.allow_multiple_super_overs !== false,
-        unlimited_batters: m.unlimited_batters || false
+        unlimited_batters: m.unlimited_batters || false,
+        format: m.format || 'limited',
+        players_per_team: m.players_per_team || 11,
+        is_over_limited: m.is_over_limited || false,
+        total_match_overs: m.total_match_overs || 90
       });
     }
   }, [existingMatch]);
@@ -179,7 +187,7 @@ export default function MatchSetup() {
     const current = formData[key];
     if (current.includes(playerId)) {
       setFormData({ ...formData, [key]: current.filter((id) => id !== playerId) });
-    } else if (current.length < 11 || formData.unlimited_batters) {
+    } else if (current.length < (formData.format === 'test' ? formData.players_per_team : 11) || formData.unlimited_batters) {
       setFormData({ ...formData, [key]: [...current, playerId] });
     }
   };
@@ -188,8 +196,12 @@ export default function MatchSetup() {
     switch (STEPS[step]) {
       case 'basics':return formData.venue && formData.date;
       case 'teams':return formData.team1_id && formData.team2_id && formData.team1_id !== formData.team2_id;
-      case 'playing_xi':return formData.team1_playing_xi.length >= 2 && formData.team2_playing_xi.length >= 2;
-      case 'format':return formData.overs_per_innings > 0;
+      case 'playing_xi':return formData.format === 'test'
+        ? formData.team1_playing_xi.length >= formData.players_per_team && formData.team2_playing_xi.length >= formData.players_per_team
+        : formData.team1_playing_xi.length >= 2 && formData.team2_playing_xi.length >= 2;
+      case 'format':return formData.format === 'test'
+        ? formData.players_per_team >= 2 && (!formData.is_over_limited || formData.total_match_overs > 0)
+        : formData.overs_per_innings > 0;
       case 'toss':return formData.toss_winner_id && formData.toss_decision;
       default:return true;
     }
@@ -323,7 +335,7 @@ export default function MatchSetup() {
               <div>
                 <h3 className="font-medium text-white mb-3 flex items-center justify-between">
                   {teamsMap[formData.team1_id]?.name || 'Team 1'}
-                  <span className="text-sm text-slate-400">{formData.team1_playing_xi.length}/11</span>
+                  <span className="text-sm text-slate-400">{formData.team1_playing_xi.length}/{formData.format === 'test' ? formData.players_per_team : 11}</span>
                 </h3>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {team1Players.length === 0 ?
@@ -375,7 +387,7 @@ export default function MatchSetup() {
               <div>
                 <h3 className="font-medium text-white mb-3 flex items-center justify-between">
                   {teamsMap[formData.team2_id]?.name || 'Team 2'}
-                  <span className="text-sm text-slate-400">{formData.team2_playing_xi.length}/11</span>
+                  <span className="text-sm text-slate-400">{formData.team2_playing_xi.length}/{formData.format === 'test' ? formData.players_per_team : 11}</span>
                 </h3>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {team2Players.length === 0 ?
@@ -432,7 +444,76 @@ export default function MatchSetup() {
               <Settings2 className="w-5 h-5 text-emerald-400" />
               <h2 className="text-lg font-semibold text-white">Match Format</h2>
             </div>
-            
+
+            <div>
+              <Label className="text-slate-200">Format</Label>
+              <div className="grid grid-cols-2 gap-3 mt-2">
+                <button
+                  onClick={() => setFormData({ ...formData, format: 'limited' })}
+                  className={`p-4 rounded-xl text-center transition-colors ${formData.format === 'limited' ? 'bg-emerald-500/20 border-2 border-emerald-500' : 'bg-slate-900 border border-slate-700'}`}>
+                  <span className="block text-sm font-medium text-white">Limited Overs</span>
+                  <span className="text-xs text-slate-400">T20 / ODI · 2 innings</span>
+                </button>
+                <button
+                  onClick={() => setFormData({ ...formData, format: 'test' })}
+                  className={`p-4 rounded-xl text-center transition-colors ${formData.format === 'test' ? 'bg-emerald-500/20 border-2 border-emerald-500' : 'bg-slate-900 border border-slate-700'}`}>
+                  <span className="block text-sm font-medium text-white">Test Cricket</span>
+                  <span className="text-xs text-slate-400">4 innings · follow-on</span>
+                </button>
+              </div>
+            </div>
+
+            {formData.format === 'test' ? (
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-slate-200">Players per Team</Label>
+                  <Input
+                    type="number"
+                    min="2"
+                    value={formData.players_per_team}
+                    onChange={(e) => setFormData({ ...formData, players_per_team: Math.max(2, parseInt(e.target.value) || 11) })}
+                    className="bg-slate-900 border-slate-700 text-white" />
+                  <p className="text-xs text-slate-400 mt-1">Innings ends at {Math.max(1, (formData.players_per_team || 11) - 1)} wickets (players − 1).</p>
+                </div>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={formData.is_over_limited} onChange={(e) => setFormData({ ...formData, is_over_limited: e.target.checked })} className="rounded" />
+                  <span className="text-sm text-white">Set a match-wide over limit</span>
+                </label>
+
+                {formData.is_over_limited && (
+                  <div>
+                    <Label className="text-slate-200">Total Match Overs</Label>
+                    <Input type="number" min="1" value={formData.total_match_overs} onChange={(e) => setFormData({ ...formData, total_match_overs: Math.max(1, parseInt(e.target.value) || 90) })} className="bg-slate-900 border-slate-700 text-white" />
+                    <p className="text-xs text-slate-400 mt-1">Match is drawn if overs run out before a result.</p>
+                  </div>
+                )}
+
+                <div>
+                  <Label className="text-slate-200">Ball Type</Label>
+                  <Select value={formData.ball_type} onValueChange={(v) => setFormData({ ...formData, ball_type: v })}>
+                    <SelectTrigger className="bg-slate-900 border-slate-700 text-white"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-slate-700">
+                      <SelectItem value="leather" className="text-white">Leather Ball</SelectItem>
+                      <SelectItem value="tennis" className="text-white">Tennis Ball</SelectItem>
+                      <SelectItem value="tape" className="text-white">Tape Ball</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-slate-200">Wide Runs</Label>
+                    <Input type="number" min="1" value={formData.wide_runs} onChange={(e) => setFormData({ ...formData, wide_runs: parseInt(e.target.value) || 1 })} className="bg-slate-900 border-slate-700 text-white" />
+                  </div>
+                  <div>
+                    <Label className="text-slate-200">No-Ball Runs</Label>
+                    <Input type="number" min="1" value={formData.no_ball_runs} onChange={(e) => setFormData({ ...formData, no_ball_runs: parseInt(e.target.value) || 1 })} className="bg-slate-900 border-slate-700 text-white" />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-slate-200">Overs per Innings</Label>
@@ -509,6 +590,8 @@ export default function MatchSetup() {
 
               <span className="text-sm text-white">Allow multiple Super Overs if tied</span>
             </label>
+              </>
+            )}
           </div>
         }
 

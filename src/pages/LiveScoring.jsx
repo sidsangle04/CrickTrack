@@ -24,6 +24,17 @@ import {
   DialogFooter } from
 '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import FollowOnModal from '../components/scoring/FollowOnModal';
+import {
+  isTestMatch,
+  getMaxWickets,
+  getBattingTeamForInnings,
+  getBowlingTeamForInnings,
+  getSecondBattingTeamId,
+  getFourthInningsTarget,
+  evaluateTestOutcome,
+  oversRemaining
+} from '../lib/testCricket';
 
 export default function LiveScoring() {
   const navigate = useNavigate();
@@ -38,6 +49,8 @@ export default function LiveScoring() {
   const [showSelectBowler, setShowSelectBowler] = useState(false);
   const [showEndInningsDialog, setShowEndInningsDialog] = useState(false);
   const [showMenuDialog, setShowMenuDialog] = useState(false);
+  const [showFollowOnDialog, setShowFollowOnDialog] = useState(false);
+  const [followOnLead, setFollowOnLead] = useState(0);
   const [pendingAction, setPendingAction] = useState(null);
   const [showVisualTracking, setShowVisualTracking] = useState(false);
   const [pendingDelivery, setPendingDelivery] = useState(null);
@@ -140,8 +153,9 @@ export default function LiveScoring() {
   match?.team1_playing_xi || [] :
   match?.team2_playing_xi || [];
 
-  const maxOvers = currentInnings?.is_super_over ? 1 : match?.overs_per_innings || 20;
-  const maxWickets = currentInnings?.is_super_over ? 2 : 10;
+  const isTest = isTestMatch(match);
+  const maxOvers = currentInnings?.is_super_over ? 1 : (isTest ? Infinity : (match?.overs_per_innings || 20));
+  const maxWickets = currentInnings?.is_super_over ? 2 : getMaxWickets(match);
 
   useEffect(() => {
     if (!currentInnings) return;
@@ -400,13 +414,21 @@ export default function LiveScoring() {
     await refetchScoring();
 
     const isAllOut = newTotalWickets >= maxWickets;
-    const isOversComplete = newOverNumber >= maxOvers && newBallInOver === 0;
+    const isOversComplete = !isTest && newOverNumber >= maxOvers && newBallInOver === 0;
     // Target is set to inn1 + 1. Team2 wins if they score >= target (i.e. > inn1 score).
     // Exact tie (inn2 == inn1) is handled at overs_complete/all_out via endInnings.
     const isTargetReached = currentInnings.target && newTotalRuns >= currentInnings.target;
 
-    if (isAllOut || isOversComplete || isTargetReached) {
-      await endInnings(isAllOut ? 'all_out' : isOversComplete ? 'overs_complete' : 'target_reached');
+    // Test: match-wide over cap (not per-innings). Triggers when an over completes
+    // and the global ball budget is exhausted.
+    let testOverLimitReached = false;
+    if (isTest && match?.is_over_limited && needNewBowler) {
+      const priorBalls = allInnings.filter((i) => i.id !== currentInnings.id).reduce((s, i) => s + (i.total_balls || 0), 0);
+      if (priorBalls + newTotalBalls >= (match.total_match_overs || 0) * 6) testOverLimitReached = true;
+    }
+
+    if (isAllOut || isOversComplete || isTargetReached || testOverLimitReached) {
+      await endInnings(isAllOut ? 'all_out' : (testOverLimitReached || isOversComplete) ? 'overs_complete' : 'target_reached');
       return;
     }
 
@@ -439,6 +461,11 @@ export default function LiveScoring() {
 
     const updatedInnings = await base44.entities.Innings.filter({ match_id: matchId });
     
+    // Test cricket has its own multi-innings flow (follow-on, declare, draw).
+    if (isTest && !currentInnings.is_super_over) {
+      return endInningsTest(reason, updatedInnings);
+    }
+
     // Handle Super Over completion
     if (currentInnings.is_super_over) {
       const superOverInnings = updatedInnings.filter(i => i.is_super_over && i.super_over_number === currentInnings.super_over_number);
@@ -544,6 +571,85 @@ export default function LiveScoring() {
       setShowSelectBatter(true);
       setPendingAction('select_opener_1');
     }
+  };
+
+  const endInningsTest = async (reason, updatedInnings) => {
+    const justEnded = updatedInnings.find((i) => i.id === currentInnings.id) || currentInnings;
+    const freshMatches = await base44.entities.Match.filter({ id: matchId });
+    const freshMatch = freshMatches[0];
+
+    // 1) Did this innings produce a definitive result?
+    const outcome = evaluateTestOutcome(freshMatch, updatedInnings, justEnded, team1Name, team2Name);
+    if (outcome) {
+      await base44.entities.Match.update(matchId, { status: 'completed', winner_id: outcome.winner_id || '', result: outcome.result });
+      navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
+      return;
+    }
+
+    // 2) Match-wide over limit exhausted without a result => draw.
+    if (freshMatch?.is_over_limited && oversRemaining(freshMatch, updatedInnings) <= 0) {
+      await base44.entities.Match.update(matchId, { status: 'completed', winner_id: '', result: 'Match Drawn (Overs Limit Reached)' });
+      navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
+      return;
+    }
+
+    // 3) After Team B's 1st innings, offer the follow-on (only if Team A leads).
+    if (justEnded.innings_number === 2) {
+      const a1 = updatedInnings.find((i) => i.innings_number === 1)?.total_runs || 0;
+      const lead = a1 - (justEnded.total_runs || 0);
+      if (lead > 0) {
+        setFollowOnLead(lead);
+        setShowFollowOnDialog(true);
+        await refetchAll();
+        return;
+      }
+      // Not leading => standard sequence continues below.
+    }
+
+    // 4) No more innings and no result => draw.
+    if (justEnded.innings_number >= 4) {
+      await base44.entities.Match.update(matchId, { status: 'completed', winner_id: '', result: 'Match Drawn' });
+      navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
+      return;
+    }
+
+    // 5) Start the next innings (1→2 or 3→4). Keep match.batting_team_id as the
+    //    first batting team so the sequence helpers resolve correctly.
+    const nextNum = justEnded.innings_number + 1;
+    const nextBatting = getBattingTeamForInnings(freshMatch, nextNum);
+    const nextBowling = getBowlingTeamForInnings(freshMatch, nextNum);
+    const target = nextNum === 4 ? getFourthInningsTarget(freshMatch, updatedInnings) : null;
+    await base44.entities.Match.update(matchId, { current_innings: nextNum });
+    await base44.entities.Innings.create({
+      match_id: matchId,
+      innings_number: nextNum,
+      batting_team_id: nextBatting,
+      bowling_team_id: nextBowling,
+      target,
+      status: 'not_started'
+    });
+    await refetchAll();
+    setShowSelectBatter(true);
+    setPendingAction('select_opener_1');
+  };
+
+  const handleFollowOn = async (enforce) => {
+    setShowFollowOnDialog(false);
+    await base44.entities.Match.update(matchId, { follow_on_enforced: enforce, current_innings: 3 });
+    const freshMatches = await base44.entities.Match.filter({ id: matchId });
+    const freshMatch = freshMatches[0];
+    const nextBatting = getBattingTeamForInnings(freshMatch, 3);
+    const nextBowling = getBowlingTeamForInnings(freshMatch, 3);
+    await base44.entities.Innings.create({
+      match_id: matchId,
+      innings_number: 3,
+      batting_team_id: nextBatting,
+      bowling_team_id: nextBowling,
+      status: 'not_started'
+    });
+    await refetchAll();
+    setShowSelectBatter(true);
+    setPendingAction('select_opener_1');
   };
 
   const startSuperOver = async () => {
@@ -919,6 +1025,7 @@ export default function LiveScoring() {
       <ScoreHeader
         match={match}
         innings={currentInnings}
+        allInnings={allInnings}
         team1Name={team1Name}
         team2Name={team2Name}
         onMenuOpen={() => setShowMenuDialog(true)} />
@@ -1013,6 +1120,15 @@ export default function LiveScoring() {
         title={pendingAction === 'select_opening_bowler' ? 'Select Opening Bowler' : 'Select Bowler'} />
 
 
+      <FollowOnModal
+        open={showFollowOnDialog}
+        teamAName={teamsMap[match?.batting_team_id]?.name || 'Team A'}
+        teamBName={teamsMap[getSecondBattingTeamId(match)]?.name || 'Team B'}
+        lead={followOnLead}
+        onEnforce={() => handleFollowOn(true)}
+        onDecline={() => handleFollowOn(false)}
+      />
+
       <Dialog open={showEndInningsDialog} onOpenChange={setShowEndInningsDialog}>
         <DialogContent className="bg-slate-900 border-slate-700 text-white">
           <DialogHeader>
@@ -1086,7 +1202,7 @@ export default function LiveScoring() {
                 endInnings('declared');
               }}>
 
-              End Innings
+              {isTest ? 'Declare Innings' : 'End Innings'}
             </Button>
             <Button
               variant="outline" className="bg-slate-700 text-red-400 px-4 py-2 text-sm font-medium rounded-md inline-flex items-center gap-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border shadow-sm hover:bg-accent h-9 w-full justify-start border-slate-700 hover:text-red-300"
