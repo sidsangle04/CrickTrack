@@ -894,6 +894,32 @@ export default function LiveScoring() {
       undoPromises.push(base44.entities.Partnership.update(undoPartnership.id, undoPUpdate));
     }
 
+    // Reversing a wicket also means the incoming batter never came to the
+    // crease. Their fresh (0/0, batting) BatterInnings record is now orphaned
+    // (the crease was handed back to the dismissed batter above). Remove it so
+    // they reappear in the available-batters list and don't show as "not out 0".
+    // Also drop any 0/0 active partnership created when that batter first
+    // faced a ball (subsequent deliveries are undone before we reach here).
+    if (lastDelivery.is_wicket) {
+      const incomingBatterId = [currentInnings.current_striker_id, currentInnings.current_non_striker_id].find(
+        (id) => id && id !== lastDelivery.striker_id && id !== lastDelivery.non_striker_id
+      );
+      if (incomingBatterId) {
+        const incomingStats = batterInningsMap[incomingBatterId];
+        if (incomingStats && (incomingStats.runs || 0) === 0 && (incomingStats.balls_faced || 0) === 0 && incomingStats.status === 'batting') {
+          undoPromises.push(base44.entities.BatterInnings.delete(incomingStats.id));
+        }
+        const stalePship = partnerships.find((p) =>
+          p.is_active &&
+          (p.batter1_id === incomingBatterId || p.batter2_id === incomingBatterId) &&
+          (p.runs || 0) === 0 && (p.balls || 0) === 0
+        );
+        if (stalePship) {
+          undoPromises.push(base44.entities.Partnership.delete(stalePship.id));
+        }
+      }
+    }
+
     await Promise.all(undoPromises);
 
     // Over may have changed — refetch everything for a consistent view.
