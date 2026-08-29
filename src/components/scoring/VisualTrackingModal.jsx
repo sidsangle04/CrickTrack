@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { X, MapPin, Target, CheckCircle } from 'lucide-react';
 import GroundMap, { classifyShot } from './GroundMap';
 import PitchMap, { classifyPitch } from './PitchMap';
+import { useGroundShape } from '@/lib/GroundShapeContext';
 
 const SPIN_VARIATIONS = [
   { key: 'googly', label: 'Googly' },
@@ -45,6 +46,8 @@ export default function VisualTrackingModal({
   const [variation, setVariation] = useState(null);
   const [isCatchDrop, setIsCatchDrop] = useState(false);
   const [droppedBy, setDroppedBy] = useState(null);
+  const { groundShape } = useGroundShape();
+  const isCircular = groundShape === 'circular';
 
   const reset = () => {
     setShotData(null);
@@ -56,7 +59,7 @@ export default function VisualTrackingModal({
   };
 
   const handleSubmit = () => {
-    const turfZone = shotData ? getTurfZone(shotData.x, shotData.y) : null;
+    const turfZone = !isCircular && shotData ? getTurfZone(shotData.x, shotData.y) : null;
     onConfirm({
       shot_x: shotData?.x,
       shot_y: shotData?.y,
@@ -186,7 +189,9 @@ export default function VisualTrackingModal({
                 <div className="mt-3 p-2 bg-slate-800 rounded-lg text-xs flex gap-3 flex-wrap">
                   <span className="text-emerald-400 font-medium">{shotData.region}</span>
                   <span className="text-slate-400 capitalize">{shotData.side} side</span>
-                  <span className="text-slate-400 capitalize">{getTurfZone(shotData.x, shotData.y)}</span>
+                  {!isCircular && (
+                    <span className="text-slate-400 capitalize">{getTurfZone(shotData.x, shotData.y)}</span>
+                  )}
                 </div>
               )}
 
@@ -244,7 +249,9 @@ export default function VisualTrackingModal({
                 {shotData && (
                   <div className="flex justify-between">
                     <span className="text-slate-400">Zone</span>
-                    <span className="text-blue-400">{getTurfZone(shotData.x, shotData.y)} · {shotData.region}</span>
+                    <span className="text-blue-400">
+                      {isCircular ? shotData.region : `${getTurfZone(shotData.x, shotData.y)} · ${shotData.region}`}
+                    </span>
                   </div>
                 )}
                 {variation && (

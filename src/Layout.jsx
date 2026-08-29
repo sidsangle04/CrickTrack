@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Home, PlusCircle, BarChart3, Trophy, Upload, ArrowLeftRight, UserPlus } from 'lucide-react';
+import { Home, PlusCircle, BarChart3, Trophy, Upload, ArrowLeftRight, UserPlus, Circle, Square } from 'lucide-react';
 import InviteUserModal from '@/components/InviteUserModal';
+import { useGroundShape } from '@/lib/GroundShapeContext';
 
 export default function Layout({ children, currentPageName }) {
   const isScoring = currentPageName === 'LiveScoring' || currentPageName === 'ImportMatch';
   const [showInvite, setShowInvite] = useState(false);
+  const { groundShape, setGroundShape } = useGroundShape();
+  const isCircular = groundShape === 'circular';
 
   if (isScoring) {
     return (
@@ -41,7 +44,16 @@ export default function Layout({ children, currentPageName }) {
                 className="h-10 w-auto rounded-lg shadow-lg shrink-0" />
               
               <div>
-                <h1 className="text-lg font-bold text-white tracking-tight">TURF Cricket</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-lg font-bold text-white tracking-tight">TURF Cricket</h1>
+                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold border ${
+                    isCircular
+                      ? 'bg-cyan-500/15 text-cyan-400 border-cyan-500/40'
+                      : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40'
+                  }`}>
+                    {isCircular ? 'Circular' : 'TURF'}
+                  </span>
+                </div>
                 <p className="text-[10px] text-slate-400 -mt-0.5">Tag | Analyse | Elevate </p>
               </div>
             </Link>
@@ -93,6 +105,26 @@ export default function Layout({ children, currentPageName }) {
             </nav>
             
             <div className="flex items-center gap-2">
+              <div className="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700" title="Ground shape (applies to all matches)">
+                <button
+                  onClick={() => setGroundShape('rectangular')}
+                  className={`flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    !isCircular ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Square className="w-3.5 h-3.5" />
+                  <span className="hidden lg:inline">TURF</span>
+                </button>
+                <button
+                  onClick={() => setGroundShape('circular')}
+                  className={`flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    isCircular ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Circle className="w-3.5 h-3.5" />
+                  <span className="hidden lg:inline">Circular</span>
+                </button>
+              </div>
               <button
                 onClick={() => setShowInvite(true)}
                 className="flex items-center gap-2 px-3 py-2 bg-slate-800 text-slate-300 rounded-lg font-medium text-sm hover:text-white hover:bg-slate-700 transition-all"

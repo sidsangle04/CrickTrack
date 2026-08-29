@@ -1,34 +1,20 @@
 import React, { useRef } from 'react';
+import { useGroundShape } from '@/lib/GroundShapeContext';
+import { classifyShot } from '@/lib/groundShape';
+import CircularGroundMap from './CircularGroundMap';
 
 // OFF side = LEFT (x < 0), LEG side = RIGHT (x > 0)
 // y > 0 = toward WK (top), y < 0 = toward bowler (bottom)
-export function classifyShot(x, y) {
-  const angle = Math.atan2(-y, x) * (180 / Math.PI);
-  const normalized = ((angle % 360) + 360) % 360;
-  const dist = Math.sqrt(x * x + y * y);
-
-  let region;
-  if (normalized >= 345 || normalized < 20)  region = 'Square Leg';
-  else if (normalized >= 20  && normalized < 60)  region = 'Mid Wicket';
-  else if (normalized >= 60  && normalized < 80)  region = 'Mid On';
-  else if (normalized >= 80  && normalized < 105) region = 'Straight';
-  else if (normalized >= 105 && normalized < 130) region = 'Mid Off';
-  else if (normalized >= 130 && normalized < 158) region = 'Extra Cover';
-  else if (normalized >= 158 && normalized < 192) region = 'Cover';
-  else if (normalized >= 192 && normalized < 228) region = 'Point';
-  else if (normalized >= 228 && normalized < 258) region = 'Gully';
-  else if (normalized >= 258 && normalized < 295) region = 'Third Man';
-  else if (normalized >= 295 && normalized < 345) region = 'Fine Leg';
-  else region = 'Square Leg';
-
-  const side = x > 0 ? 'leg' : 'off';
-  const distance = dist < 0.35 ? 'inner' : dist < 0.72 ? 'mid' : 'boundary';
-
-  return { region, side, distance };
-}
+// classifyShot is canonicalized in @/lib/groundShape and re-exported here so
+// existing imports (e.g. VisualTrackingModal) keep working.
+export { classifyShot };
 
 export default function GroundMap({ onShot, shots = [], highlightShot = null, size = 280 }) {
   const svgRef = useRef();
+  const { groundShape } = useGroundShape();
+  if (groundShape === 'circular') {
+    return <CircularGroundMap onShot={onShot} shots={shots} highlightShot={highlightShot} size={size} />;
+  }
 
   // Rectangular turf ground — portrait orientation
   const W = Math.round(size * 0.72);

@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import SplashVideo from '@/components/SplashVideo';
 import Tournaments from '@/pages/Tournaments';
+import { GroundShapeProvider } from '@/lib/GroundShapeContext';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -79,7 +80,9 @@ function App() {
         <Router>
           <SplashVideo />
           <NavigationTracker />
-          <AuthenticatedApp />
+          <GroundShapeProvider>
+            <AuthenticatedApp />
+          </GroundShapeProvider>
         </Router>
         <Toaster />
       </QueryClientProvider>

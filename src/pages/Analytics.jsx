@@ -9,8 +9,11 @@ import {
 } from 'lucide-react';
 import GroundMap from '../components/scoring/GroundMap';
 import PartnershipCard from '../components/analytics/PartnershipCard';
+import CircularHeatmap from '../components/analytics/CircularHeatmap';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useGroundShape } from '@/lib/GroundShapeContext';
+import { getZone, zonesFor } from '@/lib/groundShape';
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function getTurfZone(x, y) {
@@ -124,7 +127,13 @@ function HeatmapOverlay({ deliveries, groundW, groundH }) {
   );
 }
 
-function GroundMapWithHeatmap({ shots, deliveries, showHeatmap, size }) {
+function GroundMapWithHeatmap({ shots, deliveries, showHeatmap, size, shape }) {
+  if (shape === 'circular') {
+    return showHeatmap
+      ? <CircularHeatmap deliveries={deliveries} size={size} />
+      : <GroundMap shots={shots} size={size} />;
+  }
+
   const W = Math.round(size * 0.72), H = size, pad = 12;
   const gW = W - pad * 2, gH = H - pad * 2;
   const cx = W / 2, cy = H / 2;
@@ -402,10 +411,12 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap, scopeMatch
     });
   };
 
+  const { groundShape } = useGroundShape();
+  const ZONES = zonesFor(groundShape);
   const shotsWithZone = useMemo(() =>
     allDeliveries.filter(d => d.shot_x != null && d.shot_y != null && inScope(d))
-      .map(d => ({ ...d, turf_zone: getTurfZone(d.shot_x, d.shot_y) })),
-    [allDeliveries, scopeMatchIds]
+      .map(d => ({ ...d, zone: getZone(groundShape, d) })),
+    [allDeliveries, scopeMatchIds, groundShape]
   );
 
   const filteredDeliveries = useMemo(() => {
@@ -450,22 +461,22 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap, scopeMatch
   // Zone analysis
   const zoneCounts = useMemo(() => {
     const counts = {};
-    TURF_ZONES.forEach(z => { counts[z] = { shots: 0, runs: 0 }; });
+    ZONES.forEach(z => { counts[z] = { shots: 0, runs: 0 }; });
     shotsWithZone.forEach(d => {
-      const z = d.turf_zone;
+      const z = d.zone;
       if (counts[z]) { counts[z].shots++; counts[z].runs += d.runs_bat || 0; }
     });
     return counts;
-  }, [shotsWithZone]);
+  }, [shotsWithZone, ZONES]);
 
-  const strongZone = TURF_ZONES.reduce((a, b) => zoneCounts[a].shots >= zoneCounts[b].shots ? a : b, TURF_ZONES[0]);
-  const weakZone = TURF_ZONES.reduce((a, b) => zoneCounts[a].shots <= zoneCounts[b].shots ? a : b, TURF_ZONES[0]);
-  const mostRunsZone = TURF_ZONES.reduce((a, b) => zoneCounts[a].runs >= zoneCounts[b].runs ? a : b, TURF_ZONES[0]);
+  const strongZone = ZONES.reduce((a, b) => zoneCounts[a].shots >= zoneCounts[b].shots ? a : b, ZONES[0]);
+  const weakZone = ZONES.reduce((a, b) => zoneCounts[a].shots <= zoneCounts[b].shots ? a : b, ZONES[0]);
+  const mostRunsZone = ZONES.reduce((a, b) => zoneCounts[a].runs >= zoneCounts[b].runs ? a : b, ZONES[0]);
 
   // Wicket zone
   const wicketDeliveries = shotsWithZone.filter(d => d.is_wicket);
   const wicketZoneCounts = {};
-  wicketDeliveries.forEach(d => { wicketZoneCounts[d.turf_zone] = (wicketZoneCounts[d.turf_zone] || 0) + 1; });
+  wicketDeliveries.forEach(d => { wicketZoneCounts[d.zone] = (wicketZoneCounts[d.zone] || 0) + 1; });
   const mostDangerousZone = Object.entries(wicketZoneCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
 
   // Catch drops — use dedicated query for all catch drop deliveries
@@ -683,7 +694,7 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap, scopeMatch
               {shotsWithZone.length === 0 ? (
                 <div className="h-48 flex items-center justify-center text-slate-500 text-sm">No shot data</div>
               ) : (
-                <GroundMapWithHeatmap shots={shots} deliveries={filteredDeliveries} showHeatmap={showHeatmap} size={300} />
+                <GroundMapWithHeatmap shots={shots} deliveries={filteredDeliveries} showHeatmap={showHeatmap} size={300} shape={groundShape} />
               )}
             </div>
             {!showHeatmap ? (
@@ -729,7 +740,7 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap, scopeMatch
                     </tr>
                   </thead>
                   <tbody>
-                    {TURF_ZONES.map(zone => {
+                    {ZONES.map(zone => {
                       const { shots: s, runs: r } = zoneCounts[zone];
                       return (
                         <tr key={zone} className="border-b border-slate-700/30 last:border-0">
