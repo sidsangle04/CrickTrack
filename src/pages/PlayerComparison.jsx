@@ -183,11 +183,11 @@ export default function PlayerComparison() {
     };
   };
 
-  const statsA = useMemo(() => getPlayerStats(playerAId), [playerAId, allBatterInnings, allBowlerInnings]);
-  const statsB = useMemo(() => getPlayerStats(playerBId), [playerBId, allBatterInnings, allBowlerInnings]);
+  const statsA = useMemo(() => getPlayerStats(playerAId), [playerAId, modeBatterInnings, modeBowlerInnings]);
+  const statsB = useMemo(() => getPlayerStats(playerBId), [playerBId, modeBatterInnings, modeBowlerInnings]);
 
-  const playerA = allPlayers.find(p => p.id === playerAId);
-  const playerB = allPlayers.find(p => p.id === playerBId);
+  const playerA = modePlayers.find(p => p.id === playerAId);
+  const playerB = modePlayers.find(p => p.id === playerBId);
 
   const radarData = statsA && statsB ? [
     { stat: 'Runs', A: parseFloat(statsA.batting.runs) || 0, B: parseFloat(statsB.batting.runs) || 0 },
@@ -242,10 +242,10 @@ export default function PlayerComparison() {
     const verdictEcon = (parseFloat(statsA.bowling.economy)||99) <= (parseFloat(statsB.bowling.economy)||99) ? playerA.name : playerB.name;
 
     // Per-player visual data
-    const delivA = allDeliveries.filter(d => d.striker_id === playerAId);
-    const delivB = allDeliveries.filter(d => d.striker_id === playerBId);
-    const pitchA = allDeliveries.filter(d => d.bowler_id === playerAId);
-    const pitchB = allDeliveries.filter(d => d.bowler_id === playerBId);
+    const delivA = modeDeliveries.filter(d => d.striker_id === playerAId);
+    const delivB = modeDeliveries.filter(d => d.striker_id === playerBId);
+    const pitchA = modeDeliveries.filter(d => d.bowler_id === playerAId);
+    const pitchB = modeDeliveries.filter(d => d.bowler_id === playerBId);
 
     const visualA = delivA.some(d => d.shot_x != null) ? `
       <div class="card" style="text-align:center">
@@ -378,7 +378,7 @@ export default function PlayerComparison() {
               <SelectValue placeholder="Select Player A" />
             </SelectTrigger>
             <SelectContent>
-              {allPlayers.filter(p => p.id !== playerBId).map(p => (
+              {modePlayers.filter(p => p.id !== playerBId).map(p => (
                 <SelectItem key={p.id} value={p.id}>
                   {p.name} — {teamsMap[p.team_id]?.short_name || '?'}
                 </SelectItem>
@@ -397,7 +397,7 @@ export default function PlayerComparison() {
               <SelectValue placeholder="Select Player B" />
             </SelectTrigger>
             <SelectContent>
-              {allPlayers.filter(p => p.id !== playerAId).map(p => (
+              {modePlayers.filter(p => p.id !== playerAId).map(p => (
                 <SelectItem key={p.id} value={p.id}>
                   {p.name} — {teamsMap[p.team_id]?.short_name || '?'}
                 </SelectItem>

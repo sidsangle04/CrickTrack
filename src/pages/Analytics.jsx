@@ -1017,6 +1017,8 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap, scopeMatch
 // MAIN PAGE
 // ══════════════════════════════════════════════════════════════════════════
 export default function Analytics() {
+  const { mode } = useGroundShape();
+  const modeLabel = mode === 'circular' ? 'Circular' : 'TURF';
   const { data: allPlayers = [] } = useQuery({
     queryKey: ['all-players-analytics'],
     queryFn: () => base44.entities.Player.list(),
@@ -1038,8 +1040,12 @@ export default function Analytics() {
     queryFn: () => base44.entities.Partnership.list(),
   });
   const { data: tournaments = [] } = useQuery({
-    queryKey: ['tournaments'],
+    queryKey: ['tournaments', mode],
     queryFn: () => base44.entities.Tournament.list('-created_date', 50)
+  });
+  const { data: allMatches = [] } = useQuery({
+    queryKey: ['matches-analytics', mode],
+    queryFn: () => base44.entities.Match.list()
   });
   const [tournamentId, setTournamentId] = useState('all');
   const scopeActive = tournamentId && tournamentId !== 'all';
