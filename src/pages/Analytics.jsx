@@ -1045,7 +1045,7 @@ export default function Analytics() {
   });
   const { data: allMatches = [] } = useQuery({
     queryKey: ['matches-analytics', mode],
-    queryFn: () => base44.entities.Match.list()
+    queryFn: () => base44.entities.Match.list('-created_date', 500)
   });
   const [tournamentId, setTournamentId] = useState('all');
   const scopeActive = tournamentId && tournamentId !== 'all';
@@ -1058,6 +1058,13 @@ export default function Analytics() {
   });
   const selectedTournament = tournaments.find(t => t.id === tournamentId);
 
+  // Matches that belong to the active mode — the foundation of all data separation.
+  const modeMatchIds = useMemo(() => {
+    const s = new Set();
+    allMatches.forEach(m => { if ((m.ground_mode || 'turf') === mode) s.add(m.id); });
+    return s;
+  }, [allMatches, mode]);
+
   const scopeMatchIds = useMemo(() => {
     if (!scopeActive) return null;
     const s = new Set();
@@ -1069,29 +1076,42 @@ export default function Analytics() {
     return new Set(selectedTournament.team_ids);
   }, [selectedTournament, scopeActive]);
 
+  // Effective match scope = active-mode matches ∩ tournament scope (if any)
+  const effectiveMatchIds = useMemo(() => {
+    if (!scopeActive) return modeMatchIds;
+    const s = new Set();
+    modeMatchIds.forEach(id => { if (scopeMatchIds.has(id)) s.add(id); });
+    return s;
+  }, [modeMatchIds, scopeMatchIds, scopeActive]);
+
   const scopedPlayers = useMemo(
-    () => scopeTeamIds ? allPlayers.filter(p => scopeTeamIds.has(p.team_id)) : allPlayers,
-    [allPlayers, scopeTeamIds]
+    () => allPlayers.filter(p => (p.ground_mode || 'turf') === mode && (!scopeTeamIds || scopeTeamIds.has(p.team_id))),
+    [allPlayers, scopeTeamIds, mode]
   );
   const scopedTeams = useMemo(
-    () => scopeTeamIds ? teams.filter(t => scopeTeamIds.has(t.id)) : teams,
-    [teams, scopeTeamIds]
+    () => teams.filter(t => (t.ground_mode || 'turf') === mode && (!scopeTeamIds || scopeTeamIds.has(t.id))),
+    [teams, scopeTeamIds, mode]
   );
   const scopedBatterInnings = useMemo(
-    () => scopeMatchIds ? allBatterInnings.filter(b => scopeMatchIds.has(b.match_id)) : allBatterInnings,
-    [allBatterInnings, scopeMatchIds]
+    () => allBatterInnings.filter(b => effectiveMatchIds.has(b.match_id)),
+    [allBatterInnings, effectiveMatchIds]
   );
   const scopedBowlerInnings = useMemo(
-    () => scopeMatchIds ? allBowlerInnings.filter(b => scopeMatchIds.has(b.match_id)) : allBowlerInnings,
-    [allBowlerInnings, scopeMatchIds]
+    () => allBowlerInnings.filter(b => effectiveMatchIds.has(b.match_id)),
+    [allBowlerInnings, effectiveMatchIds]
   );
   const scopedPartnerships = useMemo(
-    () => scopeMatchIds ? allPartnerships.filter(p => scopeMatchIds.has(p.match_id)) : allPartnerships,
-    [allPartnerships, scopeMatchIds]
+    () => allPartnerships.filter(p => effectiveMatchIds.has(p.match_id)),
+    [allPartnerships, effectiveMatchIds]
   );
 
-  const playersMap = useMemo(() => allPlayers.reduce((a, p) => ({ ...a, [p.id]: p }), {}), [allPlayers]);
-  const teamsMap = useMemo(() => teams.reduce((a, t) => ({ ...a, [t.id]: t }), {}), [teams]);
+  const modeTournaments = useMemo(
+    () => tournaments.filter(t => (t.ground_mode || 'turf') === mode),
+    [tournaments, mode]
+  );
+
+  const playersMap = useMemo(() => scopedPlayers.reduce((a, p) => ({ ...a, [p.id]: p }), {}), [scopedPlayers]);
+  const teamsMap = useMemo(() => scopedTeams.reduce((a, t) => ({ ...a, [t.id]: t }), {}), [scopedTeams]);
 
   return (
     <div className="pb-24 md:pb-6">
@@ -1108,8 +1128,8 @@ export default function Analytics() {
             <SelectValue placeholder="All matches" />
           </SelectTrigger>
           <SelectContent className="bg-slate-900 border-slate-700 max-h-60">
-            <SelectItem value="all" className="text-white">All matches</SelectItem>
-            {tournaments.map(t => (
+            <SelectItem value="all" className="text-white">All {modeLabel} matches</SelectItem>
+            {modeTournaments.map(t => (
               <SelectItem key={t.id} value={t.id} className="text-white">{t.name}</SelectItem>
             ))}
           </SelectContent>
@@ -1142,7 +1162,7 @@ export default function Analytics() {
             teams={scopedTeams}
             playersMap={playersMap}
             teamsMap={teamsMap}
-            scopeMatchIds={scopeMatchIds}
+            scopeMatchIds={effectiveMatchIds}
           />
         </TabsContent>
       </Tabs>
