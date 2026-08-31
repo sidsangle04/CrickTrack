@@ -19,9 +19,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
+import { useGroundShape } from '@/lib/GroundShapeContext';
 
 export default function TeamManagement() {
   const queryClient = useQueryClient();
+  const { mode } = useGroundShape();
+  const modeLabel = mode === 'circular' ? 'Circular' : 'TURF';
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [showPlayerModal, setShowPlayerModal] = useState(false);
@@ -46,9 +49,11 @@ export default function TeamManagement() {
   });
 
   const { data: teams = [], isLoading: teamsLoading } = useQuery({
-    queryKey: ['teams'],
+    queryKey: ['teams', mode],
     queryFn: () => base44.entities.Team.list()
   });
+
+  const modeTeams = teams.filter((t) => (t.ground_mode || 'turf') === mode);
 
   const { data: players = [], isLoading: playersLoading } = useQuery({
     queryKey: ['players', selectedTeam?.id],
@@ -125,9 +130,9 @@ export default function TeamManagement() {
 
   const handleTeamSubmit = () => {
     if (editingTeam) {
-      updateTeamMutation.mutate({ id: editingTeam.id, data: teamForm });
+      updateTeamMutation.mutate({ id: editingTeam.id, data: { ...teamForm, ground_mode: mode } });
     } else {
-      createTeamMutation.mutate(teamForm);
+      createTeamMutation.mutate({ ...teamForm, ground_mode: mode });
     }
   };
 
@@ -135,6 +140,7 @@ export default function TeamManagement() {
     const data = {
       ...playerForm,
       team_id: selectedTeam.id,
+      ground_mode: mode,
       jersey_number: playerForm.jersey_number ? parseInt(playerForm.jersey_number) : null
     };
     if (editingPlayer) {
@@ -381,15 +387,15 @@ export default function TeamManagement() {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
         </div>
-      ) : teams.length === 0 ? (
+      ) : modeTeams.length === 0 ? (
         <div className="text-center py-12">
           <Shield className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">No teams yet</h3>
-          <p className="text-slate-400 text-sm mb-4">Create your first team to get started</p>
+          <h3 className="text-lg font-medium text-white mb-2">No {modeLabel} teams yet</h3>
+          <p className="text-slate-400 text-sm mb-4">Create your first {modeLabel} team to get started</p>
         </div>
       ) : (
         <div className="grid gap-3">
-          {teams.map(team => (
+          {modeTeams.map(team => (
             <button
               key={team.id}
               onClick={() => setSelectedTeam(team)}

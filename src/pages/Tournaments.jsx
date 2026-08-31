@@ -16,19 +16,22 @@ import CreateTournamentModal from '@/components/tournament/CreateTournamentModal
 import BracketView from '@/components/tournament/BracketView';
 import { deriveBracket, computeStandings, leagueComplete, seedKnockoutRound1 } from '@/lib/bracket';
 import LeagueView from '@/components/tournament/LeagueView';
+import { useGroundShape } from '@/lib/GroundShapeContext';
 
 export default function Tournaments() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { mode } = useGroundShape();
+  const modeLabel = mode === 'circular' ? 'Circular' : 'TURF';
   const [selectedId, setSelectedId] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
 
   const { data: tournaments = [], isLoading } = useQuery({
-    queryKey: ['tournaments'],
+    queryKey: ['tournaments', mode],
     queryFn: () => base44.entities.Tournament.list('-created_date', 50)
   });
   const { data: teams = [] } = useQuery({
-    queryKey: ['teams'],
+    queryKey: ['teams', mode],
     queryFn: () => base44.entities.Team.list()
   });
   const { data: allMatches = [] } = useQuery({
@@ -36,16 +39,25 @@ export default function Tournaments() {
     queryFn: () => base44.entities.Match.list('-created_date', 100)
   });
 
+  const modeTournaments = useMemo(
+    () => tournaments.filter((t) => (t.ground_mode || 'turf') === mode),
+    [tournaments, mode]
+  );
+  const modeTeams = useMemo(
+    () => teams.filter((t) => (t.ground_mode || 'turf') === mode),
+    [teams, mode]
+  );
+
   const teamsMap = useMemo(
-    () => teams.reduce((a, t) => ({ ...a, [t.id]: t }), {}),
-    [teams]
+    () => modeTeams.reduce((a, t) => ({ ...a, [t.id]: t }), {}),
+    [modeTeams]
   );
   const matchesMap = useMemo(
     () => allMatches.reduce((a, m) => ({ ...a, [m.id]: m }), {}),
     [allMatches]
   );
 
-  const selected = tournaments.find((t) => t.id === selectedId);
+  const selected = modeTournaments.find((t) => t.id === selectedId);
 
   const { data: tmMatches = [] } = useQuery({
     queryKey: ['tournament-matches', selectedId],
@@ -219,14 +231,14 @@ export default function Tournaments() {
         <div className="flex justify-center py-12">
           <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
         </div>
-      ) : tournaments.length === 0 ? (
+      ) : modeTournaments.length === 0 ? (
         <div className="text-center py-12">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-800 flex items-center justify-center">
             <Trophy className="w-8 h-8 text-slate-600" />
           </div>
-          <h3 className="text-lg font-medium text-white mb-2">No tournaments yet</h3>
+          <h3 className="text-lg font-medium text-white mb-2">No {modeLabel} tournaments yet</h3>
           <p className="text-slate-400 text-sm mb-4">
-            Create your first knockout tournament
+            Create your first {modeLabel} knockout tournament
           </p>
           <Button
             onClick={() => setShowCreate(true)}
@@ -237,7 +249,7 @@ export default function Tournaments() {
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {tournaments.map((t) => {
+          {modeTournaments.map((t) => {
             const champ = teamsMap[t.champion_team_id];
             return (
               <button
@@ -280,7 +292,7 @@ export default function Tournaments() {
 
       {showCreate && (
         <CreateTournamentModal
-          teams={teams}
+          teams={modeTeams}
           onClose={() => setShowCreate(false)}
           onCreated={(id) => {
             setShowCreate(false);

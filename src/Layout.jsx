@@ -1,15 +1,23 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Home, PlusCircle, BarChart3, Trophy, Upload, ArrowLeftRight, UserPlus, Circle, Square } from 'lucide-react';
+import { Home, PlusCircle, BarChart3, Trophy, Upload, ArrowLeftRight, UserPlus, RefreshCw } from 'lucide-react';
 import InviteUserModal from '@/components/InviteUserModal';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 
 export default function Layout({ children, currentPageName }) {
   const isScoring = currentPageName === 'LiveScoring' || currentPageName === 'ImportMatch';
   const [showInvite, setShowInvite] = useState(false);
-  const { groundShape, setGroundShape } = useGroundShape();
-  const isCircular = groundShape === 'circular';
+  const { mode, clearMode } = useGroundShape();
+  const isCircular = mode === 'circular';
+
+  const handleChangeMode = () => {
+    clearMode();
+    // navigate to the landing page so the mode selection screen mounts
+    if (typeof window !== 'undefined') {
+      window.scrollTo(0, 0);
+    }
+  };
 
   if (isScoring) {
     return (
@@ -105,26 +113,25 @@ export default function Layout({ children, currentPageName }) {
             </nav>
             
             <div className="flex items-center gap-2">
-              <div className="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700" title="Ground shape (applies to all matches)">
-                <button
-                  onClick={() => setGroundShape('rectangular')}
-                  className={`flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all ${
-                    !isCircular ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Square className="w-3.5 h-3.5" />
-                  <span className="hidden lg:inline">TURF</span>
-                </button>
-                <button
-                  onClick={() => setGroundShape('circular')}
-                  className={`flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all ${
-                    isCircular ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Circle className="w-3.5 h-3.5" />
-                  <span className="hidden lg:inline">Circular</span>
-                </button>
+              <div
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border ${
+                  isCircular
+                    ? 'bg-cyan-500/15 text-cyan-400 border-cyan-500/40'
+                    : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40'
+                }`}
+                title={`Active mode: ${isCircular ? 'Circular' : 'TURF'}`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                {isCircular ? 'Circular' : 'TURF'}
               </div>
+              <button
+                onClick={handleChangeMode}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 text-slate-300 rounded-lg font-medium text-xs hover:text-white hover:bg-slate-700 transition-all"
+                title="Switch mode (TURF / Circular)"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span className="hidden lg:inline">Change</span>
+              </button>
               <button
                 onClick={() => setShowInvite(true)}
                 className="flex items-center gap-2 px-3 py-2 bg-slate-800 text-slate-300 rounded-lg font-medium text-sm hover:text-white hover:bg-slate-700 transition-all"

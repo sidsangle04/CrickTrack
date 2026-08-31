@@ -18,8 +18,11 @@ import {
   X
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useGroundShape } from '@/lib/GroundShapeContext';
 
 export default function Home() {
+  const { mode } = useGroundShape();
+  const modeLabel = mode === 'circular' ? 'Circular' : 'TURF';
   const [filter, setFilter] = useState('all');
   const [deletingId, setDeletingId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
@@ -52,6 +55,7 @@ export default function Home() {
   const teamsMap = teams.reduce((acc, t) => ({ ...acc, [t.id]: t }), {});
 
   const filteredMatches = matches.filter(m => {
+    if ((m.ground_mode || 'turf') !== mode) return false;
     if (filter === 'all') return true;
     if (filter === 'live') return m.status === 'live' || m.status === 'super_over';
     if (filter === 'completed') return m.status === 'completed';
@@ -158,9 +162,9 @@ export default function Home() {
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-800 flex items-center justify-center">
             <Trophy className="w-8 h-8 text-slate-600" />
           </div>
-          <h3 className="text-lg font-medium text-white mb-2">No matches found</h3>
+          <h3 className="text-lg font-medium text-white mb-2">No {modeLabel} matches found</h3>
           <p className="text-slate-400 text-sm mb-4">
-            {filter === 'all' ? "Create your first match to get started" : `No ${filter} matches`}
+            {filter === 'all' ? `Create your first ${modeLabel} match to get started` : `No ${filter} matches in ${modeLabel}`}
           </p>
           {filter === 'all' && (
             <Link 

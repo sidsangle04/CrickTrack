@@ -5,9 +5,11 @@ import { createPageUrl } from '../utils';
 import { Upload, FileText, CheckCircle2, AlertTriangle, Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { useGroundShape } from '@/lib/GroundShapeContext';
 
 export default function ImportMatch() {
   const navigate = useNavigate();
+  const { mode } = useGroundShape();
   const [file, setFile] = useState(null);
   const [status, setStatus] = useState('idle'); // idle | parsing | importing | done | error
   const [log, setLog] = useState([]);
@@ -220,7 +222,7 @@ export default function ImportMatch() {
     const findOrCreateTeam = async (name) => {
       const existing = allTeams.find(t => t.name.toLowerCase().includes(name.split(' ')[0].toLowerCase()));
       if (existing) { addLog(`  Team found: ${existing.name}`); return existing; }
-      const created = await base44.entities.Team.create({ name, short_name: name.substring(0, 4).toUpperCase() });
+      const created = await base44.entities.Team.create({ name, short_name: name.substring(0, 4).toUpperCase(), ground_mode: mode });
       addLog(`  Team created: ${name}`);
       return created;
     };
@@ -235,7 +237,7 @@ export default function ImportMatch() {
     const findOrCreatePlayer = async (name, teamId) => {
       const existing = allPlayers.find(p => p.name.toLowerCase() === name.toLowerCase() && p.team_id === teamId);
       if (existing) return existing;
-      return await base44.entities.Player.create({ name, team_id: teamId, role: 'all_rounder' });
+      return await base44.entities.Player.create({ name, team_id: teamId, role: 'all_rounder', ground_mode: mode });
     };
 
     const team1Players = {};
@@ -269,6 +271,7 @@ export default function ImportMatch() {
       overs_per_innings: 50,
       status: 'completed',
       result: data.result,
+      ground_mode: mode,
       batting_team_id: team1.id,
       bowling_team_id: team2.id,
     });

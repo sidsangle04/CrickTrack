@@ -10,11 +10,13 @@ import {
   generateLeague,
   generateLeagueKnockoutBracket
 } from '@/lib/bracket';
+import { useGroundShape } from '@/lib/GroundShapeContext';
 
 const shuffleArray = (a) => [...a].sort(() => Math.random() - 0.5);
 
 export default function CreateTournamentModal({ teams, onClose, onCreated }) {
   const queryClient = useQueryClient();
+  const { mode } = useGroundShape();
   const [name, setName] = useState('');
   const [format, setFormat] = useState('knockout');
   const [knockoutTeams, setKnockoutTeams] = useState(4);
@@ -39,6 +41,7 @@ export default function CreateTournamentModal({ teams, onClose, onCreated }) {
         num_teams: ordered.length,
         format,
         knockout_teams: isLeagueKO ? knockoutTeams : 4,
+        ground_mode: mode,
         status: 'in_progress'
       });
 

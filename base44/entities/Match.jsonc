@@ -2,6 +2,15 @@
   "name": "Match",
   "type": "object",
   "properties": {
+    "ground_mode": {
+      "type": "string",
+      "enum": [
+        "turf",
+        "circular"
+      ],
+      "default": "turf",
+      "description": "Which app mode this match belongs to (TURF rectangular vs Circular). Filters all data separation."
+    },
     "date": {
       "type": "string",
       "format": "date",

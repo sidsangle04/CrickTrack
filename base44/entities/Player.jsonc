@@ -2,6 +2,15 @@
   "name": "Player",
   "type": "object",
   "properties": {
+    "ground_mode": {
+      "type": "string",
+      "enum": [
+        "turf",
+        "circular"
+      ],
+      "default": "turf",
+      "description": "Which app mode this player belongs to (rosters are separate per mode)"
+    },
     "team_id": {
       "type": "string",
       "description": "Reference to Team"

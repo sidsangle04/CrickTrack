@@ -9,7 +9,8 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import SplashVideo from '@/components/SplashVideo';
 import Tournaments from '@/pages/Tournaments';
-import { GroundShapeProvider } from '@/lib/GroundShapeContext';
+import ModeSelection from '@/pages/ModeSelection';
+import { GroundShapeProvider, useGroundShape } from '@/lib/GroundShapeContext';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -21,6 +22,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isReady } = useGroundShape();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -40,6 +42,11 @@ const AuthenticatedApp = () => {
       navigateToLogin();
       return null;
     }
+  }
+
+  // Mode not yet chosen at launch — show the mode selection landing screen
+  if (!isReady) {
+    return <ModeSelection />;
   }
 
   // Render the main app

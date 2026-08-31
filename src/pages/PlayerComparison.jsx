@@ -6,6 +6,7 @@ import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, BarC
 import { Users, TrendingUp, Target, Zap, Award, Shield, Loader2, ArrowLeftRight, Download } from 'lucide-react';
 import { downloadHTML } from '../components/utils/htmlExport';
 import { generateWagonWheelSVG, generatePitchMapSVG, wagonWheelLegend, pitchLegend } from '../components/utils/svgExport';
+import { useGroundShape } from '@/lib/GroundShapeContext';
 
 const PLAYER_A_COLOR = '#10b981';
 const PLAYER_B_COLOR = '#f59e0b';
@@ -103,11 +104,38 @@ export default function PlayerComparison() {
 
   const teamsMap = teams.reduce((acc, t) => ({ ...acc, [t.id]: t }), {});
 
+  const { mode } = useGroundShape();
+  const { data: allMatches = [] } = useQuery({
+    queryKey: ['matches'],
+    queryFn: () => base44.entities.Match.list()
+  });
+  const modeMatchIds = useMemo(() => {
+    const s = new Set();
+    allMatches.forEach(m => { if ((m.ground_mode || 'turf') === mode) s.add(m.id); });
+    return s;
+  }, [allMatches, mode]);
+  const modePlayers = useMemo(
+    () => allPlayers.filter(p => (p.ground_mode || 'turf') === mode),
+    [allPlayers, mode]
+  );
+  const modeBatterInnings = useMemo(
+    () => allBatterInnings.filter(b => modeMatchIds.has(b.match_id)),
+    [allBatterInnings, modeMatchIds]
+  );
+  const modeBowlerInnings = useMemo(
+    () => allBowlerInnings.filter(b => modeMatchIds.has(b.match_id)),
+    [allBowlerInnings, modeMatchIds]
+  );
+  const modeDeliveries = useMemo(
+    () => allDeliveries.filter(d => modeMatchIds.has(d.match_id)),
+    [allDeliveries, modeMatchIds]
+  );
+
   const getPlayerStats = (playerId) => {
     if (!playerId) return null;
 
-    const batting = allBatterInnings.filter(b => b.player_id === playerId);
-    const bowling = allBowlerInnings.filter(b => b.player_id === playerId);
+    const batting = modeBatterInnings.filter(b => b.player_id === playerId);
+    const bowling = modeBowlerInnings.filter(b => b.player_id === playerId);
 
     const batRuns = batting.reduce((s, b) => s + (b.runs || 0), 0);
     const batBalls = batting.reduce((s, b) => s + (b.balls_faced || 0), 0);

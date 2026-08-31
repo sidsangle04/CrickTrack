@@ -20,12 +20,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Link } from 'react-router-dom';
+import { useGroundShape } from '@/lib/GroundShapeContext';
 
 const STEPS = ['basics', 'teams', 'playing_xi', 'format', 'toss'];
 
 export default function MatchSetup() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { mode } = useGroundShape();
   const urlParams = new URLSearchParams(window.location.search);
   const matchId = urlParams.get('matchId');
 
@@ -54,12 +56,12 @@ export default function MatchSetup() {
   });
 
   const { data: teams = [] } = useQuery({
-    queryKey: ['teams'],
+    queryKey: ['teams', mode],
     queryFn: () => base44.entities.Team.list()
   });
 
   const { data: allPlayers = [] } = useQuery({
-    queryKey: ['all-players'],
+    queryKey: ['all-players', mode],
     queryFn: () => base44.entities.Player.list()
   });
 
@@ -111,10 +113,13 @@ export default function MatchSetup() {
     }
   }, []);
 
-  const team1Players = allPlayers.filter((p) => p.team_id === formData.team1_id);
-  const team2Players = allPlayers.filter((p) => p.team_id === formData.team2_id);
+  const modeTeams = teams.filter((t) => (t.ground_mode || 'turf') === mode);
+  const modePlayers = allPlayers.filter((p) => (p.ground_mode || 'turf') === mode);
 
-  const teamsMap = teams.reduce((acc, t) => ({ ...acc, [t.id]: t }), {});
+  const team1Players = modePlayers.filter((p) => p.team_id === formData.team1_id);
+  const team2Players = modePlayers.filter((p) => p.team_id === formData.team2_id);
+
+  const teamsMap = modeTeams.reduce((acc, t) => ({ ...acc, [t.id]: t }), {});
 
   const updateMatchMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Match.update(id, data),
@@ -139,6 +144,7 @@ export default function MatchSetup() {
   const handleStartMatch = async () => {
     const data = {
       ...formData,
+      ground_mode: mode,
       status: 'live',
       batting_team_id: formData.toss_decision === 'bat' ?
       formData.toss_winner_id :
@@ -276,9 +282,9 @@ export default function MatchSetup() {
               <Users className="w-5 h-5 text-emerald-400" />
               <h2 className="text-lg font-semibold text-white">Select Teams</h2>
             </div>
-            {teams.length === 0 ?
+            {modeTeams.length === 0 ?
           <div className="text-center py-8">
-                <p className="text-slate-400 mb-4">No teams found. Create teams first.</p>
+                <p className="text-slate-400 mb-4">No teams found for this mode. Create teams first.</p>
                 <Link to={createPageUrl('TeamManagement')}>
                   <Button className="bg-emerald-500 hover:bg-emerald-600">
                     <Plus className="w-4 h-4 mr-2" />
@@ -295,7 +301,7 @@ export default function MatchSetup() {
                       <SelectValue placeholder="Select team" />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-900 border-slate-700">
-                      {teams.map((t) =>
+                      {modeTeams.map((t) =>
                   <SelectItem key={t.id} value={t.id} disabled={t.id === formData.team2_id} className="text-white">
                           {t.name}
                         </SelectItem>
@@ -310,7 +316,7 @@ export default function MatchSetup() {
                       <SelectValue placeholder="Select team" />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-900 border-slate-700">
-                      {teams.map((t) =>
+                      {modeTeams.map((t) =>
                   <SelectItem key={t.id} value={t.id} disabled={t.id === formData.team1_id} className="text-white">
                           {t.name}
                         </SelectItem>
