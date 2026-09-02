@@ -68,6 +68,16 @@ const AuthenticatedApp = () => {
           }
         />
       ))}
+      <Route path="/Players" element={
+        <LayoutWrapper currentPageName="Players">
+          <Players />
+        </LayoutWrapper>
+      } />
+      <Route path="/PlayerProfile" element={
+        <LayoutWrapper currentPageName="PlayerProfile">
+          <PlayerProfile />
+        </LayoutWrapper>
+      } />
       <Route path="/Tournaments" element={
         <LayoutWrapper currentPageName="Tournaments">
           <Tournaments />

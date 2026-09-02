@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Home, PlusCircle, BarChart3, Trophy, Upload, ArrowLeftRight, UserPlus, RefreshCw } from 'lucide-react';
+import { Home, PlusCircle, BarChart3, Trophy, Upload, ArrowLeftRight, UserPlus, RefreshCw, Users } from 'lucide-react';
 import InviteUserModal from '@/components/InviteUserModal';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 
@@ -88,6 +88,16 @@ export default function Layout({ children, currentPageName }) {
                 
                 <BarChart3 className="w-4 h-4 inline mr-2" />
                 Analytics
+              </Link>
+              <Link
+                to={createPageUrl('Players')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                currentPageName === 'Players' ?
+                'bg-emerald-500/20 text-emerald-400' :
+                'text-slate-400 hover:text-white hover:bg-slate-800'}`
+                }>
+                <Users className="w-4 h-4 inline mr-2" />
+                Players
               </Link>
               <Link
                 to={createPageUrl('PlayerComparison')}
@@ -177,6 +187,14 @@ export default function Layout({ children, currentPageName }) {
             
             <BarChart3 className="w-5 h-5" />
             <span className="text-xs mt-1">Analytics</span>
+          </Link>
+          <Link
+            to={createPageUrl('Players')}
+            className={`flex flex-col items-center py-2 px-4 rounded-lg ${
+            currentPageName === 'Players' ? 'text-emerald-400' : 'text-slate-500'}`
+            }>
+            <Users className="w-5 h-5" />
+            <span className="text-xs mt-1">Players</span>
           </Link>
           <Link
             to={createPageUrl('PlayerComparison')}

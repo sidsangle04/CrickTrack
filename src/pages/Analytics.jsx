@@ -7,6 +7,9 @@ import {
   ArrowLeft, Zap, TrendingUp, AlertTriangle, Users,
   ShieldAlert, BarChart2, Trophy, ChevronDown, ChevronRight
 } from 'lucide-react';
+import GroundMapWithHeatmap from '@/components/analytics/GroundMapWithHeatmap';
+import { StatCard, InsightCard } from '@/components/analytics/StatCards';
+import { LENGTH_ZONES_ORDER, LENGTH_NORMALIZE, LENGTH_LABEL, DISMISSAL_LABEL, DISMISSAL_COLOR, RUN_FILTERS } from '@/lib/analyticsShared';
 import GroundMap from '../components/scoring/GroundMap';
 import PartnershipCard from '../components/analytics/PartnershipCard';
 import CircularHeatmap from '../components/analytics/CircularHeatmap';
