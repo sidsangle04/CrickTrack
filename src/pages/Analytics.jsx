@@ -15,156 +15,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useGroundShape } from '@/lib/GroundShapeContext';
 import { getZone, zonesFor } from '@/lib/groundShape';
 
-// ── Helpers ───────────────────────────────────────────────────────────────
-function getTurfZone(x, y) {
-  // Top of ground (y >= 0, wicket-keeper end) = Back (two halves); bottom (bowler end) = Front (three thirds)
-  if (y >= 0) return x < 0 ? 'Back Left' : 'Back Right';
-  if (x < -0.3) return 'Front Left';
-  if (x > 0.3) return 'Front Right';
-  return 'Front Center';
-}
 
-const TURF_ZONES = ['Front Left', 'Front Center', 'Front Right', 'Back Left', 'Back Right'];
-const LENGTH_ZONES_ORDER = ['full_toss', 'yorker', 'full', 'good_length', 'good', 'back_of_length', 'short', 'bouncer'];
-// Normalize legacy human-readable length values to enum format
-const LENGTH_NORMALIZE = {
-  'Full Toss': 'full_toss', 'Yorker': 'yorker', 'Full': 'full',
-  'Good Length': 'good_length', 'Good': 'good', 'Back of Length': 'back_of_length',
-  'Short': 'short', 'Bouncer': 'bouncer'
-};
-const LENGTH_LABEL = {
-  full_toss: 'Full Toss', yorker: 'Yorker', full: 'Full', good_length: 'Good Length',
-  good: 'Good', back_of_length: 'Back of Length', short: 'Short', bouncer: 'Bouncer'
-};
-const DISMISSAL_LABEL = {
-  bowled: 'Bowled', caught: 'Caught', lbw: 'LBW', run_out: 'Run Out',
-  stumped: 'Stumped', hit_wicket: 'Hit Wicket', retired_hurt: 'Retired Hurt',
-  retired_out: 'Retired Out', obstructing_field: 'Obstructing', handled_ball: 'Handled Ball'
-};
-const DISMISSAL_COLOR = {
-  bowled: 'text-red-400', caught: 'text-orange-400', lbw: 'text-amber-400',
-  run_out: 'text-purple-400', stumped: 'text-pink-400',
-};
 
-const RUN_FILTERS = [
-  { key: 'all', label: 'All' },
-  { key: '0', label: '0' }, { key: '1', label: '1' },
-  { key: '2', label: '2' }, { key: '3', label: '3' },
-  { key: '4', label: '4' }, { key: '6', label: '6' },
-  { key: 'W', label: 'W' },
-];
 
-// ── Small UI pieces ───────────────────────────────────────────────────────
-function StatCard({ label, value, color = 'text-white' }) {
-  return (
-    <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50 text-center">
-      <div className={`text-2xl font-bold ${color}`}>{value}</div>
-      <div className="text-xs text-slate-400 mt-0.5">{label}</div>
-    </div>
-  );
-}
 
-function InsightCard({ icon: Icon, title, value, color }) {
-  return (
-    <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50 flex items-center gap-3">
-      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${color}`}>
-        <Icon className="w-4 h-4" />
-      </div>
-      <div>
-        <div className="text-xs text-slate-400">{title}</div>
-        <div className="text-sm font-semibold text-white">{value || '—'}</div>
-      </div>
-    </div>
-  );
-}
 
-// ── Heatmap overlay ───────────────────────────────────────────────────────
-function HeatmapOverlay({ deliveries, groundW, groundH }) {
-  const zoneCounts = {};
-  TURF_ZONES.forEach(z => { zoneCounts[z] = 0; });
-  deliveries.forEach(d => {
-    if (d.shot_x == null || d.shot_y == null) return;
-    const zone = getTurfZone(d.shot_x, d.shot_y);
-    zoneCounts[zone] = (zoneCounts[zone] || 0) + 1;
-  });
-  const max = Math.max(...Object.values(zoneCounts), 1);
-  const zoneRects = {
-    'Back Left':    { x: 0,    y: 0,   w: 0.5,  h: 0.5 },
-    'Back Right':   { x: 0.5,  y: 0,   w: 0.5,  h: 0.5 },
-    'Front Left':   { x: 0,    y: 0.5, w: 0.34, h: 0.5 },
-    'Front Center': { x: 0.34, y: 0.5, w: 0.32, h: 0.5 },
-    'Front Right':  { x: 0.66, y: 0.5, w: 0.34, h: 0.5 },
-  };
-  const getHeatColor = (norm) => {
-    if (norm < 0.001) return 'rgba(59,130,246,0.05)';
-    if (norm < 0.25) return `rgba(59,130,246,${0.15 + norm * 0.6})`;
-    if (norm < 0.6) return `rgba(234,179,8,${0.3 + norm * 0.4})`;
-    return `rgba(239,68,68,${0.4 + norm * 0.5})`;
-  };
-  const pad = 12;
-  return (
-    <>
-      {TURF_ZONES.map(zone => {
-        const r = zoneRects[zone];
-        return (
-          <rect key={zone} x={pad + r.x * groundW} y={pad + r.y * groundH}
-            width={r.w * groundW} height={r.h * groundH}
-            fill={getHeatColor(zoneCounts[zone] / max)} rx="2" />
-        );
-      })}
-      {TURF_ZONES.map(zone => {
-        const r = zoneRects[zone];
-        const lx = pad + (r.x + r.w / 2) * groundW;
-        const ly = pad + (r.y + r.h / 2) * groundH;
-        return (
-          <g key={`l-${zone}`}>
-            <text x={lx} y={ly - 7} textAnchor="middle" fill="white" fontSize="8" opacity="0.8">{zone}</text>
-            <text x={lx} y={ly + 7} textAnchor="middle" fill="white" fontSize="11" fontWeight="bold" opacity="0.95">{zoneCounts[zone]}</text>
-          </g>
-        );
-      })}
-    </>
-  );
-}
-
-function GroundMapWithHeatmap({ shots, deliveries, showHeatmap, size, shape }) {
-  if (shape === 'circular') {
-    return showHeatmap
-      ? <CircularHeatmap deliveries={deliveries} size={size} />
-      : <GroundMap shots={shots} size={size} />;
-  }
-
-  const W = Math.round(size * 0.72), H = size, pad = 12;
-  const gW = W - pad * 2, gH = H - pad * 2;
-  const cx = W / 2, cy = H / 2;
-  const pitchW = gW * 0.13, pitchH = gH * 0.44;
-  const pitchX = cx - pitchW / 2, pitchY = cy - pitchH / 2;
-  const so = [-pitchW * 0.32, 0, pitchW * 0.32];
-
-  if (!showHeatmap) return <GroundMap shots={shots} size={size} />;
-
-  return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="select-none">
-      <rect x={0} y={0} width={W} height={H} fill="#0d1f0d" rx="6" />
-      <rect x={pad} y={pad} width={gW} height={gH} fill="#15803d" rx="3" />
-      {Array.from({ length: 8 }).map((_, i) => (
-        <rect key={i} x={pad} y={pad + i * gH / 8} width={gW} height={gH / 8}
-          fill={i % 2 === 0 ? '#166534' : '#15803d'} opacity="0.5" />
-      ))}
-      <HeatmapOverlay deliveries={deliveries} groundW={gW} groundH={gH} />
-      <rect x={pad + 3} y={pad + 3} width={gW - 6} height={gH - 6} fill="none" stroke="white" strokeWidth="1.8" rx="2" />
-      <rect x={pitchX} y={pitchY} width={pitchW} height={pitchH} fill="#78350f" stroke="#d97706" strokeWidth="1" rx="2" />
-      <line x1={pitchX - pitchW * 0.6} y1={pitchY + pitchH * 0.1} x2={pitchX + pitchW * 1.6} y2={pitchY + pitchH * 0.1} stroke="white" strokeWidth="1" />
-      <line x1={pitchX - pitchW * 0.6} y1={pitchY + pitchH * 0.9} x2={pitchX + pitchW * 1.6} y2={pitchY + pitchH * 0.9} stroke="white" strokeWidth="1" />
-      {so.map((off, i) => (
-        <g key={i}>
-          <line x1={cx + off} y1={pitchY + pitchH * 0.08} x2={cx + off} y2={pitchY - pitchH * 0.06} stroke="#fbbf24" strokeWidth="2.2" strokeLinecap="round" />
-          <line x1={cx + off} y1={pitchY + pitchH * 0.92} x2={cx + off} y2={pitchY + pitchH * 1.06} stroke="#fbbf24" strokeWidth="2.2" strokeLinecap="round" />
-        </g>
-      ))}
-    </svg>
-  );
-}
 
 // ══════════════════════════════════════════════════════════════════════════
 // LEADERBOARDS TAB
@@ -621,8 +476,11 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap, scopeMatch
         </div>
 
         {selectedPlayer && (
-          <div className="mt-3 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-xs text-emerald-400 font-medium">
-            Showing: {selectedPlayer.name}
+          <div className="mt-3 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-between gap-2">
+            <span className="text-xs text-emerald-400 font-medium">Showing: {selectedPlayer.name}</span>
+            <Link to={createPageUrl('PlayerProfile') + `?playerId=${selectedPlayer.id}`} className="text-xs font-semibold text-emerald-400 hover:text-white flex items-center gap-1">
+              View Profile <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
         )}
       </div>
