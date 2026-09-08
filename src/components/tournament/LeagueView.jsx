@@ -32,6 +32,8 @@ export default function LeagueView({
   matchesMap,
   leagueComplete,
   knockoutTeams,
+  seedLabels,
+  footerNote,
   onSetWinner,
   onStartGame,
   onOpenMatch
@@ -83,7 +85,8 @@ export default function LeagueView({
               ) : (
                 standings.map((s, i) => {
                   const team = teamsMapResolved[s.id];
-                  const qualifies = i < k;
+                  const seedLabel = seedLabels ? seedLabels[i] : null;
+                  const qualifies = seedLabels ? seedLabel !== 'OUT' : i < k;
                   return (
                     <tr
                       key={s.id}
@@ -99,7 +102,21 @@ export default function LeagueView({
                             {team?.short_name?.charAt(0) || '?'}
                           </span>
                           <span className="text-white font-medium">{team?.name || 'Team'}</span>
-                          {qualifies && <span className="text-[10px] text-emerald-400 ml-1">Q</span>}
+                          {seedLabel ? (
+                            <span
+                              className={`text-[10px] ml-1 px-1.5 py-0.5 rounded ${
+                                seedLabel === 'OUT'
+                                  ? 'bg-slate-800 text-slate-500'
+                                  : seedLabel === 'Final'
+                                  ? 'bg-emerald-500/10 text-emerald-400'
+                                  : 'bg-blue-500/10 text-blue-400'
+                              }`}
+                            >
+                              {seedLabel}
+                            </span>
+                          ) : (
+                            qualifies && <span className="text-[10px] text-emerald-400 ml-1">Q</span>
+                          )}
                         </div>
                       </td>
                       <td className="text-center px-2 py-2.5 text-slate-300">{s.p}</td>
@@ -115,7 +132,8 @@ export default function LeagueView({
           </table>
         </div>
         <div className="px-4 py-2 text-[11px] text-slate-500 border-t border-slate-700/50">
-          Top {k} qualify for the knockout · Win = 2 pts · Tie/No-result = 1 pt each
+          {footerNote ||
+            `Top ${k} qualify for the knockout · Win = 2 pts · Tie/No-result = 1 pt each`}
         </div>
       </div>
 

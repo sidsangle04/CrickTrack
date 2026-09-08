@@ -195,7 +195,7 @@ export function matchWinner(tm, matchesMap, round) {
  * standings); each entry is { team1, team2 } indexed by match_index.
  */
 export function deriveBracket(tmMatches, matchesMap, options = {}) {
-  const { round1Teams } = options;
+  const { round1Teams, roundTeams } = options;
   const byRound = {};
   tmMatches.forEach((m) => {
     if (!byRound[m.round]) byRound[m.round] = {};
@@ -213,12 +213,18 @@ export function deriveBracket(tmMatches, matchesMap, options = {}) {
       const tm = byRound[r][i] || {};
       let t1 = tm.team1_id || '';
       let t2 = tm.team2_id || '';
-      if (r === 1 && round1Teams && round1Teams[i]) {
-        t1 = round1Teams[i].team1 || '';
-        t2 = round1Teams[i].team2 || '';
+      const prev1 = r > 1 ? state[r - 1][i * 2]?.winner || '' : '';
+      const prev2 = r > 1 ? state[r - 1][i * 2 + 1]?.winner || '' : '';
+      const override =
+        (roundTeams && roundTeams[r] && roundTeams[r][i]) ||
+        (r === 1 && round1Teams && round1Teams[i]) ||
+        null;
+      if (override) {
+        t1 = override.team1 || (r > 1 ? prev1 : '');
+        t2 = override.team2 || (r > 1 ? prev2 : '');
       } else if (r > 1) {
-        t1 = state[r - 1][i * 2]?.winner || '';
-        t2 = state[r - 1][i * 2 + 1]?.winner || '';
+        t1 = prev1;
+        t2 = prev2;
       }
       const winner = matchWinner(
         { ...tm, team1_id: t1, team2_id: t2 },
@@ -319,4 +325,59 @@ export function seedKnockoutRound1(standings, knockoutTeams) {
     });
   }
   return res;
+}
+
+/**
+ * League + Playoffs (exactly 4 teams): single round-robin league, then the
+ * table topper goes straight to the Final, 2nd plays 3rd in the Semifinal,
+ * and the last-placed team is eliminated.
+ */
+export function generateLeaguePlayoffs(tournamentId, teamIds) {
+  const league = generateLeague(tournamentId, teamIds);
+  return [
+    ...league,
+    {
+      tournament_id: tournamentId,
+      stage: 'knockout',
+      round: 1,
+      match_index: 0,
+      stage_label: 'Semifinal',
+      team1_id: '',
+      team2_id: '',
+      winner_team_id: '',
+      match_id: '',
+      next_round: 2,
+      next_index: 0,
+      status: 'pending'
+    },
+    {
+      tournament_id: tournamentId,
+      stage: 'knockout',
+      round: 2,
+      match_index: 0,
+      stage_label: 'Final',
+      team1_id: '',
+      team2_id: '',
+      winner_team_id: '',
+      match_id: '',
+      next_round: 0,
+      next_index: 0,
+      status: 'pending'
+    }
+  ];
+}
+
+/**
+ * Seed the playoffs bracket from the final league standings: topper anchored
+ * into the Final's team1 slot, 2nd vs 3rd into the Semifinal. The Final's
+ * team2 falls through to the Semifinal winner during derivation.
+ */
+export function seedPlayoffs(standings) {
+  const at = (i) => (standings[i] && standings[i].id) || '';
+  return {
+    roundTeams: {
+      1: [{ team1: at(1), team2: at(2) }],
+      2: [{ team1: at(0), team2: '' }]
+    }
+  };
 }

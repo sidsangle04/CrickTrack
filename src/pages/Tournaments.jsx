@@ -9,12 +9,13 @@ import {
   ArrowLeft,
   Loader2,
   Crown,
-  Trash2
+  Trash2,
+  XCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CreateTournamentModal from '@/components/tournament/CreateTournamentModal';
 import BracketView from '@/components/tournament/BracketView';
-import { deriveBracket, computeStandings, leagueComplete, seedKnockoutRound1 } from '@/lib/bracket';
+import { deriveBracket, computeStandings, leagueComplete, seedKnockoutRound1, seedPlayoffs } from '@/lib/bracket';
 import LeagueView from '@/components/tournament/LeagueView';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 
@@ -70,6 +71,17 @@ export default function Tournaments() {
 
   const derived = useMemo(() => {
     if (!tmMatches.length) return null;
+    if (selected?.format === 'league_playoffs') {
+      const leagueMatches = tmMatches.filter((m) => m.stage === 'league');
+      const knockoutMatches = tmMatches.filter((m) => m.stage !== 'league');
+      const standings = computeStandings(leagueMatches, matchesMap);
+      const done = leagueComplete(leagueMatches, matchesMap);
+      const roundTeams = done ? seedPlayoffs(standings).roundTeams : null;
+      const knockout = knockoutMatches.length
+        ? deriveBracket(knockoutMatches, matchesMap, { roundTeams })
+        : null;
+      return { format: 'league_playoffs', leagueMatches, standings, leagueComplete: done, knockout };
+    }
     if (selected?.format === 'league_knockout') {
       const leagueMatches = tmMatches.filter((m) => m.stage === 'league');
       const knockoutMatches = tmMatches.filter((m) => m.stage !== 'league');
@@ -133,8 +145,14 @@ export default function Tournaments() {
   };
 
   if (selected) {
+    const isPlayoffs = selected.format === 'league_playoffs';
     const isLeagueKO = selected.format === 'league_knockout';
-    const formatLabel = isLeagueKO ? 'League + Knockout' : 'Knockout';
+    const isLeagueStage = isLeagueKO || isPlayoffs;
+    const formatLabel = isPlayoffs
+      ? 'League + Playoffs'
+      : isLeagueKO
+      ? 'League + Knockout'
+      : 'Knockout';
     return (
       <div className="pb-24 md:pb-6">
         <div className="flex items-center gap-3 mb-6">
@@ -164,7 +182,7 @@ export default function Tournaments() {
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
           </div>
-        ) : isLeagueKO ? (
+        ) : isLeagueStage ? (
           <>
             <LeagueView
               leagueMatches={derived.leagueMatches}
@@ -173,14 +191,51 @@ export default function Tournaments() {
               matchesMap={matchesMap}
               leagueComplete={derived.leagueComplete}
               knockoutTeams={selected.knockout_teams || 4}
+              seedLabels={isPlayoffs ? ['Final', 'SF', 'SF', 'OUT'] : undefined}
+              footerNote={
+                isPlayoffs
+                  ? 'Table topper goes straight to the Final · 2nd vs 3rd in the Semifinal · 4th eliminated · Win = 2 pts'
+                  : undefined
+              }
               onSetWinner={handleSetWinner}
               onStartGame={handleStartGame}
               onOpenMatch={handleOpenMatch}
             />
+            {isPlayoffs && derived.leagueComplete && derived.standings.length === 4 && (
+              <div className="mt-6 grid sm:grid-cols-3 gap-2">
+                <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 flex items-center gap-2.5">
+                  <Crown className="w-4 h-4 text-amber-400 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wide">Straight to Final</div>
+                    <div className="text-sm text-white font-medium truncate">
+                      {teamsMap[derived.standings[0].id]?.name || 'TBD'}
+                    </div>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-blue-500/40 bg-blue-500/10 p-3 flex items-center gap-2.5">
+                  <Trophy className="w-4 h-4 text-blue-400 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-[10px] text-blue-400 font-semibold uppercase tracking-wide">Semifinal</div>
+                    <div className="text-sm text-white font-medium truncate">
+                      {teamsMap[derived.standings[1].id]?.name || 'TBD'} vs {teamsMap[derived.standings[2].id]?.name || 'TBD'}
+                    </div>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 flex items-center gap-2.5">
+                  <XCircle className="w-4 h-4 text-red-400 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-[10px] text-red-400 font-semibold uppercase tracking-wide">Eliminated</div>
+                    <div className="text-sm text-white font-medium truncate">
+                      {teamsMap[derived.standings[3].id]?.name || 'TBD'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             {derived.knockout && (
               <div className="mt-8">
                 <div className="flex items-center gap-2 mb-3">
-                  <h2 className="text-sm font-semibold text-white uppercase tracking-wide">Knockout</h2>
+                  <h2 className="text-sm font-semibold text-white uppercase tracking-wide">{isPlayoffs ? 'Playoffs' : 'Knockout'}</h2>
                   {!derived.leagueComplete && (
                     <span className="text-xs text-slate-500">· seeds after league stage</span>
                   )}
@@ -279,7 +334,12 @@ export default function Tournaments() {
                 </div>
                 <h3 className="font-semibold text-white mb-1">{t.name}</h3>
                 <p className="text-sm text-slate-400">
-                  {t.num_teams} teams · {t.format === 'league_knockout' ? 'League + KO' : 'Knockout'}
+                  {t.num_teams} teams ·{' '}
+                  {t.format === 'league_playoffs'
+                    ? 'League + Playoffs'
+                    : t.format === 'league_knockout'
+                    ? 'League + KO'
+                    : 'Knockout'}
                 </p>
                 {champ && (
                   <p className="text-sm text-amber-400 mt-2">🏆 {champ.name}</p>

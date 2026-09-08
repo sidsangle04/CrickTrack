@@ -31,10 +31,11 @@
       "type": "string",
       "enum": [
         "knockout",
-        "league_knockout"
+        "league_knockout",
+        "league_playoffs"
       ],
       "default": "knockout",
-      "description": "Tournament format: pure knockout or round-robin league then knockout"
+      "description": "Tournament format: pure knockout, round-robin league then knockout, or 4-team league + playoffs (topper straight to final, 2nd vs 3rd semifinal)"
     },
     "knockout_teams": {
       "type": "number",

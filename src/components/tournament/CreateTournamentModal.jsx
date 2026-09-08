@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import {
   generateBracket,
   generateLeague,
-  generateLeagueKnockoutBracket
+  generateLeagueKnockoutBracket,
+  generateLeaguePlayoffs
 } from '@/lib/bracket';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 
@@ -24,11 +25,16 @@ export default function CreateTournamentModal({ teams, onClose, onCreated }) {
   const [selected, setSelected] = useState([]);
   const [saving, setSaving] = useState(false);
 
-  const toggle = (id) =>
-    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  const toggle = (id) => {
+    const next = selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id];
+    setSelected(next);
+    if (format === 'league_playoffs' && next.length !== 4) setFormat('knockout');
+  };
 
   const isLeagueKO = format === 'league_knockout';
-  const canCreate = name.trim() && selected.length >= 2;
+  const isPlayoffs = format === 'league_playoffs';
+  const canCreate =
+    name.trim() && selected.length >= 2 && (!isPlayoffs || selected.length === 4);
 
   const handleCreate = async () => {
     if (!canCreate || saving) return;
@@ -46,7 +52,9 @@ export default function CreateTournamentModal({ teams, onClose, onCreated }) {
       });
 
       let matches = [];
-      if (isLeagueKO) {
+      if (isPlayoffs) {
+        matches = generateLeaguePlayoffs(tour.id, ordered);
+      } else if (isLeagueKO) {
         matches = [
           ...generateLeague(tour.id, ordered),
           ...generateLeagueKnockoutBracket(tour.id, knockoutTeams)
@@ -92,7 +100,7 @@ export default function CreateTournamentModal({ teams, onClose, onCreated }) {
           {/* Format */}
           <div>
             <Label className="text-slate-200">Format</Label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => setFormat('knockout')}
                 className={`p-3 rounded-lg text-left border transition-colors ${
@@ -114,6 +122,30 @@ export default function CreateTournamentModal({ teams, onClose, onCreated }) {
               >
                 <div className="text-sm font-medium text-white">League + Knockout</div>
                 <div className="text-[11px] text-slate-400 mt-0.5">Round-robin then semis</div>
+              </button>
+              <button
+                onClick={() => setFormat('league_playoffs')}
+                disabled={selected.length !== 4}
+                className={`p-3 rounded-lg text-left border transition-colors ${
+                  format === 'league_playoffs'
+                    ? 'bg-emerald-500/20 border-emerald-500/50'
+                    : selected.length !== 4
+                    ? 'bg-slate-800/60 border-slate-800 cursor-not-allowed'
+                    : 'bg-slate-800 border-slate-700 hover:border-slate-600'
+                }`}
+              >
+                <div
+                  className={`text-sm font-medium ${
+                    selected.length !== 4 && format !== 'league_playoffs'
+                      ? 'text-slate-500'
+                      : 'text-white'
+                  }`}
+                >
+                  League + Playoffs
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">
+                  {selected.length !== 4 ? 'Exactly 4 teams' : 'Topper straight to final'}
+                </div>
               </button>
             </div>
           </div>
@@ -184,7 +216,9 @@ export default function CreateTournamentModal({ teams, onClose, onCreated }) {
           </div>
 
           <p className="text-xs text-slate-500">
-            {isLeagueKO
+            {isPlayoffs
+              ? 'Each team plays every other team once. The table topper goes straight to the Final, 2nd plays 3rd in the Semifinal, and the last team is eliminated.'
+              : isLeagueKO
               ? 'Each team plays every other team once. The top teams then advance to a seeded knockout bracket.'
               : 'A single-elimination bracket is generated automatically. Teams get byes if the count isn\u2019t a power of 2.'}
           </p>
