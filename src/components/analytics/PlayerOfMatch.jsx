@@ -33,13 +33,19 @@ function computePlayerRatings({ innings, batterInnings, bowlerInnings, deliverie
     pts += fours * 1 + sixes * 2; // boundaries
     if (runs >= 100) pts += 10;
     else if (runs >= 50) pts += 5;
+    const notOut = b.status === 'not_out';
+    if (notOut) pts += 2; // anchoring bonus for finishing not out
     if (balls > 0) {
       const sr = (runs / balls) * 100;
-      if (sr > 130) pts += 0.5 * (sr - 130);
-      else if (sr < 100) pts -= 0.5 * (100 - sr);
+      // 0.5/pt above or below SR 100 when facing more than 5 balls,
+      // 0.3/pt for small cameos (5 balls or fewer), bonus capped at +50
+      const factor = balls <= 5 ? 0.3 : 0.5;
+      let adj = factor * (sr - 100);
+      if (balls <= 5 && adj > 50) adj = 50;
+      pts += adj;
     }
     r.batting = pts;
-    r.breakdown.batting = { runs, balls, fours, sixes, sr: balls > 0 ? (runs / balls) * 100 : 0, pts };
+    r.breakdown.batting = { runs, balls, fours, sixes, sr: balls > 0 ? (runs / balls) * 100 : 0, notOut, pts };
   });
 
   // Bowling
