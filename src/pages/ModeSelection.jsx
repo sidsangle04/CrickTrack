@@ -2,7 +2,7 @@ import React from 'react';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 import { Square, Circle, ChevronRight } from 'lucide-react';
 
-const LOGO_URL = 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/61a392177_Samplelogoturfcricket.png';
+const LOGO_URL = 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/c49e9414c_CrickTrackLogo.png';
 
 export default function ModeSelection() {
   const { setMode } = useGroundShape();
@@ -12,10 +12,10 @@ export default function ModeSelection() {
       <div className="text-center mb-10">
         <img
           src={LOGO_URL}
-          alt="TURF Cricket"
+          alt="CrickTrack"
           className="h-16 w-auto mx-auto mb-4 rounded-xl shadow-lg"
         />
-        <h1 className="text-3xl font-bold text-white tracking-tight">TURF Cricket</h1>
+        <h1 className="text-3xl font-bold text-white tracking-tight">CrickTrack</h1>
         <p className="text-slate-400 text-sm mt-1">Tag | Analyse | Elevate</p>
         <p className="text-slate-300 text-sm mt-4">Choose your format to begin</p>
       </div>

@@ -47,13 +47,13 @@ export default function Layout({ children, currentPageName }) {
           <div className="flex items-center justify-between">
             <Link to={createPageUrl('Home')} className="flex items-center gap-3">
               <img
-                src="https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/61a392177_Samplelogoturfcricket.png"
-                alt="TURF Cricket"
+                src="https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/c49e9414c_CrickTrackLogo.png"
+                alt="CrickTrack"
                 className="h-10 w-auto rounded-lg shadow-lg shrink-0" />
               
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-bold text-white tracking-tight">TURF Cricket</h1>
+                  <h1 className="text-lg font-bold text-white tracking-tight">CrickTrack</h1>
                   <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold border ${
                     isCircular
                       ? 'bg-cyan-500/15 text-cyan-400 border-cyan-500/40'
@@ -145,7 +145,7 @@ export default function Layout({ children, currentPageName }) {
               <button
                 onClick={() => setShowInvite(true)}
                 className="flex items-center gap-2 px-3 py-2 bg-slate-800 text-slate-300 rounded-lg font-medium text-sm hover:text-white hover:bg-slate-700 transition-all"
-                title="Invite a person to join TURF Cricket"
+                title="Invite a person to join CrickTrack"
               >
                 <UserPlus className="w-4 h-4" />
                 <span className="hidden sm:inline">Invite</span>
