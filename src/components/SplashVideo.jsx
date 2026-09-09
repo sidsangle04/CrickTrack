@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronRight } from 'lucide-react';
 
-const VIDEO_URL = 'https://media.base44.com/videos/public/69cd6e7dda99287bd2ab65f2/e53fe66bf_Finalintrovideo.mov';
-const LOGO_URL = 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/c49e9414c_CrickTrackLogo.png';
+const VIDEO_URL = 'https://media.base44.com/videos/public/69cd6e7dda99287bd2ab65f2/5b8b229ba_CrickTrackfinalintro.mov';
 
 export default function SplashVideo() {
   const [visible, setVisible] = useState(true);
@@ -39,17 +38,6 @@ export default function SplashVideo() {
         />
       )}
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none" />
-
-      <div className="relative z-10 flex flex-col items-center px-6 pointer-events-none">
-        <img
-          src={LOGO_URL}
-          alt="CrickTrack"
-          className="w-44 sm:w-52 md:w-60 rounded-2xl shadow-2xl"
-        />
-        <p className="mt-4 text-white/90 text-xs sm:text-sm tracking-[0.25em] uppercase">
-          Tag | Analyse | Elevate
-        </p>
-      </div>
 
       <button
         onClick={(e) => { e.stopPropagation(); dismiss(); }}
