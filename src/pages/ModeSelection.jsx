@@ -13,7 +13,7 @@ export default function ModeSelection() {
         <img
           src={LOGO_URL}
           alt="CrickTrack"
-          className="h-16 w-auto mx-auto mb-4 rounded-xl shadow-lg"
+          className="h-16 w-auto mx-auto mb-4 rounded-xl shadow-lg bg-white p-1.5"
         />
         <h1 className="text-3xl font-bold text-white tracking-tight">CrickTrack</h1>
         <p className="text-slate-400 text-sm mt-1">Tag | Analyse | Elevate</p>
