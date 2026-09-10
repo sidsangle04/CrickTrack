@@ -1,19 +1,20 @@
 import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Swords } from 'lucide-react';
+import { Loader2, ArrowLeftRight } from 'lucide-react';
 import { useGroundShape } from '@/lib/GroundShapeContext';
+import PlayerSearchSelect from '@/components/compare/PlayerSearchSelect';
 import H2HStatCards from '@/components/compare/H2HStatCards';
 import DominanceMeter from '@/components/compare/DominanceMeter';
 import CoachInsight from '@/components/compare/CoachInsight';
+import CareerCompare from '@/components/compare/CareerCompare';
 
 // Dismissal types credited to the bowler (run outs / retirements don't count)
 const BOWLER_CREDITED = ['bowled', 'caught', 'lbw', 'stumped', 'hit_wicket'];
 
 export default function PlayerComparison() {
-  const [batterId, setBatterId] = useState('');
-  const [bowlerId, setBowlerId] = useState('');
+  const [playerAId, setPlayerAId] = useState('');
+  const [playerBId, setPlayerBId] = useState('');
   const { mode } = useGroundShape();
 
   const { data: allPlayers = [], isLoading: playersLoading } = useQuery({
@@ -24,6 +25,16 @@ export default function PlayerComparison() {
   const { data: allDeliveries = [] } = useQuery({
     queryKey: ['all-deliveries-analytics'],
     queryFn: () => base44.entities.Delivery.filter({ is_voided: false })
+  });
+
+  const { data: allBatterInnings = [] } = useQuery({
+    queryKey: ['all-batter-analytics'],
+    queryFn: () => base44.entities.BatterInnings.list()
+  });
+
+  const { data: allBowlerInnings = [] } = useQuery({
+    queryKey: ['all-bowler-analytics'],
+    queryFn: () => base44.entities.BowlerInnings.list()
   });
 
   const { data: allMatches = [] } = useQuery({
@@ -53,23 +64,41 @@ export default function PlayerComparison() {
     [allDeliveries, modeMatchIds]
   );
 
-  // Sort candidates so players who have actually batted/bowled appear first
-  const batterCandidates = useMemo(() => {
-    const batted = new Set(modeDeliveries.map(d => d.striker_id));
-    return [...modePlayers].sort((a, b) => (batted.has(b.id) ? 1 : 0) - (batted.has(a.id) ? 1 : 0));
-  }, [modePlayers, modeDeliveries]);
+  const modeBatterInnings = useMemo(
+    () => allBatterInnings.filter(b => modeMatchIds.has(b.match_id)),
+    [allBatterInnings, modeMatchIds]
+  );
 
-  const bowlerCandidates = useMemo(() => {
-    const bowled = new Set(modeDeliveries.map(d => d.bowler_id));
-    return [...modePlayers].sort((a, b) => (bowled.has(b.id) ? 1 : 0) - (bowled.has(a.id) ? 1 : 0));
-  }, [modePlayers, modeDeliveries]);
+  const modeBowlerInnings = useMemo(
+    () => allBowlerInnings.filter(b => modeMatchIds.has(b.match_id)),
+    [allBowlerInnings, modeMatchIds]
+  );
 
-  const batter = modePlayers.find(p => p.id === batterId);
-  const bowler = modePlayers.find(p => p.id === bowlerId);
+  const playerA = modePlayers.find(p => p.id === playerAId);
+  const playerB = modePlayers.find(p => p.id === playerBId);
 
+  // Match-up mode from the pair's roles:
+  //  - exactly one pure bowler  -> batter vs bowler duel
+  //  - both pure bowlers        -> bowling career comparison
+  //  - neither a pure bowler    -> batting career comparison
+  const isBowlerRole = (p) => p?.role === 'bowler';
+  const matchup = useMemo(() => {
+    if (!playerA || !playerB) return null;
+    const aB = isBowlerRole(playerA), bB = isBowlerRole(playerB);
+    if (aB && bB) return { type: 'bowler-vs-bowler' };
+    if (aB || bB) {
+      const batter = aB ? playerB : playerA;
+      const bowler = aB ? playerA : playerB;
+      return { type: 'duel', batter, bowler };
+    }
+    return { type: 'batter-vs-batter' };
+  }, [playerA, playerB]);
+
+  // ---- Batter vs bowler: ball-by-ball duel ----
   const h2h = useMemo(() => {
-    if (!batterId || !bowlerId) return null;
-    const d = modeDeliveries.filter(x => x.striker_id === batterId && x.bowler_id === bowlerId);
+    if (matchup?.type !== 'duel') return null;
+    const { batter, bowler } = matchup;
+    const d = modeDeliveries.filter(x => x.striker_id === batter.id && x.bowler_id === bowler.id);
     if (d.length === 0) return { empty: true };
 
     const ballsFaced = d.filter(x => !x.is_wide).length;
@@ -80,7 +109,7 @@ export default function PlayerComparison() {
     const dots = d.filter(x => (x.runs_total || 0) === 0 && !x.is_wicket).length;
     const fours = d.filter(x => (x.runs_bat || 0) === 4).length;
     const sixes = d.filter(x => (x.runs_bat || 0) === 6).length;
-    const wkts = d.filter(x => x.is_wicket && x.player_out_id === batterId && BOWLER_CREDITED.includes(x.wicket_type));
+    const wkts = d.filter(x => x.is_wicket && x.player_out_id === batter.id && BOWLER_CREDITED.includes(x.wicket_type));
     const matches = new Set(d.map(x => x.match_id)).size;
 
     const strikeRate = ballsFaced > 0 ? (runsBat / ballsFaced) * 100 : 0;
@@ -88,9 +117,6 @@ export default function PlayerComparison() {
     const boundaryPct = ballsFaced > 0 ? ((fours + sixes) / ballsFaced) * 100 : 0;
     const dotPct = ballsFaced > 0 ? (dots / ballsFaced) * 100 : 0;
 
-    // Weighted duel score: every run (plus boundary bonuses) banks points for
-    // the batter; every dot ball banks points for the bowler, and a dismissal
-    // is worth roughly 25 runs of dominance.
     const batterPoints = runsBat + fours * 2 + sixes * 4;
     const bowlerPoints = wkts.length * 25 + dots * 1.5;
     const total = batterPoints + bowlerPoints;
@@ -103,7 +129,51 @@ export default function PlayerComparison() {
       wickets: wkts.length, wicketTypes: wkts.map(x => x.wicket_type),
       strikeRate, economy, boundaryPct, dotPct, batterShare, verdict
     };
-  }, [batterId, bowlerId, modeDeliveries]);
+  }, [matchup, modeDeliveries]);
+
+  // ---- Career stats for same-type comparisons ----
+  const getCareer = (playerId) => {
+    const batting = modeBatterInnings.filter(b => b.player_id === playerId);
+    const bowling = modeBowlerInnings.filter(b => b.player_id === playerId);
+
+    const batRuns = batting.reduce((s, b) => s + (b.runs || 0), 0);
+    const batBalls = batting.reduce((s, b) => s + (b.balls_faced || 0), 0);
+    const batOuts = batting.reduce((s, b) => s + (b.is_out ? 1 : 0), 0);
+    const batFours = batting.reduce((s, b) => s + (b.fours || 0), 0);
+    const batSixes = batting.reduce((s, b) => s + (b.sixes || 0), 0);
+    const batDots = batting.reduce((s, b) => s + (b.dots || 0), 0);
+
+    const bowlWkts = bowling.reduce((s, b) => s + (b.wickets || 0), 0);
+    const bowlRuns = bowling.reduce((s, b) => s + (b.runs_conceded || 0), 0);
+    const bowlBalls = bowling.reduce((s, b) => s + (b.overs || 0) * 6 + (b.balls || 0), 0);
+    const bowlMaidens = bowling.reduce((s, b) => s + (b.maidens || 0), 0);
+    const bowlDots = bowling.reduce((s, b) => s + (b.dots || 0), 0);
+
+    return {
+      batting: {
+        innings: batting.length,
+        runs: batRuns,
+        average: +(batOuts > 0 ? batRuns / batOuts : batRuns).toFixed(1),
+        strikeRate: +(batBalls > 0 ? (batRuns / batBalls) * 100 : 0).toFixed(1),
+        highScore: batting.length ? Math.max(...batting.map(b => b.runs || 0)) : 0,
+        fours: batFours,
+        sixes: batSixes,
+        boundaries: batFours + batSixes,
+        fifties: batting.filter(b => (b.runs || 0) >= 50).length,
+        dotPct: +(batBalls > 0 ? (batDots / batBalls) * 100 : 0).toFixed(1),
+      },
+      bowling: {
+        innings: bowling.length,
+        wickets: bowlWkts,
+        economy: +(bowlBalls > 0 ? (bowlRuns / bowlBalls) * 6 : 0).toFixed(2),
+        average: +(bowlWkts > 0 ? bowlRuns / bowlWkts : 999).toFixed(1),
+        strikeRate: +(bowlWkts > 0 ? bowlBalls / bowlWkts : 999).toFixed(1),
+        maidens: bowlMaidens,
+        dots: bowlDots,
+        fiveWickets: bowling.filter(b => (b.wickets || 0) >= 5).length,
+      }
+    };
+  };
 
   if (playersLoading) {
     return (
@@ -116,92 +186,125 @@ export default function PlayerComparison() {
   return (
     <div className="pb-24 md:pb-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">Batter vs Bowler</h1>
-        <p className="text-slate-400 text-sm">Who's winning the duel? Pick a batter and a bowler to see every ball they've faced off.</p>
+        <h1 className="text-2xl font-bold text-white mb-1">Compare Players</h1>
+        <p className="text-slate-400 text-sm">
+          Any matchup — batter vs bowler shows their ball-by-ball duel; two batters or two bowlers get a career-stats report.
+        </p>
       </div>
 
-      {/* Selectors */}
+      {/* Searchable selectors */}
       <div className="grid grid-cols-2 gap-4 mb-8">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-3 h-3 rounded-full bg-emerald-400" />
-            <span className="text-sm text-slate-400">Batter</span>
+            <span className="text-sm text-slate-400">Player 1</span>
           </div>
-          <Select value={batterId} onValueChange={setBatterId}>
-            <SelectTrigger className="bg-slate-800 border-emerald-500/40 text-white">
-              <SelectValue placeholder="Select a batter" />
-            </SelectTrigger>
-            <SelectContent>
-              {batterCandidates.filter(p => p.id !== bowlerId).map(p => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.name} — {teamsMap[p.team_id]?.short_name || '?'}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <PlayerSearchSelect
+            value={playerAId}
+            onChange={setPlayerAId}
+            players={modePlayers.filter(p => p.id !== playerBId)}
+            teamsMap={teamsMap}
+            placeholder="Search a player..."
+            accentClass="border-emerald-500/40 hover:border-emerald-500/70"
+          />
         </div>
-
         <div>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-3 h-3 rounded-full bg-rose-400" />
-            <span className="text-sm text-slate-400">Bowler</span>
+            <span className="text-sm text-slate-400">Player 2</span>
           </div>
-          <Select value={bowlerId} onValueChange={setBowlerId}>
-            <SelectTrigger className="bg-slate-800 border-rose-500/40 text-white">
-              <SelectValue placeholder="Select a bowler" />
-            </SelectTrigger>
-            <SelectContent>
-              {bowlerCandidates.filter(p => p.id !== batterId).map(p => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.name} — {teamsMap[p.team_id]?.short_name || '?'}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <PlayerSearchSelect
+            value={playerBId}
+            onChange={setPlayerBId}
+            players={modePlayers.filter(p => p.id !== playerAId)}
+            teamsMap={teamsMap}
+            placeholder="Search a player..."
+            accentClass="border-rose-500/40 hover:border-rose-500/70"
+          />
         </div>
       </div>
 
-      {(!batterId || !bowlerId) && (
+      {(!playerA || !playerB) && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4">
-            <Swords className="w-8 h-8 text-slate-600" />
+            <ArrowLeftRight className="w-8 h-8 text-slate-600" />
           </div>
-          <h3 className="text-lg font-medium text-white mb-2">Set up the duel</h3>
-          <p className="text-slate-400 text-sm">Choose a batter and a bowler to see who has dominated their match-up.</p>
+          <h3 className="text-lg font-medium text-white mb-2">Pick two players</h3>
+          <p className="text-slate-400 text-sm">Search and select any two players to compare them.</p>
         </div>
       )}
 
-      {h2h?.empty && batter && bowler && (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4">
-            <Swords className="w-8 h-8 text-slate-600" />
-          </div>
-          <h3 className="text-lg font-medium text-white mb-2">No head-to-head yet</h3>
-          <p className="text-slate-400 text-sm max-w-md">
-            {batter.name} has never faced {bowler.name} with the bat in {mode === 'circular' ? 'Circular' : 'TURF'} mode.
-            Score or import a match between their teams and the duel will appear here.
-          </p>
-        </div>
-      )}
-
-      {h2h && !h2h.empty && batter && bowler && (
+      {playerA && playerB && matchup && (
         <>
+          {/* Player header cards */}
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 text-center">
-              <div className="text-lg font-bold text-emerald-400">{batter.name}</div>
-              <div className="text-xs text-slate-400">{teamsMap[batter.team_id]?.name || 'Unknown Team'}</div>
-              <div className="text-xs text-slate-500 mt-1 capitalize">{batter.role?.replace('_', ' ')}</div>
+              <div className="text-lg font-bold text-emerald-400">{playerA.name}</div>
+              <div className="text-xs text-slate-400">{teamsMap[playerA.team_id]?.name || 'Unknown Team'}</div>
+              <div className="text-xs text-slate-500 mt-1 capitalize">{playerA.role?.replace('_', ' ')}</div>
             </div>
             <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-4 text-center">
-              <div className="text-lg font-bold text-rose-400">{bowler.name}</div>
-              <div className="text-xs text-slate-400">{teamsMap[bowler.team_id]?.name || 'Unknown Team'}</div>
-              <div className="text-xs text-slate-500 mt-1 capitalize">{bowler.role?.replace('_', ' ')}</div>
+              <div className="text-lg font-bold text-rose-400">{playerB.name}</div>
+              <div className="text-xs text-slate-400">{teamsMap[playerB.team_id]?.name || 'Unknown Team'}</div>
+              <div className="text-xs text-slate-500 mt-1 capitalize">{playerB.role?.replace('_', ' ')}</div>
             </div>
           </div>
 
-          <H2HStatCards h2h={h2h} batterName={batter.name} bowlerName={bowler.name} />
-          <DominanceMeter share={h2h.batterShare} batterName={batter.name} bowlerName={bowler.name} />
-          <CoachInsight h2h={h2h} batterName={batter.name} bowlerName={bowler.name} />
+          {/* Batter vs bowler duel */}
+          {matchup.type === 'duel' && h2h?.empty && (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4">
+                <ArrowLeftRight className="w-8 h-8 text-slate-600" />
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">No head-to-head yet</h3>
+              <p className="text-slate-400 text-sm max-w-md">
+                {matchup.batter.name} has never faced {matchup.bowler.name} with the bat in {mode === 'circular' ? 'Circular' : 'TURF'} mode.
+                Score or import a match between their teams and the duel will appear here.
+              </p>
+            </div>
+          )}
+
+          {matchup.type === 'duel' && h2h && !h2h.empty && (
+            <>
+              <div className="mb-4 text-center text-sm font-medium text-cyan-400">
+                Batter vs Bowler · ball-by-ball duel
+              </div>
+              <H2HStatCards h2h={h2h} batterName={matchup.batter.name} bowlerName={matchup.bowler.name} />
+              <DominanceMeter share={h2h.batterShare} batterName={matchup.batter.name} bowlerName={matchup.bowler.name} />
+              <CoachInsight h2h={h2h} batterName={matchup.batter.name} bowlerName={matchup.bowler.name} />
+            </>
+          )}
+
+          {/* Two batters / two bowlers: career stats report */}
+          {matchup.type === 'batter-vs-batter' && (
+            <>
+              <div className="mb-4 text-center text-sm font-medium text-cyan-400">
+                Batter vs Batter · career record
+              </div>
+              <CareerCompare
+                type="batting"
+                statsA={getCareer(playerA.id).batting}
+                statsB={getCareer(playerB.id).batting}
+                playerA={playerA}
+                playerB={playerB}
+              />
+            </>
+          )}
+
+          {matchup.type === 'bowler-vs-bowler' && (
+            <>
+              <div className="mb-4 text-center text-sm font-medium text-cyan-400">
+                Bowler vs Bowler · career record
+              </div>
+              <CareerCompare
+                type="bowling"
+                statsA={getCareer(playerA.id).bowling}
+                statsB={getCareer(playerB.id).bowling}
+                playerA={playerA}
+                playerB={playerB}
+              />
+            </>
+          )}
         </>
       )}
     </div>
