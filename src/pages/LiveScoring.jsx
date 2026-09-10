@@ -92,6 +92,22 @@ export default function LiveScoring() {
     };
   };
 
+  // Optimistically patches the current innings on screen (instant UI) and
+  // persists the update on the background write queue, then quietly refetches.
+  const applyInningsPatch = (patch) => {
+    const live = getLiveState();
+    const liveInnings = live.innings;
+    if (!liveInnings) return;
+    queryClient.setQueryData(['innings', matchId],
+      live.allInnings.map((i) => i.id === liveInnings.id ? { ...i, ...patch } : i));
+    writeChainRef.current = writeChainRef.current
+      .then(async () => {
+        await base44.entities.Innings.update(liveInnings.id, patch);
+        await refetchAll();
+      })
+      .catch(() => {});
+  };
+
   const { data: match, isLoading: matchLoading, refetch: refetchMatch } = useQuery({
     queryKey: ['match', matchId],
     queryFn: async () => {
@@ -1076,48 +1092,39 @@ export default function LiveScoring() {
 
   const handleSelectBatter = async (playerId) => {
     const currentPendingAction = pendingAction;
+    const live = getLiveState();
+    const liveInnings = live.innings;
+    if (!liveInnings) return;
 
-    let batterStats = batterInnings.find((b) => b.player_id === playerId);
-    if (!batterStats) {
-      batterStats = await base44.entities.BatterInnings.create({
+    // Create the batter's stats record first (scoring needs its real id), then
+    // advance the UI instantly while the innings update persists behind.
+    const existingStats = live.batters.find((b) => b.player_id === playerId);
+    if (!existingStats) {
+      const createdStats = await base44.entities.BatterInnings.create({
         match_id: matchId,
-        innings_id: currentInnings.id,
+        innings_id: liveInnings.id,
         player_id: playerId,
-        batting_position: batterInnings.length + 1,
+        batting_position: live.batters.length + 1,
         status: 'batting'
       });
+      queryClient.setQueryData(['batter-innings', liveInnings.id], [...live.batters, createdStats]);
     }
 
     if (currentPendingAction === 'select_opener_1') {
-      await base44.entities.Innings.update(currentInnings.id, {
-        current_striker_id: playerId,
-        status: 'in_progress'
-      });
+      applyInningsPatch({ current_striker_id: playerId, status: 'in_progress' });
       setPendingAction('select_opener_2');
-      await refetchAll();
     } else if (currentPendingAction === 'select_opener_2') {
-      await base44.entities.Innings.update(currentInnings.id, {
-        current_non_striker_id: playerId
-      });
+      applyInningsPatch({ current_non_striker_id: playerId });
       setShowSelectBatter(false);
       setPendingAction('select_opening_bowler');
-      await refetchAll();
       setShowSelectBowler(true);
     } else if (currentPendingAction === 'new_batter' || currentPendingAction === 'new_batter_then_bowler') {
-      const latestInnings = await base44.entities.Innings.filter({ id: currentInnings.id });
-      const inn = latestInnings[0];
-
-      if (!inn.current_striker_id) {
-        await base44.entities.Innings.update(currentInnings.id, {
-          current_striker_id: playerId
-        });
-      } else {
-        await base44.entities.Innings.update(currentInnings.id, {
-          current_non_striker_id: playerId
-        });
-      }
+      // The empty crease is the null slot (strike already rotated on the ball)
+      const patch = liveInnings.current_striker_id
+        ? { current_non_striker_id: playerId }
+        : { current_striker_id: playerId };
+      applyInningsPatch(patch);
       setShowSelectBatter(false);
-      await refetchAll();
       if (currentPendingAction === 'new_batter_then_bowler') {
         setPendingAction('new_bowler');
         setShowSelectBowler(true);
@@ -1128,22 +1135,26 @@ export default function LiveScoring() {
   };
 
   const handleSelectBowler = async (playerId) => {
-    let bowlerStats = bowlerInnings.find((b) => b.player_id === playerId);
-    if (!bowlerStats) {
-      bowlerStats = await base44.entities.BowlerInnings.create({
+    const live = getLiveState();
+    const liveInnings = live.innings;
+    if (!liveInnings) return;
+
+    // Create the bowler's stats record first (scoring needs its real id), then
+    // close the modal instantly while the innings update persists behind.
+    const existingStats = live.bowlers.find((b) => b.player_id === playerId);
+    if (!existingStats) {
+      const createdStats = await base44.entities.BowlerInnings.create({
         match_id: matchId,
-        innings_id: currentInnings.id,
+        innings_id: liveInnings.id,
         player_id: playerId
       });
+      queryClient.setQueryData(['bowler-innings', liveInnings.id], [...live.bowlers, createdStats]);
     }
 
-    await base44.entities.Innings.update(currentInnings.id, {
-      current_bowler_id: playerId
-    });
+    applyInningsPatch({ current_bowler_id: playerId });
 
     setShowSelectBowler(false);
     setPendingAction(null);
-    await refetchAll();
 
     // Show bowler profile modal if not already profiled (skipped in Quick Scoring)
     if (match?.enable_visual_tagging !== false && !bowlerProfile[playerId]) {
