@@ -67,6 +67,31 @@ export default function LiveScoring() {
     setProcessing(v);
   };
 
+  // Serial background queue for delivery writes. The UI updates optimistically
+  // the instant a ball is tapped; the database writes then run one at a time in
+  // tap order so rapid taps can't clobber each other's updates.
+  const writeChainRef = useRef(Promise.resolve());
+
+  // Maps an optimistic partnership id to the real record id once the background
+  // create lands (follow-up partnership updates in the queue resolve through it).
+  const tempPshipIdsRef = useRef({});
+
+  // Freshest scoring state straight from the query cache — always current,
+  // even between rapid taps before React re-renders.
+  const getLiveState = () => {
+    const allInnings = queryClient.getQueryData(['innings', matchId]) || [];
+    const innings = allInnings.find((inn) => inn.status === 'in_progress') ||
+      allInnings.find((inn) => inn.status === 'not_started') ||
+      allInnings[allInnings.length - 1];
+    return {
+      allInnings,
+      innings,
+      batters: queryClient.getQueryData(['batter-innings', innings?.id]) || [],
+      bowlers: queryClient.getQueryData(['bowler-innings', innings?.id]) || [],
+      pships: queryClient.getQueryData(['partnerships', innings?.id]) || []
+    };
+  };
+
   const { data: match, isLoading: matchLoading, refetch: refetchMatch } = useQuery({
     queryKey: ['match', matchId],
     queryFn: async () => {
@@ -193,10 +218,27 @@ export default function LiveScoring() {
     ]);
   };
 
-  const processDelivery = async (deliveryData) => {
+  // Optimistic scoring: the ball is computed and painted on screen synchronously
+  // (score, over, striker rotation, this-over strip and the batter/bowler cards),
+  // while the database writes run afterwards on a serial background queue. Flow
+  // changes (wicket / end of over / end of innings) hold the keypad until their
+  // prompt appears, exactly as before.
+  const processDelivery = (deliveryData) => {
     if (processingRef.current) return;
-    setProcessingLocked(true);
-    try {
+
+    // Always compute on the freshest cached state — rapid taps chain correctly
+    // even before React re-renders.
+    const live = getLiveState();
+    const currentInnings = live.innings;
+    if (!currentInnings?.current_striker_id || !currentInnings?.current_bowler_id) return;
+    const batterInningsList = live.batters;
+    const bowlerInningsList = live.bowlers;
+    const partnershipsList = live.pships;
+    const batterInningsMap = batterInningsList.reduce((acc, b) => ({ ...acc, [b.player_id]: b }), {});
+    const bowlerInningsMap = bowlerInningsList.reduce((acc, b) => ({ ...acc, [b.player_id]: b }), {});
+    const now = new Date().toISOString();
+    const tempId = `tmp-${now}`;
+
     const isLegal = !deliveryData.is_wide && !deliveryData.is_no_ball;
     const runsScoredByBat = deliveryData.is_bye || deliveryData.is_leg_bye ? 0 : deliveryData.runs_bat || 0;
     const totalRuns = runsScoredByBat + (
@@ -205,10 +247,10 @@ export default function LiveScoring() {
     deliveryData.bye_runs || 0) + (
     deliveryData.leg_bye_runs || 0);
 
-    // Collect all independent writes and fire them in parallel — this is what
-    // makes a delivery apply in ~1 round trip instead of ~7 sequential ones.
-    const writePromises = [];
-    writePromises.push(base44.entities.Delivery.create({
+    // The ball is recorded locally first (for the instant on-screen update),
+    // then persisted by the background write queue below.
+    const writeThunks = [];
+    const deliveryRecord = {
       match_id: matchId,
       innings_id: currentInnings.id,
       over_number: currentInnings.current_over_number,
@@ -251,30 +293,34 @@ export default function LiveScoring() {
       turf_zone: deliveryData.turf_zone,
       is_catch_drop: deliveryData.is_catch_drop || false,
       dropped_by: deliveryData.dropped_by,
-      timestamp: new Date().toISOString()
-    }));
+      timestamp: now
+    };
+    writeThunks.push(() => base44.entities.Delivery.create(deliveryRecord));
 
     const strikerStats = batterInningsMap[currentInnings.current_striker_id];
+    let strikerUpdate = null;
     if (strikerStats && !deliveryData.is_wide) {
       // For bye/leg bye: count ball faced but no runs to batter
       const isByeOrLegBye = deliveryData.is_bye || deliveryData.is_leg_bye;
-      writePromises.push(base44.entities.BatterInnings.update(strikerStats.id, {
+      strikerUpdate = {
         runs: (strikerStats.runs || 0) + (isByeOrLegBye ? 0 : runsScoredByBat),
         balls_faced: (strikerStats.balls_faced || 0) + (isLegal || deliveryData.is_no_ball ? 1 : 0),
         fours: (strikerStats.fours || 0) + (!isByeOrLegBye && runsScoredByBat === 4 ? 1 : 0),
         sixes: (strikerStats.sixes || 0) + (!isByeOrLegBye && runsScoredByBat === 6 ? 1 : 0),
         dots: (strikerStats.dots || 0) + (isByeOrLegBye ? 0 : (runsScoredByBat === 0 && isLegal ? 1 : 0))
-      }));
+      };
+      writeThunks.push(() => base44.entities.BatterInnings.update(strikerStats.id, strikerUpdate));
     }
 
     const bowlerStats = bowlerInningsMap[currentInnings.current_bowler_id];
+    let bowlerUpdate = null;
     if (bowlerStats) {
       const newBalls = (bowlerStats.balls || 0) + (isLegal ? 1 : 0);
       const newOvers = Math.floor(newBalls / 6);
       // Bowler runs conceded should NOT include byes and leg byes
       const isByeOrLegBye = deliveryData.is_bye || deliveryData.is_leg_bye;
       const bowlerRunsConceded = (isByeOrLegBye ? 0 : runsScoredByBat) + (deliveryData.wide_runs || 0) + (deliveryData.no_ball_runs || 0);
-      writePromises.push(base44.entities.BowlerInnings.update(bowlerStats.id, {
+      bowlerUpdate = {
         balls: newBalls,
         overs: newOvers,
         runs_conceded: (bowlerStats.runs_conceded || 0) + bowlerRunsConceded,
@@ -284,15 +330,16 @@ export default function LiveScoring() {
         dots: (bowlerStats.dots || 0) + (isLegal && bowlerRunsConceded === 0 && !isByeOrLegBye ? 1 : 0),
         fours_conceded: (bowlerStats.fours_conceded || 0) + (!isByeOrLegBye && runsScoredByBat === 4 ? 1 : 0),
         sixes_conceded: (bowlerStats.sixes_conceded || 0) + (!isByeOrLegBye && runsScoredByBat === 6 ? 1 : 0)
-      }));
+      };
+      writeThunks.push(() => base44.entities.BowlerInnings.update(bowlerStats.id, bowlerUpdate));
     }
 
-    // Partnership tracking — find the active partnership from cached data
-    // (the processing lock guarantees the cache is fresh), accumulate, and
-    // collect the write as a promise so all writes run in parallel below.
-    const activePship = partnerships.find((p) => p.is_active);
+    // Partnership tracking — find the active partnership from the live cache,
+    // accumulate, and collect the write as a thunk for the background queue.
+    const activePship = partnershipsList.find((p) => p.is_active);
     const ballFaced = isLegal || deliveryData.is_no_ball;
-    let partnershipPromise;
+    let partnershipThunk;
+    let optimisticPship = null;
     if (activePship) {
       const strikerIsBatter1 = activePship.batter1_id === currentInnings.current_striker_id;
       const partnershipUpdate = {
@@ -310,9 +357,10 @@ export default function LiveScoring() {
         partnershipUpdate.is_active = false;
         partnershipUpdate.how_ended = deliveryData.wicket_type;
       }
-      partnershipPromise = base44.entities.Partnership.update(activePship.id, partnershipUpdate);
+      partnershipThunk = () => base44.entities.Partnership.update(tempPshipIdsRef.current[activePship.id] || activePship.id, partnershipUpdate);
+      optimisticPship = { ...activePship, ...partnershipUpdate };
     } else {
-      partnershipPromise = base44.entities.Partnership.create({
+      const pshipCreateFields = {
         match_id: matchId,
         innings_id: currentInnings.id,
         wicket_number: (currentInnings.total_wickets || 0) + 1,
@@ -326,7 +374,11 @@ export default function LiveScoring() {
         batter2_runs: 0,
         batter2_balls: 0,
         how_ended: deliveryData.is_wicket ? deliveryData.wicket_type : null
+      };
+      partnershipThunk = () => base44.entities.Partnership.create(pshipCreateFields).then((created) => {
+        tempPshipIdsRef.current[tempId] = created.id;
       });
+      optimisticPship = { id: tempId, ...pshipCreateFields };
     }
 
     let newBallInOver = currentInnings.current_ball_in_over + (isLegal ? 1 : 0);
@@ -351,17 +403,22 @@ export default function LiveScoring() {
     }
 
     let needNewBatter = false;
+    let outBatterWrite = null;
     if (deliveryData.is_wicket) {
       const playerOutId = deliveryData.player_out_id;
       const outBatterStats = batterInningsMap[playerOutId];
       if (outBatterStats) {
-        writePromises.push(base44.entities.BatterInnings.update(outBatterStats.id, {
-          is_out: true,
-          dismissal_type: deliveryData.wicket_type,
-          dismissed_by_bowler_id: deliveryData.is_run_out ? null : currentInnings.current_bowler_id,
-          dismissed_by_fielder_id: deliveryData.fielder_id,
-          status: 'out'
-        }));
+        outBatterWrite = {
+          id: outBatterStats.id,
+          fields: {
+            is_out: true,
+            dismissal_type: deliveryData.wicket_type,
+            dismissed_by_bowler_id: deliveryData.is_run_out ? null : currentInnings.current_bowler_id,
+            dismissed_by_fielder_id: deliveryData.fielder_id,
+            status: 'out'
+          }
+        };
+        writeThunks.push(() => base44.entities.BatterInnings.update(outBatterWrite.id, outBatterWrite.fields));
       }
 
       // Simply null out the position of the dismissed player after all rotations
@@ -402,19 +459,17 @@ export default function LiveScoring() {
     if (newNonStrikerId) {
       inningsUpdate.current_non_striker_id = newNonStrikerId;
     } else if (deliveryData.is_wicket) {
-      // Clear the non-striker position if they were dismissed  
+      // Clear the non-striker position if they were dismissed
       inningsUpdate.current_non_striker_id = null;
     }
 
-    writePromises.push(partnershipPromise);
-    writePromises.push(base44.entities.Innings.update(currentInnings.id, inningsUpdate));
+    writeThunks.push(partnershipThunk);
+    writeThunks.push(() => base44.entities.Innings.update(currentInnings.id, inningsUpdate));
 
-    await Promise.all(writePromises);
-
-    await refetchScoring();
-
-    const isAllOut = newTotalWickets >= maxWickets;
-    const isOversComplete = !isTest && newOverNumber >= maxOvers && newBallInOver === 0;
+    const localMaxWickets = currentInnings.is_super_over ? 2 : getMaxWickets(match);
+    const localMaxOvers = currentInnings.is_super_over ? 1 : (isTest ? Infinity : (match?.overs_per_innings || 20));
+    const isAllOut = newTotalWickets >= localMaxWickets;
+    const isOversComplete = !isTest && newOverNumber >= localMaxOvers && newBallInOver === 0;
     // Target is set to inn1 + 1. Team2 wins if they score >= target (i.e. > inn1 score).
     // Exact tie (inn2 == inn1) is handled at overs_complete/all_out via endInnings.
     const isTargetReached = currentInnings.target && newTotalRuns >= currentInnings.target;
@@ -423,26 +478,66 @@ export default function LiveScoring() {
     // and the global ball budget is exhausted.
     let testOverLimitReached = false;
     if (isTest && match?.is_over_limited && needNewBowler) {
-      const priorBalls = allInnings.filter((i) => i.id !== currentInnings.id).reduce((s, i) => s + (i.total_balls || 0), 0);
+      const priorBalls = live.allInnings.filter((i) => i.id !== currentInnings.id).reduce((s, i) => s + (i.total_balls || 0), 0);
       if (priorBalls + newTotalBalls >= (match.total_match_overs || 0) * 6) testOverLimitReached = true;
     }
+    const endOfInnings = isAllOut || isOversComplete || isTargetReached || testOverLimitReached;
+    const flowChange = endOfInnings || needNewBatter || needNewBowler;
 
-    if (isAllOut || isOversComplete || isTargetReached || testOverLimitReached) {
-      await endInnings(isAllOut ? 'all_out' : (testOverLimitReached || isOversComplete) ? 'overs_complete' : 'target_reached');
-      return;
+    // ---- 1) Instant UI: paint the ball on screen synchronously ----
+    const overKey = ['deliveries', currentInnings.id, currentInnings.current_over_number];
+    const overNow = queryClient.getQueryData(overKey) || [];
+    queryClient.setQueryData(overKey, [...overNow, { ...deliveryRecord, id: tempId }]);
+
+    queryClient.setQueryData(['innings', matchId],
+      live.allInnings.map((i) => i.id === currentInnings.id ? { ...i, ...inningsUpdate } : i));
+
+    queryClient.setQueryData(['batter-innings', currentInnings.id],
+      batterInningsList.map((b) => {
+        if (strikerStats && strikerUpdate && b.id === strikerStats.id) return { ...b, ...strikerUpdate };
+        if (outBatterWrite && b.id === outBatterWrite.id) return { ...b, ...outBatterWrite.fields };
+        return b;
+      }));
+
+    if (bowlerStats && bowlerUpdate) {
+      queryClient.setQueryData(['bowler-innings', currentInnings.id],
+        bowlerInningsList.map((b) => b.id === bowlerStats.id ? { ...b, ...bowlerUpdate } : b));
     }
 
-    if (needNewBatter && newTotalWickets < maxWickets) {
-      // If over also ended, need bowler after batter
-      setPendingAction(needNewBowler ? 'new_batter_then_bowler' : 'new_batter');
-      setShowSelectBatter(true);
-    } else if (needNewBowler) {
-      setPendingAction('new_bowler');
-      setShowSelectBowler(true);
-    }
-    } finally {
-      setProcessingLocked(false);
-    }
+    queryClient.setQueryData(['partnerships', currentInnings.id],
+      activePship
+        ? partnershipsList.map((p) => p.id === activePship.id ? optimisticPship : p)
+        : [...partnershipsList, optimisticPship]);
+
+    // ---- 2) Flow change: hold the keypad until the prompt appears ----
+    if (flowChange) setProcessingLocked(true);
+
+    // ---- 3) Background persist, one ball at a time in tap order ----
+    writeChainRef.current = writeChainRef.current
+      .then(async () => {
+        try {
+          await Promise.all(writeThunks.map((thunk) => thunk()));
+        } finally {
+          // Reconcile the on-screen ball with the server, landed or not
+          await refetchScoring();
+        }
+        if (endOfInnings) {
+          await endInnings(isAllOut ? 'all_out' : (testOverLimitReached || isOversComplete) ? 'overs_complete' : 'target_reached');
+          return;
+        }
+        if (needNewBatter && newTotalWickets < localMaxWickets) {
+          // If over also ended, need bowler after batter
+          setPendingAction(needNewBowler ? 'new_batter_then_bowler' : 'new_batter');
+          setShowSelectBatter(true);
+        } else if (needNewBowler) {
+          setPendingAction('new_bowler');
+          setShowSelectBowler(true);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (flowChange) setProcessingLocked(false);
+      });
   };
 
   const endInnings = async (reason) => {
@@ -766,24 +861,43 @@ export default function LiveScoring() {
 
   const handleSwapStrike = async () => {
     if (processingRef.current) return;
-    if (!currentInnings?.current_striker_id || !currentInnings?.current_non_striker_id) return;
-    
-    await base44.entities.Innings.update(currentInnings.id, {
-      current_striker_id: currentInnings.current_non_striker_id,
-      current_non_striker_id: currentInnings.current_striker_id
-    });
-    
-    await refetchAll();
+    setProcessingLocked(true);
+    try {
+      // Wait for any in-flight ball writes, then swap from the freshest state
+      await writeChainRef.current;
+      const liveInnings = getLiveState().innings;
+      if (!liveInnings?.current_striker_id || !liveInnings?.current_non_striker_id) return;
+
+      await base44.entities.Innings.update(liveInnings.id, {
+        current_striker_id: liveInnings.current_non_striker_id,
+        current_non_striker_id: liveInnings.current_striker_id
+      });
+
+      await refetchAll();
+    } finally {
+      setProcessingLocked(false);
+    }
   };
 
   const handleUndo = async () => {
     if (processingRef.current || !currentInnings) return;
     setProcessingLocked(true);
     try {
+    // Let any in-flight background ball writes land first, then work from the
+    // freshest cached state (a ball tapped just before this undo may have
+    // rotated strike or advanced the over since this render).
+    await writeChainRef.current;
+    const live = getLiveState();
+    const liveInnings = live.innings;
+    if (!liveInnings) return;
+    const liveBatterInningsMap = live.batters.reduce((acc, b) => ({ ...acc, [b.player_id]: b }), {});
+    const liveBowlerInningsMap = live.bowlers.reduce((acc, b) => ({ ...acc, [b.player_id]: b }), {});
+    const livePartnerships = live.pships;
+
     // Always read deliveries fresh from the server so the undo targets the
     // true last ball even if the local cache hasn't caught up yet.
     const deliveries = await base44.entities.Delivery.filter({
-      innings_id: currentInnings.id,
+      innings_id: liveInnings.id,
       is_voided: false
     });
 
@@ -799,8 +913,8 @@ export default function LiveScoring() {
     });
 
     const isLegal = lastDelivery.is_legal_delivery;
-    let newBallInOver = currentInnings.current_ball_in_over - (isLegal ? 1 : 0);
-    let newOverNumber = currentInnings.current_over_number;
+    let newBallInOver = liveInnings.current_ball_in_over - (isLegal ? 1 : 0);
+    let newOverNumber = liveInnings.current_over_number;
 
     if (newBallInOver < 0) {
       newBallInOver = 5;
@@ -809,39 +923,39 @@ export default function LiveScoring() {
 
     const isByeOrLegBye = lastDelivery.is_bye || lastDelivery.is_leg_bye;
     const undoRunsByBat = isByeOrLegBye ? 0 : (lastDelivery.runs_bat || 0);
-    const newTotalBalls = currentInnings.total_balls - (isLegal ? 1 : 0);
+    const newTotalBalls = liveInnings.total_balls - (isLegal ? 1 : 0);
 
     // If this delivery completed an over, the app advanced to a new over and
     // prompted for a new bowler. Undoing it must hand the ball back to the
     // previous bowler and drop the new bowler's fresh (0/0) spell so they can
     // be chosen again cleanly.
-    const overCompletedByThisBall = isLegal && currentInnings.current_ball_in_over === 0;
+    const overCompletedByThisBall = isLegal && liveInnings.current_ball_in_over === 0;
     const previousBowlerId = lastDelivery.bowler_id;
-    const newBowlerId = currentInnings.current_bowler_id;
+    const newBowlerId = liveInnings.current_bowler_id;
     const revertBowler = overCompletedByThisBall && newBowlerId && newBowlerId !== previousBowlerId;
 
     const undoPromises = [];
     const inningsUndo = {
-      total_runs: currentInnings.total_runs - lastDelivery.runs_total,
-      total_wickets: currentInnings.total_wickets - (lastDelivery.is_wicket ? 1 : 0),
+      total_runs: liveInnings.total_runs - lastDelivery.runs_total,
+      total_wickets: liveInnings.total_wickets - (lastDelivery.is_wicket ? 1 : 0),
       total_balls: newTotalBalls,
       total_overs: Math.floor(newTotalBalls / 6),
       current_ball_in_over: newBallInOver,
       current_over_number: newOverNumber,
       current_striker_id: lastDelivery.striker_id,
       current_non_striker_id: lastDelivery.non_striker_id,
-      extras_wide: currentInnings.extras_wide - (lastDelivery.wide_runs || 0),
-      extras_no_ball: currentInnings.extras_no_ball - (lastDelivery.no_ball_runs || 0),
-      extras_byes: currentInnings.extras_byes - (lastDelivery.bye_runs || 0),
-      extras_leg_byes: currentInnings.extras_leg_byes - (lastDelivery.leg_bye_runs || 0)
+      extras_wide: liveInnings.extras_wide - (lastDelivery.wide_runs || 0),
+      extras_no_ball: liveInnings.extras_no_ball - (lastDelivery.no_ball_runs || 0),
+      extras_byes: liveInnings.extras_byes - (lastDelivery.bye_runs || 0),
+      extras_leg_byes: liveInnings.extras_leg_byes - (lastDelivery.leg_bye_runs || 0)
     };
     if (revertBowler) {
       inningsUndo.current_bowler_id = previousBowlerId;
     }
-    undoPromises.push(base44.entities.Innings.update(currentInnings.id, inningsUndo));
+    undoPromises.push(base44.entities.Innings.update(liveInnings.id, inningsUndo));
 
     if (revertBowler) {
-      const newBowlerStats = bowlerInningsMap[newBowlerId];
+      const newBowlerStats = liveBowlerInningsMap[newBowlerId];
       if (newBowlerStats && (newBowlerStats.balls || 0) === 0 && (newBowlerStats.runs_conceded || 0) === 0 && (newBowlerStats.wickets || 0) === 0) {
         undoPromises.push(base44.entities.BowlerInnings.delete(newBowlerStats.id));
       }
@@ -849,7 +963,7 @@ export default function LiveScoring() {
 
     // Reverse the striker's batting stats (runs, balls, 4s, 6s, dots, dismissal)
     if (!lastDelivery.is_wide) {
-      const strikerStats = batterInningsMap[lastDelivery.striker_id];
+      const strikerStats = liveBatterInningsMap[lastDelivery.striker_id];
       if (strikerStats) {
         const wasOut = lastDelivery.is_wicket && lastDelivery.player_out_id === lastDelivery.striker_id;
         undoPromises.push(base44.entities.BatterInnings.update(strikerStats.id, {
@@ -869,7 +983,7 @@ export default function LiveScoring() {
 
     // Reverse a non-striker run-out dismissal (the out batter isn't the striker)
     if (lastDelivery.is_wicket && lastDelivery.player_out_id && lastDelivery.player_out_id !== lastDelivery.striker_id) {
-      const outStats = batterInningsMap[lastDelivery.player_out_id];
+      const outStats = liveBatterInningsMap[lastDelivery.player_out_id];
       if (outStats) {
         undoPromises.push(base44.entities.BatterInnings.update(outStats.id, {
           is_out: false,
@@ -882,7 +996,7 @@ export default function LiveScoring() {
     }
 
     // Reverse bowler stats — byes/leg-byes don't count against the bowler
-    const bowlerStats = bowlerInningsMap[lastDelivery.bowler_id];
+    const bowlerStats = liveBowlerInningsMap[lastDelivery.bowler_id];
     if (bowlerStats) {
       const newBalls = (bowlerStats.balls || 0) - (isLegal ? 1 : 0);
       const bowlerRunsConceded = (isByeOrLegBye ? 0 : undoRunsByBat) + (lastDelivery.wide_runs || 0) + (lastDelivery.no_ball_runs || 0);
@@ -899,8 +1013,8 @@ export default function LiveScoring() {
       }));
     }
 
-    // Reverse partnership contribution (use cached partnerships — fresh under the lock)
-    const undoPartnership = partnerships.find(p =>
+    // Reverse partnership contribution (use the live cached partnerships)
+    const undoPartnership = livePartnerships.find(p =>
       (p.batter1_id === lastDelivery.striker_id && p.batter2_id === lastDelivery.non_striker_id) ||
       (p.batter1_id === lastDelivery.non_striker_id && p.batter2_id === lastDelivery.striker_id)
     );
@@ -932,15 +1046,15 @@ export default function LiveScoring() {
     // Also drop any 0/0 active partnership created when that batter first
     // faced a ball (subsequent deliveries are undone before we reach here).
     if (lastDelivery.is_wicket) {
-      const incomingBatterId = [currentInnings.current_striker_id, currentInnings.current_non_striker_id].find(
+      const incomingBatterId = [liveInnings.current_striker_id, liveInnings.current_non_striker_id].find(
         (id) => id && id !== lastDelivery.striker_id && id !== lastDelivery.non_striker_id
       );
       if (incomingBatterId) {
-        const incomingStats = batterInningsMap[incomingBatterId];
+        const incomingStats = liveBatterInningsMap[incomingBatterId];
         if (incomingStats && (incomingStats.runs || 0) === 0 && (incomingStats.balls_faced || 0) === 0 && incomingStats.status === 'batting') {
           undoPromises.push(base44.entities.BatterInnings.delete(incomingStats.id));
         }
-        const stalePship = partnerships.find((p) =>
+        const stalePship = livePartnerships.find((p) =>
           p.is_active &&
           (p.batter1_id === incomingBatterId || p.batter2_id === incomingBatterId) &&
           (p.runs || 0) === 0 && (p.balls || 0) === 0
@@ -1256,7 +1370,8 @@ export default function LiveScoring() {
 
               onClick={() => {
                 setShowMenuDialog(false);
-                endInnings('declared');
+                // Wait for any in-flight ball writes before ending the innings
+                writeChainRef.current.then(() => endInnings('declared'));
               }}>
 
               {isTest ? 'Declare Innings' : 'End Innings'}
