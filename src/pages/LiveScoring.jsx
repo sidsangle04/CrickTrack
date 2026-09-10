@@ -72,6 +72,39 @@ export default function LiveScoring() {
   // tap order so rapid taps can't clobber each other's updates.
   const writeChainRef = useRef(Promise.resolve());
 
+  // How many write tasks are still queued. Reconciliation with the server only
+  // runs once this drops back to zero — refetching after every ball while more
+  // taps are still in flight repaints stale server state, which makes the
+  // on-screen score jump backwards before the next write lands.
+  const pendingWritesRef = useRef(0);
+
+  // Runs a write task on the serial background queue. The UI is already
+  // updated optimistically; the reconcile refetch only fires when the whole
+  // queue has drained, so it can never repaint a stale score.
+  const queueWrites = (task, reconcile) => {
+    pendingWritesRef.current += 1;
+    writeChainRef.current = writeChainRef.current
+      .then(async () => {
+        try {
+          await task();
+        } catch (e) {
+          // Swallow — the reconcile refetch reports the true server state.
+        }
+      })
+      .finally(async () => {
+        pendingWritesRef.current -= 1;
+        if (pendingWritesRef.current === 0 && reconcile) {
+          // Brief grace period so an immediate next tap joins the queue
+          // before we ask the server for its state back.
+          setTimeout(() => {
+            if (pendingWritesRef.current === 0) {
+              Promise.resolve(reconcile()).catch(() => {});
+            }
+          }, 300);
+        }
+      });
+  };
+
   // Maps an optimistic partnership id to the real record id once the background
   // create lands (follow-up partnership updates in the queue resolve through it).
   const tempPshipIdsRef = useRef({});
@@ -106,12 +139,7 @@ export default function LiveScoring() {
     if (!liveInnings) return;
     queryClient.setQueryData(['innings', matchId],
       live.allInnings.map((i) => i.id === liveInnings.id ? { ...i, ...patch } : i));
-    writeChainRef.current = writeChainRef.current
-      .then(async () => {
-        await base44.entities.Innings.update(liveInnings.id, patch);
-        await refetchAll();
-      })
-      .catch(() => {});
+    queueWrites(() => base44.entities.Innings.update(liveInnings.id, patch), refetchAll);
   };
 
   const { data: match, isLoading: matchLoading, refetch: refetchMatch } = useQuery({
@@ -120,13 +148,15 @@ export default function LiveScoring() {
       const matches = await base44.entities.Match.filter({ id: matchId });
       return matches[0];
     },
-    enabled: !!matchId
+    enabled: !!matchId,
+    refetchOnWindowFocus: false
   });
 
   const { data: allInnings = [], refetch: refetchInnings } = useQuery({
     queryKey: ['innings', matchId],
     queryFn: () => base44.entities.Innings.filter({ match_id: matchId }),
-    enabled: !!matchId
+    enabled: !!matchId,
+    refetchOnWindowFocus: false
   });
 
   // Find current innings - prioritize in_progress, then not_started (including super overs)
@@ -143,7 +173,8 @@ export default function LiveScoring() {
       is_voided: false
     }) :
     [],
-    enabled: !!currentInnings?.id
+    enabled: !!currentInnings?.id,
+    refetchOnWindowFocus: false
   });
 
   const { data: teams = [] } = useQuery({
@@ -161,7 +192,8 @@ export default function LiveScoring() {
     queryFn: () => currentInnings ?
     base44.entities.BatterInnings.filter({ innings_id: currentInnings.id }) :
     [],
-    enabled: !!currentInnings?.id
+    enabled: !!currentInnings?.id,
+    refetchOnWindowFocus: false
   });
 
   const { data: bowlerInnings = [], refetch: refetchBowlerInnings } = useQuery({
@@ -169,7 +201,8 @@ export default function LiveScoring() {
     queryFn: () => currentInnings ?
     base44.entities.BowlerInnings.filter({ innings_id: currentInnings.id }) :
     [],
-    enabled: !!currentInnings?.id
+    enabled: !!currentInnings?.id,
+    refetchOnWindowFocus: false
   });
 
   const { data: partnerships = [], refetch: refetchPartnerships } = useQuery({
@@ -177,7 +210,8 @@ export default function LiveScoring() {
     queryFn: () => currentInnings ?
     base44.entities.Partnership.filter({ innings_id: currentInnings.id }) :
     [],
-    enabled: !!currentInnings?.id
+    enabled: !!currentInnings?.id,
+    refetchOnWindowFocus: false
   });
 
   const teamsMap = teams.reduce((acc, t) => ({ ...acc, [t.id]: t }), {});
@@ -536,17 +570,15 @@ export default function LiveScoring() {
     // further scoring; the writes land on the background queue meanwhile) ----
     if (endOfInnings) {
       setProcessingLocked(true);
-      writeChainRef.current = writeChainRef.current
-        .then(async () => {
-          try {
-            await Promise.all(writeThunks.map((thunk) => thunk()));
-          } finally {
-            await refetchScoring();
-          }
+      queueWrites(async () => {
+        try {
+          await Promise.all(writeThunks.map((thunk) => thunk()));
+          await refetchScoring();
           await endInnings(isAllOut ? 'all_out' : (testOverLimitReached || isOversComplete) ? 'overs_complete' : 'target_reached');
-        })
-        .catch(() => {})
-        .finally(() => setProcessingLocked(false));
+        } finally {
+          setProcessingLocked(false);
+        }
+      });
       return;
     }
     if (needNewBatter && newTotalWickets < localMaxWickets) {
@@ -561,16 +593,10 @@ export default function LiveScoring() {
     }
 
     // ---- 3) Background persist, one ball at a time in tap order ----
-    writeChainRef.current = writeChainRef.current
-      .then(async () => {
-        try {
-          await Promise.all(writeThunks.map((thunk) => thunk()));
-        } finally {
-          // Reconcile the on-screen ball with the server, landed or not
-          await refetchScoring();
-        }
-      })
-      .catch(() => {});
+    // The reconcile refetch fires only once the queue is idle (see
+    // queueWrites), so it can't repaint a stale score over balls that
+    // are still being written.
+    queueWrites(() => Promise.all(writeThunks.map((thunk) => thunk())), refetchScoring);
   };
 
   const endInnings = async (reason) => {
@@ -1109,36 +1135,33 @@ export default function LiveScoring() {
         .map((p) => (pshipUndo && p.id === pshipUndo.record.id) ? { ...p, ...pshipUndo.fields } : p));
 
     // ---- 2) Background persist on the serial queue, then reconcile ----
-    writeChainRef.current = writeChainRef.current
-      .then(async () => {
-        const writes = [
-          base44.entities.Delivery.update(tempDeliveryIdsRef.current[lastDelivery.id] || lastDelivery.id, {
-            is_voided: true,
-            void_reason: 'Undo by scorer'
-          }),
-          base44.entities.Innings.update(liveInnings.id, inningsUndo)
-        ];
-        batterUpdates.forEach((u) =>
-          writes.push(base44.entities.BatterInnings.update(tempBatterIdsRef.current[u.record.id] || u.record.id, u.fields)));
-        if (bowlerUpdate) {
-          writes.push(base44.entities.BowlerInnings.update(tempBowlerIdsRef.current[bowlerUpdate.record.id] || bowlerUpdate.record.id, bowlerUpdate.fields));
-        }
-        if (pshipUndo) {
-          writes.push(base44.entities.Partnership.update(tempPshipIdsRef.current[pshipUndo.record.id] || pshipUndo.record.id, pshipUndo.fields));
-        }
-        if (deleteBatterRecord) {
-          writes.push(base44.entities.BatterInnings.delete(tempBatterIdsRef.current[deleteBatterRecord.id] || deleteBatterRecord.id));
-        }
-        if (deleteBowlerRecord) {
-          writes.push(base44.entities.BowlerInnings.delete(tempBowlerIdsRef.current[deleteBowlerRecord.id] || deleteBowlerRecord.id));
-        }
-        if (deletePshipRecord) {
-          writes.push(base44.entities.Partnership.delete(tempPshipIdsRef.current[deletePshipRecord.id] || deletePshipRecord.id));
-        }
-        await Promise.all(writes);
-        await refetchAll();
-      })
-      .catch(() => {});
+    queueWrites(async () => {
+      const writes = [
+        base44.entities.Delivery.update(tempDeliveryIdsRef.current[lastDelivery.id] || lastDelivery.id, {
+          is_voided: true,
+          void_reason: 'Undo by scorer'
+        }),
+        base44.entities.Innings.update(liveInnings.id, inningsUndo)
+      ];
+      batterUpdates.forEach((u) =>
+        writes.push(base44.entities.BatterInnings.update(tempBatterIdsRef.current[u.record.id] || u.record.id, u.fields)));
+      if (bowlerUpdate) {
+        writes.push(base44.entities.BowlerInnings.update(tempBowlerIdsRef.current[bowlerUpdate.record.id] || bowlerUpdate.record.id, bowlerUpdate.fields));
+      }
+      if (pshipUndo) {
+        writes.push(base44.entities.Partnership.update(tempPshipIdsRef.current[pshipUndo.record.id] || pshipUndo.record.id, pshipUndo.fields));
+      }
+      if (deleteBatterRecord) {
+        writes.push(base44.entities.BatterInnings.delete(tempBatterIdsRef.current[deleteBatterRecord.id] || deleteBatterRecord.id));
+      }
+      if (deleteBowlerRecord) {
+        writes.push(base44.entities.BowlerInnings.delete(tempBowlerIdsRef.current[deleteBowlerRecord.id] || deleteBowlerRecord.id));
+      }
+      if (deletePshipRecord) {
+        writes.push(base44.entities.Partnership.delete(tempPshipIdsRef.current[deletePshipRecord.id] || deletePshipRecord.id));
+      }
+      await Promise.all(writes);
+    }, refetchAll);
   };
 
   const handleSelectBatter = (playerId) => {
@@ -1163,18 +1186,16 @@ export default function LiveScoring() {
         strike_rate: 0, is_out: false
       };
       queryClient.setQueryData(['batter-innings', liveInnings.id], [...live.batters, optimisticStats]);
-      writeChainRef.current = writeChainRef.current
-        .then(async () => {
-          const created = await base44.entities.BatterInnings.create({
-            match_id: matchId,
-            innings_id: liveInnings.id,
-            player_id: playerId,
-            batting_position: optimisticStats.batting_position,
-            status: 'batting'
-          });
-          tempBatterIdsRef.current[tempBatId] = created.id;
-        })
-        .catch(() => {});
+      queueWrites(async () => {
+        const created = await base44.entities.BatterInnings.create({
+          match_id: matchId,
+          innings_id: liveInnings.id,
+          player_id: playerId,
+          batting_position: optimisticStats.batting_position,
+          status: 'batting'
+        });
+        tempBatterIdsRef.current[tempBatId] = created.id;
+      });
     }
 
     if (currentPendingAction === 'select_opener_1') {
@@ -1222,16 +1243,14 @@ export default function LiveScoring() {
         current_over_runs: 0, spell_overs: []
       };
       queryClient.setQueryData(['bowler-innings', liveInnings.id], [...live.bowlers, optimisticStats]);
-      writeChainRef.current = writeChainRef.current
-        .then(async () => {
-          const created = await base44.entities.BowlerInnings.create({
-            match_id: matchId,
-            innings_id: liveInnings.id,
-            player_id: playerId
-          });
-          tempBowlerIdsRef.current[tempBowlId] = created.id;
-        })
-        .catch(() => {});
+      queueWrites(async () => {
+        const created = await base44.entities.BowlerInnings.create({
+          match_id: matchId,
+          innings_id: liveInnings.id,
+          player_id: playerId
+        });
+        tempBowlerIdsRef.current[tempBowlId] = created.id;
+      });
     }
 
     applyInningsPatch({ current_bowler_id: playerId });
