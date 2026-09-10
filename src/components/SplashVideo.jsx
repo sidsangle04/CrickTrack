@@ -41,7 +41,7 @@ export default function SplashVideo() {
 
       <button
         onClick={(e) => { e.stopPropagation(); dismiss(); }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/25 text-white text-sm font-medium transition-colors animate-pulse"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-900/85 hover:bg-slate-900 backdrop-blur-md border border-white/30 text-white text-sm font-medium transition-colors animate-pulse shadow-lg shadow-black/40"
       >
         Tap to Enter <ChevronRight className="w-4 h-4" />
       </button>
