@@ -52,7 +52,8 @@ export default function MatchSetup() {
     format: 'limited',
     players_per_team: 11,
     is_over_limited: false,
-    total_match_overs: 90
+    total_match_overs: 90,
+    enable_visual_tagging: true
   });
 
   const { data: teams = [] } = useQuery({
@@ -93,7 +94,8 @@ export default function MatchSetup() {
         format: m.format || 'limited',
         players_per_team: m.players_per_team || 11,
         is_over_limited: m.is_over_limited || false,
-        total_match_overs: m.total_match_overs || 90
+        total_match_overs: m.total_match_overs || 90,
+        enable_visual_tagging: m.enable_visual_tagging !== false
       });
     }
   }, [existingMatch]);
@@ -646,6 +648,39 @@ export default function MatchSetup() {
                   <span className="text-2xl mb-2 block">⚾</span>
                   <span className="font-medium text-white">Bowl First</span>
                 </button>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-slate-200">Visual Tagging</Label>
+              <p className="text-xs text-slate-400 mt-1 mb-2">
+                Keep ball-by-ball tagging (pitch zone, shot location, delivery details) or skip it for fast scoring.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setFormData({ ...formData, enable_visual_tagging: true })}
+                  className={`p-4 rounded-xl text-center transition-colors ${
+                    formData.enable_visual_tagging ?
+                    'bg-emerald-500/20 border-2 border-emerald-500' :
+                    'bg-slate-900 border border-slate-700'}`
+                  }>
+
+                    <span className="text-2xl mb-2 block">🎯</span>
+                    <span className="font-medium text-white">Keep Tagging</span>
+                    <span className="block text-xs text-slate-400 mt-1">Detailed ball tracking</span>
+                  </button>
+                <button
+                  onClick={() => setFormData({ ...formData, enable_visual_tagging: false })}
+                  className={`p-4 rounded-xl text-center transition-colors ${
+                    !formData.enable_visual_tagging ?
+                    'bg-emerald-500/20 border-2 border-emerald-500' :
+                    'bg-slate-900 border border-slate-700'}`
+                  }>
+
+                    <span className="text-2xl mb-2 block">⚡</span>
+                    <span className="font-medium text-white">Quick Scoring</span>
+                    <span className="block text-xs text-slate-400 mt-1">Just runs & wickets — fastest</span>
+                  </button>
               </div>
             </div>
           </div>

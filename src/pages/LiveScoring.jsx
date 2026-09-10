@@ -688,9 +688,20 @@ export default function LiveScoring() {
     setPendingAction('select_opener_1');
   };
 
-  // Open visual tracking, then process after
+  // Open visual tracking, then process after.
+  // Quick Scoring (enable_visual_tagging === false) skips the tagging modal
+  // and logs the ball with just the outcome in one tap.
   const triggerDelivery = (deliveryData) => {
     if (processingRef.current) return;
+    if (match?.enable_visual_tagging === false) {
+      const profile = bowlerProfile[currentInnings?.current_bowler_id] || {};
+      processDelivery({
+        ...deliveryData,
+        bowler_hand: profile.hand,
+        bowler_type: profile.type
+      });
+      return;
+    }
     setPendingDelivery(deliveryData);
     setShowVisualTracking(true);
   };
@@ -1020,8 +1031,8 @@ export default function LiveScoring() {
     setPendingAction(null);
     await refetchAll();
 
-    // Show bowler profile modal if not already profiled
-    if (!bowlerProfile[playerId]) {
+    // Show bowler profile modal if not already profiled (skipped in Quick Scoring)
+    if (match?.enable_visual_tagging !== false && !bowlerProfile[playerId]) {
       setPendingBowlerId(playerId);
       setShowBowlerProfile(true);
     }

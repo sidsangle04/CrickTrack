@@ -160,6 +160,11 @@
       "type": "boolean",
       "default": false,
       "description": "Test: whether the team batting first enforced the follow-on"
+    },
+    "enable_visual_tagging": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether ball-by-ball visual tagging (pitch zone, shot location, delivery details) is prompted during scoring. False = quick scoring (outcomes only)."
     }
   },
   "required": [
