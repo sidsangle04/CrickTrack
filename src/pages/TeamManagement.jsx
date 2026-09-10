@@ -356,7 +356,7 @@ export default function TeamManagement() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={resetPlayerForm} className="border-slate-700">Cancel</Button>
+              <Button variant="outline" onClick={resetPlayerForm} className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200">Cancel</Button>
               <Button onClick={handlePlayerSubmit} className="bg-emerald-500 hover:bg-emerald-600">
                 {editingPlayer ? 'Update' : 'Add'} Player
               </Button>
@@ -481,7 +481,7 @@ export default function TeamManagement() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={resetTeamForm} className="border-slate-700">Cancel</Button>
+            <Button variant="outline" onClick={resetTeamForm} className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200">Cancel</Button>
             <Button onClick={handleTeamSubmit} className="bg-emerald-500 hover:bg-emerald-600">
               {editingTeam ? 'Update' : 'Create'} Team
             </Button>

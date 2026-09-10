@@ -1413,7 +1413,7 @@ export default function LiveScoring() {
                 });
                 navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
               }}
-              className="flex-1 border-slate-700">
+              className="flex-1 border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200">
 
               End as Tie
             </Button>

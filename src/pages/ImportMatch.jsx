@@ -179,7 +179,7 @@ export default function ImportMatch() {
               <Button onClick={() => navigate(createPageUrl("Home"))} className="flex-1 bg-emerald-500 hover:bg-emerald-600">
                 View in Matches
               </Button>
-              <Button variant="outline" onClick={reset} className="flex-1 border-slate-600">
+              <Button variant="outline" onClick={reset} className="flex-1 border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-200">
                 Import Another
               </Button>
             </div>

@@ -158,7 +158,7 @@ export default function VisualTrackingModal({
                 )}
               </div>
               <div className="flex gap-2 mt-4">
-                <Button variant="outline" onClick={handleSkip} className="flex-1 border-slate-700 text-slate-400 text-sm">
+                <Button variant="outline" onClick={handleSkip} className="flex-1 border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm">
                   Skip All
                 </Button>
                 <Button
@@ -218,7 +218,7 @@ export default function VisualTrackingModal({
               )}
 
               <div className="flex gap-2 mt-4">
-                <Button variant="outline" onClick={() => setStep('pitch')} className="flex-1 border-slate-700 text-slate-400 text-sm">
+                <Button variant="outline" onClick={() => setStep('pitch')} className="flex-1 border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm">
                   ← Back
                 </Button>
                 <Button
@@ -299,7 +299,7 @@ export default function VisualTrackingModal({
               </div>
 
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep('ground')} className="flex-1 border-slate-700 text-slate-400 text-sm">
+                <Button variant="outline" onClick={() => setStep('ground')} className="flex-1 border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm">
                   ← Back
                 </Button>
                 <Button onClick={handleSubmit} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-sm">

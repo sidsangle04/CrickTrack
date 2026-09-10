@@ -314,7 +314,7 @@ export default function Scorecard() {
             </h1>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowReport(s => !s)} className="border-slate-700">
+            <Button variant="outline" size="sm" onClick={() => setShowReport(s => !s)} className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200">
               <FileText className="w-4 h-4 mr-2" />
               Report
             </Button>

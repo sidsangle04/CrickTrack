@@ -384,7 +384,7 @@ export default function MatchSetup() {
                     setFormData({ ...formData, team1_playing_xi: team1Players.map((p) => p.id) });
                   }
                 }}
-                className="mt-3 w-full border-slate-600 text-slate-300 hover:bg-slate-700">
+                className="mt-3 w-full border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-300">
 
                     {formData.team1_playing_xi.length === team1Players.length ? 'Deselect All' : 'Select All'}
                   </Button>
@@ -436,7 +436,7 @@ export default function MatchSetup() {
                     setFormData({ ...formData, team2_playing_xi: team2Players.map((p) => p.id) });
                   }
                 }}
-                className="mt-3 w-full border-slate-600 text-slate-300 hover:bg-slate-700">
+                className="mt-3 w-full border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-300">
 
                     {formData.team2_playing_xi.length === team2Players.length ? 'Deselect All' : 'Select All'}
                   </Button>
@@ -693,7 +693,7 @@ export default function MatchSetup() {
         <Button
           variant="outline"
           onClick={handleBack}
-          className="flex-1 border-slate-700 text-slate-300">
+          className="flex-1 border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200">
 
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back

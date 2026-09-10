@@ -228,7 +228,7 @@ export default function CreateTournamentModal({ teams, onClose, onCreated }) {
           <Button
             variant="outline"
             onClick={onClose}
-            className="flex-1 border-slate-700 text-slate-300"
+            className="flex-1 border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200"
           >
             Cancel
           </Button>

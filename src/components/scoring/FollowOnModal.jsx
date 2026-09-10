@@ -42,7 +42,7 @@ export default function FollowOnModal({ open, teamAName, teamBName, lead, onEnfo
           </div>
         </div>
         <DialogFooter className="flex gap-3">
-          <Button variant="outline" onClick={onDecline} className="flex-1 border-slate-700">
+          <Button variant="outline" onClick={onDecline} className="flex-1 border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200">
             No (Decline)
           </Button>
           <Button onClick={onEnforce} className="flex-1 bg-emerald-500 hover:bg-emerald-600">
