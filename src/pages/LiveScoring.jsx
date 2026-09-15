@@ -1242,6 +1242,23 @@ export default function LiveScoring() {
         setPendingAction(null);
         setProcessingLocked(false); // wicket flow complete — scoring resumes
       }
+    } else if (currentPendingAction === 'change_striker' || currentPendingAction === 'change_non_striker') {
+      // Replace a batter picked by mistake who hasn't faced a ball: swap the
+      // crease slot and drop their fresh (0/0) stats record so they can be
+      // picked again later.
+      const slotKey = currentPendingAction === 'change_striker' ? 'current_striker_id' : 'current_non_striker_id';
+      const outgoingStats = live.batters.find((b) => b.player_id === liveInnings[slotKey]);
+      if (outgoingStats && (outgoingStats.balls_faced || 0) === 0 && (outgoingStats.runs || 0) === 0) {
+        queryClient.setQueryData(['batter-innings', liveInnings.id],
+          (queryClient.getQueryData(['batter-innings', liveInnings.id]) || [])
+            .filter((b) => b.id !== outgoingStats.id));
+        queueWrites(() => base44.entities.BatterInnings.delete(
+          tempBatterIdsRef.current[outgoingStats.id] || outgoingStats.id));
+      }
+      applyInningsPatch({ [slotKey]: playerId });
+      setShowSelectBatter(false);
+      setPendingAction(null);
+      setProcessingLocked(false);
     }
   };
 
@@ -1249,6 +1266,19 @@ export default function LiveScoring() {
     const live = getLiveState();
     const liveInnings = live.innings;
     if (!liveInnings) return;
+    const currentPendingAction = pendingAction;
+
+    // Correcting a bowler picked by mistake before the over started: drop the
+    // outgoing bowler's fresh (all-zero) stats record so the scorecard stays
+    // clean and he can be picked again later. An injury change keeps the
+    // outgoing bowler's stats — the balls he bowled stand.
+    let deleteOutgoingRecord = null;
+    if (currentPendingAction === 'change_bowler') {
+      const outgoing = live.bowlers.find((b) => b.player_id === liveInnings.current_bowler_id);
+      if (outgoing && (outgoing.balls || 0) === 0 && (outgoing.runs_conceded || 0) === 0 && (outgoing.wickets || 0) === 0) {
+        deleteOutgoingRecord = outgoing;
+      }
+    }
 
     // Optimistically add the bowler's stats record — the bowler card updates
     // instantly and the real record is created on the background queue.
@@ -1275,6 +1305,14 @@ export default function LiveScoring() {
       });
     }
 
+    if (deleteOutgoingRecord) {
+      queryClient.setQueryData(['bowler-innings', liveInnings.id],
+        (queryClient.getQueryData(['bowler-innings', liveInnings.id]) || [])
+          .filter((b) => b.id !== deleteOutgoingRecord.id));
+      queueWrites(() => base44.entities.BowlerInnings.delete(
+        tempBowlerIdsRef.current[deleteOutgoingRecord.id] || deleteOutgoingRecord.id));
+    }
+
     applyInningsPatch({ current_bowler_id: playerId });
 
     setShowSelectBowler(false);
@@ -1296,6 +1334,30 @@ export default function LiveScoring() {
     setPendingBowlerId(null);
   };
 
+  // Correct a bowler picked by mistake — only before the over has started.
+  const handleChangeBowler = () => {
+    if (processingRef.current) return;
+    setPendingAction('change_bowler');
+    setShowSelectBowler(true);
+  };
+
+  // Bowler injured mid-over: a replacement finishes this over's remaining
+  // balls. Stats accrue per ball to whoever is the current bowler, so the
+  // injured bowler keeps what he bowled (e.g. 0.2) and the replacement's
+  // count keeps growing with everything he bowls afterwards.
+  const handleBowlerInjured = () => {
+    if (processingRef.current) return;
+    setPendingAction('bowler_injured');
+    setShowSelectBowler(true);
+  };
+
+  // Correct a batter picked by mistake — only while they haven't faced a ball.
+  const handleChangeBatter = (slot) => {
+    if (processingRef.current) return;
+    setPendingAction(slot); // 'change_striker' | 'change_non_striker'
+    setShowSelectBatter(true);
+  };
+
   const availableBatters = battingTeamPlayingXI.
   filter((pId) => {
     const stats = batterInningsMap[pId];
@@ -1304,6 +1366,18 @@ export default function LiveScoring() {
   }).
   filter((pId) => pId !== currentInnings?.current_striker_id && pId !== currentInnings?.current_non_striker_id).
   map((pId) => ({ player_id: pId }));
+
+  // A batter who hasn't faced a ball can still be swapped (wrong pick).
+  const strikerChangeable = currentInnings?.status === 'in_progress' && currentStriker &&
+    (currentStriker.balls_faced || 0) === 0 && (currentStriker.runs || 0) === 0;
+  const nonStrikerChangeable = currentInnings?.status === 'in_progress' && currentNonStriker &&
+    (currentNonStriker.balls_faced || 0) === 0 && (currentNonStriker.runs || 0) === 0;
+
+  // The bowler can be corrected only before the over's first ball, or
+  // replaced mid-over if injured.
+  const overHasDeliveries = currentOverDeliveries.some((d) => !d.is_voided);
+  const bowlerChangeable = currentInnings?.status === 'in_progress' && !!currentInnings?.current_bowler_id && !overHasDeliveries;
+  const bowlerInjuryAllowed = currentInnings?.status === 'in_progress' && !!currentInnings?.current_bowler_id && overHasDeliveries;
 
   if (matchLoading) {
     return (
@@ -1351,6 +1425,26 @@ export default function LiveScoring() {
             playerName={playersMap[currentInnings?.current_non_striker_id]?.name} />
 
         </div>
+
+        {/* Change a batter picked by mistake (only before they face a ball) */}
+        {(strikerChangeable || nonStrikerChangeable) && !processing && (
+          <div className="flex gap-2 mb-3">
+            {strikerChangeable && (
+              <button
+                onClick={() => handleChangeBatter('change_striker')}
+                className="flex-1 py-1.5 px-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-xs font-medium hover:bg-slate-700 transition-colors">
+                Change Striker
+              </button>
+            )}
+            {nonStrikerChangeable && (
+              <button
+                onClick={() => handleChangeBatter('change_non_striker')}
+                className="flex-1 py-1.5 px-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-xs font-medium hover:bg-slate-700 transition-colors">
+                Change Non-Striker
+              </button>
+            )}
+          </div>
+        )}
         
         {/* Swap Strike Button */}
         {currentInnings?.current_striker_id && currentInnings?.current_non_striker_id && (
@@ -1371,6 +1465,26 @@ export default function LiveScoring() {
         <BowlerCard
           bowler={currentBowler}
           playerName={playersMap[currentInnings?.current_bowler_id]?.name} />
+
+        {/* Correct the bowler before the over starts, or replace an injured one mid-over */}
+        {(bowlerChangeable || bowlerInjuryAllowed) && !processing && (
+          <div className="flex gap-2 mt-3">
+            {bowlerChangeable && (
+              <button
+                onClick={handleChangeBowler}
+                className="flex-1 py-2 px-4 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-sm font-medium hover:bg-slate-700 transition-colors">
+                Change Bowler
+              </button>
+            )}
+            {bowlerInjuryAllowed && (
+              <button
+                onClick={handleBowlerInjured}
+                className="flex-1 py-2 px-4 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-400 text-sm font-medium hover:bg-amber-500/25 transition-colors">
+                Bowler Injured — Replace
+              </button>
+            )}
+          </div>
+        )}
 
       </div>
 
@@ -1408,23 +1522,43 @@ export default function LiveScoring() {
 
       <SelectBatterModal
         open={showSelectBatter}
-        onClose={() => {}}
+        onClose={() => {
+          // Change flows are cancellable; scoring flows stay gated until picked
+          if (pendingAction === 'change_striker' || pendingAction === 'change_non_striker') {
+            setShowSelectBatter(false);
+            setPendingAction(null);
+          }
+        }}
         onSelect={handleSelectBatter}
         availableBatters={availableBatters}
         playersMap={playersMap}
-        title={pendingAction?.includes('opener') ? 'Select Opening Batter' : 'Select Next Batter'} />
+        title={pendingAction === 'change_striker' || pendingAction === 'change_non_striker'
+          ? 'Change Batter'
+          : pendingAction?.includes('opener') ? 'Select Opening Batter' : 'Select Next Batter'} />
 
 
       <SelectBowlerModal
         open={showSelectBowler}
-        onClose={() => {}}
+        onClose={() => {
+          // Change/injury flows are cancellable; scoring flows stay gated until picked
+          if (pendingAction === 'change_bowler' || pendingAction === 'bowler_injured') {
+            setShowSelectBowler(false);
+            setPendingAction(null);
+          }
+        }}
         onSelect={handleSelectBowler}
         bowlingTeamPlayers={bowlingTeamPlayingXI}
         bowlerStats={bowlerInningsMap}
         playersMap={playersMap}
         maxOversPerBowler={match?.max_overs_per_bowler}
         lastBowlerId={currentInnings?.current_bowler_id}
-        title={pendingAction === 'select_opening_bowler' ? 'Select Opening Bowler' : 'Select Bowler'} />
+        title={pendingAction === 'select_opening_bowler'
+          ? 'Select Opening Bowler'
+          : pendingAction === 'bowler_injured'
+          ? 'Bowler Injured — Select Replacement'
+          : pendingAction === 'change_bowler'
+          ? 'Change Bowler'
+          : 'Select Bowler'} />
 
 
       <FollowOnModal
