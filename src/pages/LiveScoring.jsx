@@ -115,6 +115,12 @@ export default function LiveScoring() {
   const tempBowlerIdsRef = useRef({});
   const tempDeliveryIdsRef = useRef({});
 
+  // Session stack of balls processed in the current innings, in tap order.
+  // This is the authoritative "last ball" for undo: the over cache can be
+  // momentarily repainted by a background refetch without the newest ball
+  // (or with stale ids), which used to make undo grab the wrong delivery.
+  const deliveryStackRef = useRef([]);
+
   // Freshest scoring state straight from the query cache — always current,
   // even between rapid taps before React re-renders.
   const getLiveState = () => {
@@ -251,6 +257,12 @@ export default function LiveScoring() {
     }
   }, [currentInnings?.id, currentInnings?.status]);
 
+  // A new innings invalidates the session delivery stack — undo only ever
+  // applies within the innings being scored.
+  useEffect(() => {
+    deliveryStackRef.current = [];
+  }, [currentInnings?.id]);
+
   const refetchAll = async () => {
     await Promise.all([
     refetchMatch(),
@@ -353,6 +365,10 @@ export default function LiveScoring() {
     };
     writeThunks.push(() => base44.entities.Delivery.create(deliveryRecord).then((created) => {
       tempDeliveryIdsRef.current[tempId] = created.id;
+      // Keep the stack entry pointing at the real record id so a later undo
+      // removes it from the (by then refetched) over cache correctly.
+      const stackEntry = deliveryStackRef.current.find((d) => d.id === tempId);
+      if (stackEntry) stackEntry.id = created.id;
     }));
 
     const strikerStats = batterInningsMap[currentInnings.current_striker_id];
@@ -545,6 +561,7 @@ export default function LiveScoring() {
     const overKey = ['deliveries', currentInnings.id, currentInnings.current_over_number];
     const overNow = queryClient.getQueryData(overKey) || [];
     queryClient.setQueryData(overKey, [...overNow, { ...deliveryRecord, id: tempId }]);
+    deliveryStackRef.current.push({ ...deliveryRecord, id: tempId });
 
     queryClient.setQueryData(['innings', matchId],
       live.allInnings.map((i) => i.id === currentInnings.id ? { ...i, ...inningsUpdate } : i));
@@ -941,13 +958,18 @@ export default function LiveScoring() {
     const liveBowlerInningsMap = live.bowlers.reduce((acc, b) => ({ ...acc, [b.player_id]: b }), {});
     const livePartnerships = live.pships;
 
-    // The last delivery lives in the current over's cache — or, if it just
-    // completed the over, in the previous over's cache.
-    const currentOverBalls = (queryClient.getQueryData(['deliveries', liveInnings.id, liveInnings.current_over_number]) || [])
-      .filter((d) => !d.is_voided);
-    const lastDelivery = currentOverBalls[currentOverBalls.length - 1] ||
-      ((queryClient.getQueryData(['deliveries', liveInnings.id, liveInnings.current_over_number - 1]) || [])
-        .filter((d) => !d.is_voided).pop() || null);
+    // The most recently tapped ball comes off the session delivery stack —
+    // the exact ball the scorer just logged, immune to background refetches.
+    // The cache-based lookup below remains only as a fallback for balls
+    // scored before a page reload (when the stack is empty).
+    let lastDelivery = deliveryStackRef.current.pop() || null;
+    if (!lastDelivery) {
+      const currentOverBalls = (queryClient.getQueryData(['deliveries', liveInnings.id, liveInnings.current_over_number]) || [])
+        .filter((d) => !d.is_voided);
+      lastDelivery = currentOverBalls[currentOverBalls.length - 1] ||
+        ((queryClient.getQueryData(['deliveries', liveInnings.id, liveInnings.current_over_number - 1]) || [])
+          .filter((d) => !d.is_voided).pop() || null);
+    }
     if (!lastDelivery) return;
 
     const isLegal = lastDelivery.is_legal_delivery;
