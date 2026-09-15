@@ -49,7 +49,7 @@ export default function Scorecard() {
 
   const { data: allDeliveries = [] } = useQuery({
     queryKey: ['all-deliveries', matchId],
-    queryFn: () => base44.entities.Delivery.filter({ match_id: matchId, is_voided: false }),
+    queryFn: () => base44.entities.Delivery.filter({ match_id: matchId, is_voided: false }, 'created_date', 500),
     enabled: !!matchId
   });
 

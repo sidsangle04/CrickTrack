@@ -179,7 +179,7 @@ export default function LiveScoring() {
       innings_id: currentInnings.id,
       over_number: currentInnings.current_over_number,
       is_voided: false
-    }) :
+    }, 'created_date', 500) :
     [],
     enabled: !!currentInnings?.id,
     refetchOnWindowFocus: false
@@ -371,6 +371,12 @@ export default function LiveScoring() {
       // removes it from the (by then refetched) over cache correctly.
       const stackEntry = deliveryStackRef.current.find((d) => d.id === tempId);
       if (stackEntry) stackEntry.id = created.id;
+      // Also point the over cache entry at the real id so undo removes the
+      // right ball even before the next refetch lands.
+      const overKeyCreated = ['deliveries', currentInnings.id, currentInnings.current_over_number];
+      queryClient.setQueryData(overKeyCreated,
+        (queryClient.getQueryData(overKeyCreated) || [])
+          .map((d) => d.id === tempId ? { ...d, id: created.id } : d));
     }));
 
     const strikerStats = batterInningsMap[currentInnings.current_striker_id];
@@ -1386,6 +1392,18 @@ export default function LiveScoring() {
         live.batters.map((b) => b.id === retiringStats.id ? { ...b, ...fields } : b));
       queueWrites(() => base44.entities.BatterInnings.update(
         tempBatterIdsRef.current[retiringStats.id] || retiringStats.id, fields));
+    }
+
+    // Close the retiring batter's partnership — the next ball then opens a
+    // fresh one with the replacement, instead of piling runs onto the
+    // retired batter's partnership.
+    const activePship = live.pships.find((p) => p.is_active);
+    if (activePship && (activePship.batter1_id === playerId || activePship.batter2_id === playerId)) {
+      const pshipFields = { is_active: false, how_ended: retireType };
+      queryClient.setQueryData(['partnerships', liveInnings.id],
+        live.pships.map((p) => p.id === activePship.id ? { ...p, ...pshipFields } : p));
+      queueWrites(() => base44.entities.Partnership.update(
+        tempPshipIdsRef.current[activePship.id] || activePship.id, pshipFields));
     }
 
     // Open the crease slot — the replacement takes this position
