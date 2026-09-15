@@ -57,6 +57,8 @@ export default function LiveScoring() {
   const [bowlerProfile, setBowlerProfile] = useState({}); // { [playerId]: { hand, type } }
   const [showBowlerProfile, setShowBowlerProfile] = useState(false);
   const [pendingBowlerId, setPendingBowlerId] = useState(null);
+  const [retireType, setRetireType] = useState(null); // 'retired_hurt' | 'retired_out'
+  const [showRetireDialog, setShowRetireDialog] = useState(false);
 
   // Serialises delivery/undo processing so rapid taps can't race on stale
   // React state (the source of mismatched scores and bad undos).
@@ -1358,6 +1360,47 @@ export default function LiveScoring() {
     setShowSelectBatter(true);
   };
 
+  // Retired hurt / retired out are tags, not wickets: no delivery is recorded,
+  // so no ball counts against the bowler or the team and the wicket count
+  // stays put — the batter just leaves the crease and a new batter is asked for.
+  const handleRetire = (type) => {
+    if (processingRef.current) return;
+    setRetireType(type);
+    setShowRetireDialog(true);
+  };
+
+  const handleRetireConfirm = (playerId) => {
+    const live = getLiveState();
+    const liveInnings = live.innings;
+    if (!liveInnings || !playerId) return;
+
+    // Tag the retiring batter's record (no wicket, no ball counted)
+    const retiringStats = live.batters.find((b) => b.player_id === playerId);
+    if (retiringStats) {
+      const fields = {
+        status: retireType,
+        dismissal_type: retireType,
+        is_out: retireType === 'retired_out'
+      };
+      queryClient.setQueryData(['batter-innings', liveInnings.id],
+        live.batters.map((b) => b.id === retiringStats.id ? { ...b, ...fields } : b));
+      queueWrites(() => base44.entities.BatterInnings.update(
+        tempBatterIdsRef.current[retiringStats.id] || retiringStats.id, fields));
+    }
+
+    // Open the crease slot — the replacement takes this position
+    applyInningsPatch(liveInnings.current_striker_id === playerId
+      ? { current_striker_id: null }
+      : { current_non_striker_id: null });
+
+    setShowRetireDialog(false);
+    setRetireType(null);
+    // Ask for the new batter; scoring resumes once chosen
+    setPendingAction('new_batter');
+    setShowSelectBatter(true);
+    setProcessingLocked(true);
+  };
+
   const availableBatters = battingTeamPlayingXI.
   filter((pId) => {
     const stats = batterInningsMap[pId];
@@ -1497,6 +1540,7 @@ export default function LiveScoring() {
         onExtra={handleExtra}
         onWicket={handleWicket}
         onUndo={handleUndo}
+        onRetired={handleRetire}
         disabled={processing || !currentInnings?.current_striker_id || !currentInnings?.current_bowler_id} />
 
 
@@ -1510,6 +1554,35 @@ export default function LiveScoring() {
         nonStrikerName={playersMap[currentInnings?.current_non_striker_id]?.name}
         bowlingTeamPlayers={bowlingTeamPlayingXI}
         playersMap={playersMap} />
+
+
+      <Dialog open={showRetireDialog} onOpenChange={(open) => {
+        setShowRetireDialog(open);
+        if (!open) setRetireType(null);
+      }}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-center">
+              {retireType === 'retired_hurt' ? 'Retired Hurt' : 'Retired Out'}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-center text-slate-400 text-sm">Which batter is retiring?</p>
+          <div className="space-y-3 mt-2">
+            <button
+              onClick={() => handleRetireConfirm(currentInnings?.current_striker_id)}
+              className="w-full p-4 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-between">
+              <span className="font-semibold">{playersMap[currentInnings?.current_striker_id]?.name || 'Striker'}</span>
+              <span className="text-slate-400 text-sm">Striker</span>
+            </button>
+            <button
+              onClick={() => handleRetireConfirm(currentInnings?.current_non_striker_id)}
+              className="w-full p-4 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-between">
+              <span className="font-semibold">{playersMap[currentInnings?.current_non_striker_id]?.name || 'Non-striker'}</span>
+              <span className="text-slate-400 text-sm">Non-striker</span>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
 
       <ExtrasModal

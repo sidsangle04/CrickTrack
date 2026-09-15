@@ -9,9 +9,7 @@ const DISMISSAL_TYPES = [
 { value: 'lbw', label: 'LBW', needsFielder: false },
 { value: 'run_out', label: 'Run Out', needsFielder: true, needsRunoutEnd: true },
 { value: 'stumped', label: 'Stumped', needsFielder: true },
-{ value: 'hit_wicket', label: 'Hit Wicket', needsFielder: false },
-{ value: 'retired_hurt', label: 'Retired Hurt', needsFielder: false, noBowlerCredit: true },
-{ value: 'retired_out', label: 'Retired Out', needsFielder: false, noBowlerCredit: true }];
+{ value: 'hit_wicket', label: 'Hit Wicket', needsFielder: false }];
 
 
 export default function WicketModal({

@@ -6,6 +6,7 @@ export default function ScoringKeypad({
   onExtra, 
   onWicket, 
   onUndo,
+  onRetired,
   disabled = false 
 }) {
   const runButtons = [0, 1, 2, 3, 4, 5, 6];
@@ -65,6 +66,24 @@ export default function ScoringKeypad({
         </button>
       </div>
       
+      {/* Retire buttons — tags only, not wickets */}
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <button
+          onClick={() => onRetired('retired_hurt')}
+          disabled={disabled}
+          className="py-3 rounded-xl bg-slate-800 text-slate-300 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Retired Hurt
+        </button>
+        <button
+          onClick={() => onRetired('retired_out')}
+          disabled={disabled}
+          className="py-3 rounded-xl bg-slate-800 text-slate-300 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Retired Out
+        </button>
+      </div>
+
       {/* Action Buttons */}
       <div className="grid grid-cols-2 gap-3">
         <button
