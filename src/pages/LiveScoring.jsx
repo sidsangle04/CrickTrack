@@ -618,6 +618,21 @@ export default function LiveScoring() {
         ? partnershipsList.map((p) => p.id === activePship.id ? optimisticPship : p)
         : [...partnershipsList, optimisticPship]);
 
+    // Key moment → refresh the plain-English explanation of the numbers.
+    if (endOfInnings || deliveryData.is_wicket || needNewBowler) {
+      requestInsight(
+        endOfInnings ? 'innings' : deliveryData.is_wicket ? 'wicket' : 'over_end',
+        {
+          battingTeam: teamsMap[currentInnings.batting_team_id]?.name || 'Batting side',
+          bowlingTeam: teamsMap[currentInnings.bowling_team_id]?.name || 'Bowling side',
+          score: `${newTotalRuns}/${newTotalWickets} (${Math.floor(newTotalBalls / 6)}.${newTotalBalls % 6} ov)`,
+          target: currentInnings.target || null,
+          battingPct: postPrediction ? postPrediction.battingPct : 50,
+          why: postPrediction ? postPrediction.why : ''
+        }
+      );
+    }
+
     // ---- 2) Flow change: the next prompt appears instantly (the modal gates
     // further scoring; the writes land on the background queue meanwhile) ----
     if (endOfInnings) {
@@ -642,21 +657,6 @@ export default function LiveScoring() {
       setPendingAction('new_bowler');
       setShowSelectBowler(true);
       setProcessingLocked(true); // released once the new bowler is chosen
-    }
-
-    // Key moment → refresh the plain-English explanation of the numbers.
-    if (endOfInnings || deliveryData.is_wicket || needNewBowler) {
-      requestInsight(
-        endOfInnings ? 'innings' : deliveryData.is_wicket ? 'wicket' : 'over_end',
-        {
-          battingTeam: teamsMap[currentInnings.batting_team_id]?.name || 'Batting side',
-          bowlingTeam: teamsMap[currentInnings.bowling_team_id]?.name || 'Bowling side',
-          score: `${newTotalRuns}/${newTotalWickets} (${Math.floor(newTotalBalls / 6)}.${newTotalBalls % 6} ov)`,
-          target: currentInnings.target || null,
-          battingPct: postPrediction ? postPrediction.battingPct : 50,
-          why: postPrediction ? postPrediction.why : ''
-        }
-      );
     }
 
     // ---- 3) Background persist, one ball at a time in tap order ----
