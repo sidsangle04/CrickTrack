@@ -5,6 +5,15 @@ import { getMaxWickets, isTestMatch } from './testCricket';
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const logistic = (x) => 100 / (1 + Math.exp(-x));
 
+// Abramowitz & Stegun normal CDF — used to price "can they get there?" honestly
+// instead of extrapolating a hot start across a whole innings.
+const normalCdf = (z) => {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989423 * Math.exp(-z * z / 2);
+  const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  return z > 0 ? 1 - p : p;
+};
+
 // ---- Player ratings, built from aggregate rows ----
 // Rows come from BatterInnings / BowlerInnings aggregates: { player_id, count, sum_* }
 
@@ -122,8 +131,8 @@ export function preMatchSummary(prediction) {
 }
 
 // ---- Live prediction ----
-// Recalculated from the situation (runs, wickets, balls left, required rate)
-// blended with the pre-match prior and the players actually on the park.
+// Priced from the situation (runs, wickets, balls left, required rate) blended
+// with the pre-match prior and the players actually on the park.
 export function predictLive({
   match,
   innings,
@@ -142,7 +151,7 @@ export function predictLive({
   const runs = innings.total_runs || 0;
   const ballsBowled = (innings.current_over_number || 0) * 6 + (innings.current_ball_in_over || 0);
 
-  // The batters at the crease against the bowler on now.
+  // The batters at the crease against the bowler on now — a nudge in runs.
   const striker = (ratingMap[innings.current_striker_id] || {}).batting ?? 45;
   const nonStriker = (ratingMap[innings.current_non_striker_id] || {}).batting ?? 45;
   const bowler = (ratingMap[innings.current_bowler_id] || {}).bowling ?? 45;
@@ -174,28 +183,36 @@ export function predictLive({
   const oversLeft = ballsLeft / 6;
   const target = innings.target;
 
+  // A side's sustainable scoring rate from here: anchored on the rate this
+  // match demands, trimmed as wickets fall, nudged by how they've actually
+  // scored so far (weighted by how much of the innings has gone).
+  const progress = clamp(ballsBowled / (maxOvers * 6), 0, 1);
+  const wicketFactor = 0.8 + 0.2 * (wicketsLeft / maxWickets);
+  const spread = Math.sqrt(Math.max(oversLeft, 0.01)) * (5 + 3 * (1 - wicketsLeft / maxWickets));
+
   // Chasing.
   if (target) {
     const need = target - runs;
     if (need <= 0) return settle(100, 'Target achieved');
     if (!wicketsLeft) return settle(0, `All out — ${need} short`);
-    if (!ballsLeft) return settle(0, `${need} short of the target`);
-    const currentRate = ballsBowled ? runs / (ballsBowled / 6) : need / oversLeft;
-    const capacity = 6.5 + 3.5 * (wicketsLeft / maxWickets) + (currentRate - 6.5) * 0.35;
-    const projected = runs + capacity * oversLeft + strengthEdge;
-    const situational = logistic((projected - target) / 10);
-    const battingPct = clamp(Math.round(0.72 * situational + 0.28 * prior), 1, 99);
+    if (ballsLeft <= 0) return settle(0, `${need} short of the target`);
+
+    const parRate = target / maxOvers;
+    const currentRate = ballsBowled >= 6 ? runs / (ballsBowled / 6) : parRate;
+    const sustainable = parRate * wicketFactor + (currentRate - parRate) * 0.25 * progress;
+    const mean = sustainable * oversLeft + strengthEdge;
+    const situational = 100 * normalCdf((mean - need) / spread);
+    const battingPct = clamp(Math.round(0.75 * situational + 0.25 * prior), 1, 99);
     return settle(battingPct, `Need ${need} off ${ballsLeft} ball${ballsLeft === 1 ? '' : 's'} · ${wicketsLeft} wicket${wicketsLeft === 1 ? '' : 's'} in hand`);
   }
 
-  // First innings: projected score against par.
+  // First innings: projected total against par for the format.
   const par = parScore || maxOvers * 7;
-  const currentRate = ballsBowled ? runs / (ballsBowled / 6) : 0;
-  const capacity = ballsBowled
-    ? 6.5 + 3.5 * (wicketsLeft / maxWickets) + (currentRate - 6.5) * 0.5
-    : 7.2;
-  const projected = runs + capacity * oversLeft + strengthEdge;
-  const situational = logistic((projected - par) / 12);
+  const parRate = par / maxOvers;
+  const currentRate = ballsBowled >= 6 ? runs / (ballsBowled / 6) : parRate;
+  const sustainable = parRate * wicketFactor + (currentRate - parRate) * 0.25 * progress;
+  const projected = runs + sustainable * oversLeft + strengthEdge;
+  const situational = 100 * normalCdf((projected - par) / spread);
   const battingPct = clamp(Math.round(0.6 * situational + 0.4 * prior), 1, 99);
   return settle(battingPct, `Projected ${Math.round(projected)} vs par ${Math.round(par)}`);
 }
