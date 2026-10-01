@@ -22,6 +22,8 @@ import PitchHeatmap from '../components/analytics/PitchHeatmap';
 import WormGraph from '../components/analytics/WormGraph';
 import PartnershipTable from '../components/analytics/PartnershipTable';
 import MatchReport from '../components/analytics/MatchReport';
+import WinProbabilityBar from '@/components/prediction/WinProbabilityBar';
+import WinProbabilityTimeline from '@/components/prediction/WinProbabilityTimeline';
 import PlayerOfMatch from '../components/analytics/PlayerOfMatch';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -327,6 +329,20 @@ export default function Scorecard() {
             <span className="font-medium text-emerald-400">{match.result}</span>
           </div>
         )}
+
+        {typeof match?.prematch_team1_pct === 'number' && (
+          <div className="mt-3 rounded-xl border border-slate-700/50 bg-slate-900/60 p-4">
+            <div className="mb-2 text-[10px] uppercase tracking-wider text-slate-500">Pre-match prediction</div>
+            <WinProbabilityBar
+              team1Name={teamsMap[match?.team1_id]?.short_name || teamsMap[match?.team1_id]?.name || 'Team 1'}
+              team2Name={teamsMap[match?.team2_id]?.short_name || teamsMap[match?.team2_id]?.name || 'Team 2'}
+              team1Pct={match.prematch_team1_pct}
+            />
+            {match?.prematch_summary && (
+              <p className="mt-2 text-[11px] text-slate-500">{match.prematch_summary}</p>
+            )}
+          </div>
+        )}
       </div>
 
       {showReport && (
@@ -358,6 +374,14 @@ export default function Scorecard() {
         deliveries={allDeliveries}
         teamsMap={teamsMap}
         maxOvers={match?.overs_per_innings}
+      />
+
+      <WinProbabilityTimeline
+        innings={innings}
+        deliveries={allDeliveries}
+        teamsMap={teamsMap}
+        team1Id={match?.team1_id}
+        team2Id={match?.team2_id}
       />
 
       <Tabs defaultValue="innings_1" className="w-full">
