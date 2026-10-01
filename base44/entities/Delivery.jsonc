@@ -247,6 +247,10 @@
       "type": "string",
       "description": "Player ID of the fielder who dropped the catch"
     },
+    "batting_win_prob": {
+      "type": "number",
+      "description": "Batting team's win probability (%) after this delivery"
+    },
     "is_voided": {
       "type": "boolean",
       "default": false

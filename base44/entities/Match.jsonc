@@ -165,6 +165,18 @@
       "type": "boolean",
       "default": true,
       "description": "Whether ball-by-ball visual tagging (pitch zone, shot location, delivery details) is prompted during scoring. False = quick scoring (outcomes only)."
+    },
+    "prematch_team1_pct": {
+      "type": "number",
+      "description": "Pre-match win probability for team 1 (%)"
+    },
+    "prematch_team2_pct": {
+      "type": "number",
+      "description": "Pre-match win probability for team 2 (%)"
+    },
+    "prematch_summary": {
+      "type": "string",
+      "description": "Short summary of the drivers behind the pre-match prediction"
     }
   },
   "required": [

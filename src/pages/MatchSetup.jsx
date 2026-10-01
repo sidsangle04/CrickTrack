@@ -21,6 +21,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Link } from 'react-router-dom';
 import { useGroundShape } from '@/lib/GroundShapeContext';
+import usePreMatchPrediction from '@/hooks/usePreMatchPrediction';
+import PreMatchPredictionCard from '@/components/prediction/PreMatchPredictionCard';
+import { preMatchSummary } from '@/lib/predictionEngine';
 
 const STEPS = ['basics', 'teams', 'playing_xi', 'format', 'toss'];
 
@@ -123,6 +126,14 @@ export default function MatchSetup() {
 
   const teamsMap = modeTeams.reduce((acc, t) => ({ ...acc, [t.id]: t }), {});
 
+  // Pre-match win chances from player ratings, head-to-head and recent form.
+  const { prediction: preMatchPrediction, isLoading: predictionLoading } = usePreMatchPrediction({
+    team1Id: formData.team1_id,
+    team2Id: formData.team2_id,
+    team1XI: formData.team1_playing_xi,
+    team2XI: formData.team2_playing_xi
+  });
+
   const updateMatchMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Match.update(id, data),
     onSuccess: () => {
@@ -148,6 +159,9 @@ export default function MatchSetup() {
       ...formData,
       ground_mode: mode,
       status: 'live',
+      prematch_team1_pct: preMatchPrediction ? preMatchPrediction.team1Pct : null,
+      prematch_team2_pct: preMatchPrediction ? preMatchPrediction.team2Pct : null,
+      prematch_summary: preMatchSummary(preMatchPrediction),
       batting_team_id: formData.toss_decision === 'bat' ?
       formData.toss_winner_id :
       formData.toss_winner_id === formData.team1_id ? formData.team2_id : formData.team1_id,
@@ -443,6 +457,12 @@ export default function MatchSetup() {
               }
               </div>
             </div>
+
+            <PreMatchPredictionCard
+              prediction={preMatchPrediction}
+              team1Name={teamsMap[formData.team1_id]?.name || 'Team 1'}
+              team2Name={teamsMap[formData.team2_id]?.name || 'Team 2'}
+              loading={predictionLoading} />
           </div>
         }
 
@@ -686,6 +706,14 @@ export default function MatchSetup() {
           </div>
         }
       </div>
+
+      {STEPS[step] === 'toss' && (
+        <PreMatchPredictionCard
+          prediction={preMatchPrediction}
+          team1Name={teamsMap[formData.team1_id]?.name || 'Team 1'}
+          team2Name={teamsMap[formData.team2_id]?.name || 'Team 2'}
+          loading={predictionLoading} />
+      )}
 
       {/* Navigation */}
       <div className="flex gap-3">

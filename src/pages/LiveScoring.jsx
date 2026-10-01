@@ -16,6 +16,8 @@ import SelectBatterModal from '../components/scoring/SelectBatterModal';
 import SelectBowlerModal from '../components/scoring/SelectBowlerModal';
 import VisualTrackingModal from '../components/scoring/VisualTrackingModal';
 import BowlerProfileModal from '../components/scoring/BowlerProfileModal';
+import LivePredictionStrip from '../components/prediction/LivePredictionStrip';
+import useLivePrediction from '../hooks/useLivePrediction';
 import {
   Dialog,
   DialogContent,
@@ -172,6 +174,14 @@ export default function LiveScoring() {
   allInnings.find((inn) => inn.status === 'not_started') ||
   allInnings[allInnings.length - 1];
 
+  // Win probability: instant client-side model, re-priced on every ball.
+  const [aiInsight, setAiInsight] = useState(null);
+  const { prediction, compute: computePrediction } = useLivePrediction({
+    match,
+    innings: currentInnings,
+    allInnings
+  });
+
   const { data: currentOverDeliveries = [], refetch: refetchDeliveries } = useQuery({
     queryKey: ['deliveries', currentInnings?.id, currentInnings?.current_over_number],
     queryFn: () => currentInnings ?
@@ -263,6 +273,7 @@ export default function LiveScoring() {
   // applies within the innings being scored.
   useEffect(() => {
     deliveryStackRef.current = [];
+    setAiInsight(null);
   }, [currentInnings?.id]);
 
   const refetchAll = async () => {
@@ -286,6 +297,17 @@ export default function LiveScoring() {
       refetchBowlerInnings(),
       refetchPartnerships()
     ]);
+  };
+
+  // AI-written one-liner explaining the numbers at key moments (wicket, end of
+  // over, innings break). Supplementary: a failure never affects scoring.
+  const requestInsight = async (keyEvent, payload) => {
+    try {
+      const res = await base44.functions.invoke('predictionInsight', { keyEvent, ...payload });
+      if (res?.data?.insight) setAiInsight(res.data.insight);
+    } catch (e) {
+      // Ignore — the percentages are already on screen.
+    }
   };
 
   // Optimistic scoring: the ball is computed and painted on screen synchronously
@@ -545,6 +567,11 @@ export default function LiveScoring() {
       inningsUpdate.current_non_striker_id = null;
     }
 
+    // Win probability as it stands after this ball — stored on the delivery so
+    // the scorecard can chart how the match swung.
+    const postPrediction = computePrediction({ ...currentInnings, ...inningsUpdate });
+    deliveryRecord.batting_win_prob = postPrediction ? postPrediction.battingPct : undefined;
+
     writeThunks.push(partnershipThunk);
     writeThunks.push(() => base44.entities.Innings.update(currentInnings.id, inningsUpdate));
 
@@ -615,6 +642,21 @@ export default function LiveScoring() {
       setPendingAction('new_bowler');
       setShowSelectBowler(true);
       setProcessingLocked(true); // released once the new bowler is chosen
+    }
+
+    // Key moment → refresh the plain-English explanation of the numbers.
+    if (endOfInnings || deliveryData.is_wicket || needNewBowler) {
+      requestInsight(
+        endOfInnings ? 'innings' : deliveryData.is_wicket ? 'wicket' : 'over_end',
+        {
+          battingTeam: teamsMap[currentInnings.batting_team_id]?.name || 'Batting side',
+          bowlingTeam: teamsMap[currentInnings.bowling_team_id]?.name || 'Bowling side',
+          score: `${newTotalRuns}/${newTotalWickets} (${Math.floor(newTotalBalls / 6)}.${newTotalBalls % 6} ov)`,
+          target: currentInnings.target || null,
+          battingPct: postPrediction ? postPrediction.battingPct : 50,
+          why: postPrediction ? postPrediction.why : ''
+        }
+      );
     }
 
     // ---- 3) Background persist, one ball at a time in tap order ----
@@ -1472,6 +1514,12 @@ export default function LiveScoring() {
         team2Name={team2Name}
         onMenuOpen={() => setShowMenuDialog(true)} />
 
+      <LivePredictionStrip
+        prediction={prediction}
+        team1Name={team1Name}
+        team2Name={team2Name}
+        insight={aiInsight} />
+
 
       <div className="px-4 py-3">
         <div className="flex gap-3 mb-3">
@@ -1708,6 +1756,10 @@ export default function LiveScoring() {
         bowlerType={bowlerProfile[currentInnings?.current_bowler_id]?.type}
         fieldingTeamPlayers={bowlingTeamPlayingXI.map(pid => playersMap[pid]).filter(Boolean)}
         playersMap={playersMap}
+        prediction={prediction}
+        insight={aiInsight}
+        team1Name={team1Name}
+        team2Name={team2Name}
       />
 
       <Dialog open={showMenuDialog} onOpenChange={setShowMenuDialog}>

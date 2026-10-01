@@ -5,6 +5,7 @@ import { X, MapPin, Target, CheckCircle } from 'lucide-react';
 import GroundMap, { classifyShot } from './GroundMap';
 import PitchMap, { classifyPitch } from './PitchMap';
 import { useGroundShape } from '@/lib/GroundShapeContext';
+import WinProbabilityBar from '@/components/prediction/WinProbabilityBar';
 
 const SPIN_VARIATIONS = [
   { key: 'googly', label: 'Googly' },
@@ -38,7 +39,8 @@ function getTurfZone(x, y) {
 // Step 3: Outcome + catch drop
 
 export default function VisualTrackingModal({
-  open, onClose, onConfirm, runs, isWicket, bowlerType, fieldingTeamPlayers = [], playersMap = {}
+  open, onClose, onConfirm, runs, isWicket, bowlerType, fieldingTeamPlayers = [], playersMap = {},
+  prediction = null, insight = null, team1Name = 'Team 1', team2Name = 'Team 2'
 }) {
   const [step, setStep] = useState('pitch'); // 'pitch' | 'ground' | 'outcome'
   const [shotData, setShotData] = useState(null);
@@ -116,6 +118,22 @@ export default function VisualTrackingModal({
             <X className="w-4 h-4" />
           </button>
         </DialogHeader>
+
+        {/* Live win chances while the ball is being tagged */}
+        {prediction && (
+          <div className="px-4 mb-3">
+            <div className="rounded-xl border border-slate-700/50 bg-slate-800/60 px-3 py-2">
+              <WinProbabilityBar
+                team1Name={team1Name}
+                team2Name={team2Name}
+                team1Pct={prediction.team1Pct}
+                why={prediction.why}
+                insight={insight}
+                compact
+              />
+            </div>
+          </div>
+        )}
 
         {/* Step indicator */}
         <div className="flex gap-2 px-4 mb-2">
