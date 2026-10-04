@@ -206,12 +206,18 @@ export function predictLive({
     return settle(battingPct, `Need ${need} off ${ballsLeft} ball${ballsLeft === 1 ? '' : 's'} · ${wicketsLeft} wicket${wicketsLeft === 1 ? '' : 's'} in hand`);
   }
 
-  // First innings: projected total against par for the format.
+  // First innings: projected total against par for the format. Driven by how
+  // the innings is actually scoring, so the projection tracks the run rate.
   const par = parScore || maxOvers * 7;
   const parRate = par / maxOvers;
-  const currentRate = ballsBowled >= 6 ? runs / (ballsBowled / 6) : parRate;
-  const sustainable = parRate * wicketFactor + (currentRate - parRate) * 0.25 * progress;
-  const projected = runs + sustainable * oversLeft + strengthEdge;
+  const ballsFaced = Math.max(ballsBowled, 0);
+  const currentRate = ballsFaced > 0 ? runs / (ballsFaced / 6) : parRate;
+  // A couple of overs of evidence before the real rate takes over from par,
+  // so one early boundary does not send the projection wild.
+  const sampleWeight = clamp(ballsFaced / 12, 0, 1);
+  const rate = parRate * (1 - sampleWeight) + currentRate * sampleWeight;
+  // A side losing wickets cannot sustain its rate to the end.
+  const projected = runs + rate * wicketFactor * oversLeft;
   const situational = 100 * normalCdf((projected - par) / spread);
   const battingPct = clamp(Math.round(0.6 * situational + 0.4 * prior), 1, 99);
   return settle(battingPct, `Projected ${Math.round(projected)} vs par ${Math.round(par)}`);
