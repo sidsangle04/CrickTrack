@@ -1,5 +1,6 @@
 import React from 'react';
 import { Play, Eye, CheckCircle2 } from 'lucide-react';
+import QualificationPanel from './QualificationPanel';
 
 function TeamChip({ team, teamId, isWinner }) {
   const name = team?.name || (teamId ? 'Team' : 'TBD');
@@ -31,6 +32,7 @@ export default function LeagueView({
   teamsMap,
   matchesMap,
   leagueComplete,
+  qualification,
   knockoutTeams,
   seedLabels,
   footerNote,
@@ -142,6 +144,13 @@ export default function LeagueView({
             `Top ${k} qualify for the knockout · Win = 2 pts · Tie/No-result = 1 pt each`}
         </div>
       </div>
+
+      {/* Qualification scenarios */}
+      <QualificationPanel
+        standings={standings}
+        teamsMap={teamsMapResolved}
+        qualification={qualification}
+      />
 
       {/* Fixtures */}
       <div className="rounded-2xl bg-slate-800/50 border border-slate-700/50 p-4">

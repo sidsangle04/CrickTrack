@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import CreateTournamentModal from '@/components/tournament/CreateTournamentModal';
 import BracketView from '@/components/tournament/BracketView';
 import { deriveBracket, computeStandings, leagueComplete, seedKnockoutRound1, seedPlayoffs } from '@/lib/bracket';
+import { computeQualification } from '@/lib/qualification';
 import LeagueView from '@/components/tournament/LeagueView';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 
@@ -108,7 +109,14 @@ export default function Tournaments() {
       const knockout = knockoutMatches.length
         ? deriveBracket(knockoutMatches, matchesMap, { roundTeams })
         : null;
-      return { format: 'league_playoffs', leagueMatches, standings, leagueComplete: done, knockout };
+      const qualification = computeQualification({
+        standings,
+        leagueMatches,
+        matchesMap,
+        teamsMap,
+        qualifyPlaces: 3
+      });
+      return { format: 'league_playoffs', leagueMatches, standings, leagueComplete: done, knockout, qualification };
     }
     if (selected?.format === 'league_knockout') {
       const leagueMatches = tmMatches.filter((m) => m.stage === 'league');
@@ -119,7 +127,14 @@ export default function Tournaments() {
       const knockout = knockoutMatches.length
         ? deriveBracket(knockoutMatches, matchesMap, { round1Teams })
         : null;
-      return { format: 'league_knockout', leagueMatches, standings, leagueComplete: done, knockout };
+      const qualification = computeQualification({
+        standings,
+        leagueMatches,
+        matchesMap,
+        teamsMap,
+        qualifyPlaces: selected.knockout_teams || 4
+      });
+      return { format: 'league_knockout', leagueMatches, standings, leagueComplete: done, knockout, qualification };
     }
     return { format: 'knockout', knockout: deriveBracket(tmMatches, matchesMap) };
   }, [tmMatches, matchesMap, selected, inningsByMatch]);
@@ -218,6 +233,7 @@ export default function Tournaments() {
               teamsMap={teamsMap}
               matchesMap={matchesMap}
               leagueComplete={derived.leagueComplete}
+              qualification={derived.qualification}
               knockoutTeams={selected.knockout_teams || 4}
               seedLabels={isPlayoffs ? ['Final', 'SF', 'SF', 'OUT'] : undefined}
               footerNote={
