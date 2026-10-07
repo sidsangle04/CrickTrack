@@ -153,3 +153,105 @@ export function computeQualification({
 
   return result;
 }
+
+// Points position for a team assuming it wins its next match (+2), with every
+// other fixture left as-is. Mirrors the panel logic.
+function pointsStatus(team, standings, places) {
+  const newPts = team.pts + 2;
+  const sim = standings
+    .map((t) => ({ id: t.id, pts: t.id === team.id ? newPts : t.pts }))
+    .sort((a, b) => b.pts - a.pts);
+  const cutPts = sim[places - 1] ? sim[places - 1].pts : 0;
+  if (newPts > cutPts) return { kind: 'through', newPts };
+  if (newPts < cutPts) return { kind: 'outside', newPts };
+  const tied = standings.filter(
+    (t) => t.id !== team.id && t.pts === newPts && t.nrr !== null && t.nrr !== undefined
+  );
+  const targetNRR = tied.length ? Math.max(...tied.map((t) => t.nrr)) : 0;
+  return { kind: 'nrr', newPts, targetNRR };
+}
+
+/**
+ * What each side needs from a league fixture to qualify, once the first
+ * innings is complete. The first innings score is known, so the chasing side's
+ * target and the defending side's run margin can be worked out precisely.
+ */
+export function computeMatchScenario({
+  battingTeamId,
+  bowlingTeamId,
+  firstInningsRuns,
+  firstInningsBalls,
+  quota,
+  target,
+  standings,
+  teamsMap,
+  places
+}) {
+  const list = standings || [];
+  const byId = {};
+  list.forEach((s) => {
+    byId[s.id] = s;
+  });
+  const batting = byId[battingTeamId];
+  const bowling = byId[bowlingTeamId];
+  if (!batting || !bowling) return null;
+
+  const Q = quota > 0 ? quota : 20;
+  const O1 = firstInningsBalls > 0 ? firstInningsBalls / 6 : Q;
+  const placesCount = Math.max(1, places || 1);
+
+  // Would losing this fixture still leave the team in a qualifying place?
+  const survivesLoss = (team, opponent) => {
+    const sim = list
+      .map((t) => ({ id: t.id, pts: t.id === opponent.id ? t.pts + 2 : t.pts }))
+      .sort((a, b) => b.pts - a.pts);
+    const cutPts = sim[placesCount - 1] ? sim[placesCount - 1].pts : 0;
+    return team.pts > cutPts;
+  };
+
+  const requirementFor = (team, opponent, isChasing) => {
+    if (survivesLoss(team, opponent)) {
+      return { kind: 'qualified', text: 'Already through — even a loss keeps you in the top places' };
+    }
+
+    const st = pointsStatus(team, list, placesCount);
+    if (st.kind === 'through') return { kind: 'through', text: "Win and you're through" };
+    if (st.kind === 'outside') {
+      return { kind: 'outside', text: 'Win, and other results must go your way' };
+    }
+
+    if (isChasing) {
+      // Chasing: the team scores the target in `o` overs.
+      const K =
+        st.targetNRR + (team.runsAgainst + firstInningsRuns) / (team.oversAgainst + O1);
+      if (K <= 0) return { kind: 'through', text: "Chase it down and you're through" };
+      const maxOvers = (team.runsFor + target) / K - team.oversFor;
+      if (maxOvers <= 0) {
+        return { kind: 'outside', text: 'Win, and other results must go your way' };
+      }
+      if (maxOvers >= Q) return { kind: 'through', text: "Chase it down and you're through" };
+      return { kind: 'nrr', text: `Chase ${target} down inside ${oversText(maxOvers)} overs` };
+    }
+
+    // Defending: the team already posted the first-innings score and wins by M runs.
+    const forRate = (team.runsFor + firstInningsRuns) / (team.oversFor + O1);
+    const maxR = (forRate - st.targetNRR) * (team.oversAgainst + Q) - team.runsAgainst;
+    if (maxR >= target - 1) {
+      return { kind: 'through', text: 'Defend — any winning margin is enough' };
+    }
+    if (maxR < 0) return { kind: 'outside', text: 'Win, and other results must go your way' };
+    const margin = Math.floor(target - 1 - maxR) + 1;
+    return { kind: 'nrr', text: `Win by at least ${margin} runs` };
+  };
+
+  return {
+    batting: {
+      teamId: battingTeamId,
+      requirement: requirementFor(batting, bowling, true)
+    },
+    bowling: {
+      teamId: bowlingTeamId,
+      requirement: requirementFor(bowling, batting, false)
+    }
+  };
+}

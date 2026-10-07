@@ -17,6 +17,8 @@ import SelectBowlerModal from '../components/scoring/SelectBowlerModal';
 import VisualTrackingModal from '../components/scoring/VisualTrackingModal';
 import BowlerProfileModal from '../components/scoring/BowlerProfileModal';
 import LivePredictionStrip from '../components/prediction/LivePredictionStrip';
+import MatchScenarioBanner from '../components/scoring/MatchScenarioBanner';
+import useTournamentScenario from '../hooks/useTournamentScenario';
 import useLivePrediction from '../hooks/useLivePrediction';
 import {
   Dialog,
@@ -233,6 +235,13 @@ export default function LiveScoring() {
   });
 
   const teamsMap = teams.reduce((acc, t) => ({ ...acc, [t.id]: t }), {});
+
+  const tournamentScenario = useTournamentScenario({
+    match,
+    innings: currentInnings,
+    allInnings,
+    teamsMap
+  });
   const playersMap = allPlayers.reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
   const batterInningsMap = batterInnings.reduce((acc, b) => ({ ...acc, [b.player_id]: b }), {});
   const bowlerInningsMap = bowlerInnings.reduce((acc, b) => ({ ...acc, [b.player_id]: b }), {});
@@ -1519,6 +1528,8 @@ export default function LiveScoring() {
         team1Name={team1Name}
         team2Name={team2Name}
         insight={aiInsight} />
+
+      <MatchScenarioBanner scenario={tournamentScenario} teamsMap={teamsMap} />
 
 
       <div className="px-4 py-3">
