@@ -1,9 +1,17 @@
 import React from 'react';
 import WinProbabilityBar from './WinProbabilityBar';
 
-// Slim strip under the live score header.
+// How far the numbers may drift before the written explanation is treated as
+// out of date and dropped — the sentence must never contradict the bar.
+const INSIGHT_DRIFT = 6;
+
 export default function LivePredictionStrip({ prediction, team1Name, team2Name, insight, venuePar }) {
   if (!prediction) return null;
+
+  const stale = insight?.text &&
+    insight.battingPct != null &&
+    prediction.battingPct != null &&
+    Math.abs(prediction.battingPct - insight.battingPct) > INSIGHT_DRIFT;
 
   return (
     <div className="px-4 pb-3">
@@ -13,7 +21,7 @@ export default function LivePredictionStrip({ prediction, team1Name, team2Name, 
           team2Name={team2Name}
           team1Pct={prediction.team1Pct}
           why={prediction.why}
-          insight={insight}
+          insight={stale ? null : insight?.text}
           compact
         />
         {venuePar && (

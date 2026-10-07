@@ -16,8 +16,14 @@ export default async function (req) {
       score = '',
       target = null,
       battingPct = 50,
+      bowlingPct = null,
       why = ''
     } = body || {};
+
+    const battingTeamPct = Math.round(battingPct);
+    const bowlingTeamPct = bowlingPct === null || bowlingPct === undefined
+      ? 100 - battingTeamPct
+      : Math.round(bowlingPct);
 
     const moment =
       keyEvent === 'wicket' ? 'A wicket has just fallen'
@@ -27,8 +33,11 @@ export default async function (req) {
     const prompt = `You are a concise cricket analyst.
 ${moment} in a match between ${battingTeam} (batting) and ${bowlingTeam}.
 Score: ${score}.${target ? ` Target: ${target}.` : ''}
-The win-probability model gives ${battingTeam} a ${battingPct}% chance of winning. Situation: ${why}.
-Write ONE short sentence (maximum 22 words) explaining what is driving that number right now. Plain English, no emojis, no bullet points, do not repeat the percentage.`;
+The win-probability model has ${battingTeam} on ${battingTeamPct}% and ${bowlingTeam} on ${bowlingTeamPct}%.
+Situation: ${why}.
+Write ONE short sentence (maximum 22 words) explaining what is driving those numbers right now.
+The sentence must agree with the numbers: name whichever side is above 50% as the side in front, and if the two are within 5 points say the match is level. Never describe a side as favourite, ahead or on top when the model has it below 50%, and never say a side is behind when the model has it above 50%.
+Plain English, no emojis, no bullet points, do not repeat the percentages.`;
 
     const insight = await base44.integrations.Core.InvokeLLM({ prompt });
 

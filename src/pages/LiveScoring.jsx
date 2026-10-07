@@ -319,10 +319,14 @@ export default function LiveScoring() {
 
   // AI-written one-liner explaining the numbers at key moments (wicket, end of
   // over, innings break). Supplementary: a failure never affects scoring.
+  // The sentence is stored with the percentage it was written about, so it can
+  // be hidden the moment the numbers move away from it.
   const requestInsight = async (keyEvent, payload) => {
     try {
       const res = await base44.functions.invoke('predictionInsight', { keyEvent, ...payload });
-      if (res?.data?.insight) setAiInsight(res.data.insight);
+      if (res?.data?.insight) {
+        setAiInsight({ text: res.data.insight, battingPct: payload.battingPct ?? null });
+      }
     } catch (e) {
       // Ignore — the percentages are already on screen.
     }
@@ -646,6 +650,7 @@ export default function LiveScoring() {
           score: `${newTotalRuns}/${newTotalWickets} (${Math.floor(newTotalBalls / 6)}.${newTotalBalls % 6} ov)`,
           target: currentInnings.target || null,
           battingPct: postPrediction ? postPrediction.battingPct : 50,
+          bowlingPct: postPrediction ? postPrediction.bowlingPct : 50,
           why: postPrediction ? postPrediction.why : ''
         }
       );
