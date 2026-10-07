@@ -18,7 +18,12 @@
     },
     "venue": {
       "type": "string",
-      "description": "Match venue"
+      "description": "Match venue name"
+    },
+    "venue_id": {
+      "type": "string",
+      "default": "",
+      "description": "Linked Venue id when the match was set up against a saved venue"
     },
     "team1_id": {
       "type": "string",

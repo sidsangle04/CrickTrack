@@ -220,5 +220,10 @@ export function predictLive({
   const projected = runs + rate * wicketFactor * oversLeft;
   const situational = 100 * normalCdf((projected - par) / spread);
   const battingPct = clamp(Math.round(0.6 * situational + 0.4 * prior), 1, 99);
-  return settle(battingPct, `Projected ${Math.round(projected)} vs par ${Math.round(par)}`);
+  return settle(
+    battingPct,
+    parScore
+      ? `Projected ${Math.round(projected)} vs venue par ${Math.round(par)}`
+      : `Projected ${Math.round(projected)}`
+  );
 }

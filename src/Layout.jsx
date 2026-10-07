@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Home, PlusCircle, BarChart3, Trophy, Upload, ArrowLeftRight, RefreshCw, Users } from 'lucide-react';
+import { Home, PlusCircle, BarChart3, Trophy, Upload, ArrowLeftRight, RefreshCw, Users, MapPin } from 'lucide-react';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 
 export default function Layout({ children, currentPageName }) {
@@ -118,6 +118,16 @@ export default function Layout({ children, currentPageName }) {
                 <Trophy className="w-4 h-4 inline mr-2" />
                 Tournaments
               </Link>
+              <Link
+                to={createPageUrl('Venues')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                currentPageName === 'Venues' ?
+                'bg-emerald-500/20 text-emerald-400' :
+                'text-slate-400 hover:text-white hover:bg-slate-800'}`
+                }>
+                <MapPin className="w-4 h-4 inline mr-2" />
+                Venues
+              </Link>
             </nav>
             
             <div className="flex items-center gap-2">
@@ -162,7 +172,7 @@ export default function Layout({ children, currentPageName }) {
         <div className="flex justify-around">
           <Link
             to={createPageUrl('Home')}
-            className={`flex flex-col items-center py-2 px-4 rounded-lg ${
+            className={`flex flex-col items-center py-2 px-2 rounded-lg ${
             currentPageName === 'Home' ? 'text-emerald-400' : 'text-slate-500'}`
             }>
             
@@ -171,7 +181,7 @@ export default function Layout({ children, currentPageName }) {
           </Link>
           <Link
             to={createPageUrl('Analytics')}
-            className={`flex flex-col items-center py-2 px-4 rounded-lg ${
+            className={`flex flex-col items-center py-2 px-2 rounded-lg ${
             currentPageName === 'Analytics' ? 'text-emerald-400' : 'text-slate-500'}`
             }>
             
@@ -180,7 +190,7 @@ export default function Layout({ children, currentPageName }) {
           </Link>
           <Link
             to={createPageUrl('Players')}
-            className={`flex flex-col items-center py-2 px-4 rounded-lg ${
+            className={`flex flex-col items-center py-2 px-2 rounded-lg ${
             currentPageName === 'Players' ? 'text-emerald-400' : 'text-slate-500'}`
             }>
             <Users className="w-5 h-5" />
@@ -188,7 +198,7 @@ export default function Layout({ children, currentPageName }) {
           </Link>
           <Link
             to={createPageUrl('PlayerComparison')}
-            className={`flex flex-col items-center py-2 px-4 rounded-lg ${
+            className={`flex flex-col items-center py-2 px-2 rounded-lg ${
             currentPageName === 'PlayerComparison' ? 'text-emerald-400' : 'text-slate-500'}`
             }>
             
@@ -197,11 +207,19 @@ export default function Layout({ children, currentPageName }) {
           </Link>
           <Link
             to={createPageUrl('Tournaments')}
-            className={`flex flex-col items-center py-2 px-4 rounded-lg ${
+            className={`flex flex-col items-center py-2 px-2 rounded-lg ${
             currentPageName === 'Tournaments' ? 'text-emerald-400' : 'text-slate-500'}`
             }>
             <Trophy className="w-5 h-5" />
             <span className="text-xs mt-1">Cup</span>
+            </Link>
+            <Link
+            to={createPageUrl('Venues')}
+            className={`flex flex-col items-center py-2 px-2 rounded-lg ${
+            currentPageName === 'Venues' ? 'text-emerald-400' : 'text-slate-500'}`
+            }>
+            <MapPin className="w-5 h-5" />
+            <span className="text-xs mt-1">Venues</span>
             </Link>
             </div>
             </nav>

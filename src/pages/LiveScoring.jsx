@@ -19,6 +19,7 @@ import BowlerProfileModal from '../components/scoring/BowlerProfileModal';
 import LivePredictionStrip from '../components/prediction/LivePredictionStrip';
 import MatchScenarioBanner from '../components/scoring/MatchScenarioBanner';
 import useTournamentScenario from '../hooks/useTournamentScenario';
+import useVenueAverages from '../hooks/useVenueAverages';
 import useLivePrediction from '../hooks/useLivePrediction';
 import {
   Dialog,
@@ -176,12 +177,20 @@ export default function LiveScoring() {
   allInnings.find((inn) => inn.status === 'not_started') ||
   allInnings[allInnings.length - 1];
 
+  // Venue par: average first-innings score at this venue, null until there is
+  // completed match data there.
+  const { data: venueAverages = {} } = useVenueAverages();
+  const venuePar = match ?
+    venueAverages[match.venue_id] || venueAverages[match.venue] || null :
+    null;
+
   // Win probability: instant client-side model, re-priced on every ball.
   const [aiInsight, setAiInsight] = useState(null);
   const { prediction, compute: computePrediction } = useLivePrediction({
     match,
     innings: currentInnings,
-    allInnings
+    allInnings,
+    venuePar
   });
 
   const { data: currentOverDeliveries = [], refetch: refetchDeliveries } = useQuery({
@@ -1527,7 +1536,8 @@ export default function LiveScoring() {
         prediction={prediction}
         team1Name={team1Name}
         team2Name={team2Name}
-        insight={aiInsight} />
+        insight={aiInsight}
+        venuePar={venuePar} />
 
       <MatchScenarioBanner scenario={tournamentScenario} teamsMap={teamsMap} />
 

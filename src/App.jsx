@@ -11,6 +11,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import SplashVideo from '@/components/SplashVideo';
 import Tournaments from '@/pages/Tournaments';
+import Venues from '@/pages/Venues';
 import ModeSelection from '@/pages/ModeSelection';
 import { GroundShapeProvider, useGroundShape } from '@/lib/GroundShapeContext';
 
@@ -83,6 +84,11 @@ const AuthenticatedApp = () => {
       <Route path="/Tournaments" element={
         <LayoutWrapper currentPageName="Tournaments">
           <Tournaments />
+        </LayoutWrapper>
+      } />
+      <Route path="/Venues" element={
+        <LayoutWrapper currentPageName="Venues">
+          <Venues />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />

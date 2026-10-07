@@ -38,6 +38,7 @@ export default function MatchSetup() {
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     venue: '',
+    venue_id: '',
     team1_id: '',
     team2_id: '',
     team1_playing_xi: [],
@@ -64,6 +65,15 @@ export default function MatchSetup() {
     queryFn: () => base44.entities.Team.list()
   });
 
+  const { data: venues } = useQuery({
+    queryKey: ['venues', mode],
+    queryFn: () =>
+      base44.entities.Venue.filter(
+        { ground_mode: mode || 'turf' },
+        { sort: 'name', limit: 200 }
+      )
+  });
+
   const { data: allPlayers = [] } = useQuery({
     queryKey: ['all-players', mode],
     queryFn: () => base44.entities.Player.list()
@@ -81,6 +91,7 @@ export default function MatchSetup() {
       setFormData({
         date: m.date || new Date().toISOString().split('T')[0],
         venue: m.venue || '',
+        venue_id: m.venue_id || '',
         team1_id: m.team1_id || '',
         team2_id: m.team2_id || '',
         team1_playing_xi: m.team1_playing_xi || [],
@@ -119,6 +130,7 @@ export default function MatchSetup() {
   }, []);
 
   const modeTeams = teams.filter((t) => (t.ground_mode || 'turf') === mode);
+  const modeVenues = venues?.items || [];
   const modePlayers = allPlayers.filter((p) => (p.ground_mode || 'turf') === mode);
 
   const team1Players = modePlayers.filter((p) => p.team_id === formData.team1_id);
@@ -282,12 +294,32 @@ export default function MatchSetup() {
             </div>
             <div>
               <Label className="text-slate-200">Venue</Label>
-              <Input
-              value={formData.venue}
-              onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
-              className="bg-slate-900 border-slate-700 text-white placeholder:text-slate-500"
-              placeholder="e.g. Central Park Ground" />
+              {modeVenues.length === 0 ?
+              <div className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2.5 flex items-center justify-between gap-3">
+                  <span className="text-xs text-slate-400">No venues saved for this mode yet.</span>
+                  <Link to={createPageUrl('Venues')} className="text-xs text-emerald-400 hover:text-emerald-300 font-medium shrink-0">
+                    Add Venue
+                  </Link>
+                </div> :
 
+              <Select
+                value={formData.venue_id || ''}
+                onValueChange={(v) => {
+                  const chosen = modeVenues.find((x) => x.id === v);
+                  setFormData({ ...formData, venue_id: v, venue: chosen ? chosen.name : '' });
+                }}>
+                  <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                    <SelectValue placeholder="Select venue" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-slate-700">
+                    {modeVenues.map((v) =>
+                  <SelectItem key={v.id} value={v.id} className="text-white">
+                        {v.name}{v.location ? ` · ${v.location}` : ''}
+                      </SelectItem>
+                  )}
+                  </SelectContent>
+                </Select>
+              }
             </div>
           </div>
         }
