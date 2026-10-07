@@ -368,16 +368,21 @@ export function generateLeaguePlayoffs(tournamentId, teamIds) {
 }
 
 /**
- * Seed the playoffs bracket from the final league standings: topper anchored
- * into the Final's team1 slot, 2nd vs 3rd into the Semifinal. The Final's
- * team2 falls through to the Semifinal winner during derivation.
+ * Seed the playoffs bracket from the final league standings: the topper is
+ * anchored into the Final's team1 slot, 2nd vs 3rd contest the Semifinal, and
+ * the Semifinal winner fills the Final's team2 slot once that game is decided.
  */
-export function seedPlayoffs(standings) {
+export function seedPlayoffs(standings, knockoutMatches, matchesMap) {
   const at = (i) => (standings[i] && standings[i].id) || '';
+  const map = matchesMap || {};
+  const semifinal = (knockoutMatches || []).find(
+    (m) => m.round === 1 && m.match_index === 0
+  );
+  const semifinalWinner = semifinal ? matchWinner(semifinal, map, 1) : '';
   return {
     roundTeams: {
       1: [{ team1: at(1), team2: at(2) }],
-      2: [{ team1: at(0), team2: '' }]
+      2: [{ team1: at(0), team2: semifinalWinner }]
     }
   };
 }

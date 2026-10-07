@@ -76,7 +76,9 @@ export default function Tournaments() {
       const knockoutMatches = tmMatches.filter((m) => m.stage !== 'league');
       const standings = computeStandings(leagueMatches, matchesMap);
       const done = leagueComplete(leagueMatches, matchesMap);
-      const roundTeams = done ? seedPlayoffs(standings).roundTeams : null;
+      const roundTeams = done
+        ? seedPlayoffs(standings, knockoutMatches, matchesMap).roundTeams
+        : null;
       const knockout = knockoutMatches.length
         ? deriveBracket(knockoutMatches, matchesMap, { roundTeams })
         : null;
