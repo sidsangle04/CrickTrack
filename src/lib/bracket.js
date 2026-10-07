@@ -249,12 +249,50 @@ export function deriveBracket(tmMatches, matchesMap, options = {}) {
 /**
  * Compute league standings from league fixtures. Points: win = 2,
  * loss = 0, tie/no-result = 1 each. Sorted by points desc, then wins desc,
- * then losses asc.
+ * then losses asc, then net run rate desc.
+ *
+ * Net run rate per team = (runs scored / overs faced) - (runs conceded / overs
+ * bowled), aggregated across decided league matches. A side dismissed before
+ * completing its quota is charged the full quota of overs (all-out rule);
+ * partial overs count as legal balls / 6; Super Over innings are excluded.
+ * `inningsByMatch` maps match id -> innings records for that match.
  */
-export function computeStandings(leagueMatches, matchesMap) {
+export function computeStandings(leagueMatches, matchesMap, inningsByMatch = {}) {
   const teams = {};
   const ensure = (id) => {
-    if (id && !teams[id]) teams[id] = { id, p: 0, w: 0, l: 0, nr: 0, pts: 0 };
+    if (id && !teams[id]) {
+      teams[id] = {
+        id,
+        p: 0,
+        w: 0,
+        l: 0,
+        nr: 0,
+        pts: 0,
+        runsFor: 0,
+        oversFor: 0,
+        runsAgainst: 0,
+        oversAgainst: 0,
+        nrr: null
+      };
+    }
+  };
+
+  const oversFaced = (inn, quota) =>
+    inn.end_reason === 'all_out' && quota > 0
+      ? quota
+      : (inn.total_balls || 0) / 6;
+
+  const tally = (team, inns, quota, side) => {
+    inns.forEach((inn) => {
+      const overs = oversFaced(inn, quota);
+      if (side === 'for') {
+        team.runsFor += inn.total_runs || 0;
+        team.oversFor += overs;
+      } else {
+        team.runsAgainst += inn.total_runs || 0;
+        team.oversAgainst += overs;
+      }
+    });
   };
 
   leagueMatches.forEach((m) => {
@@ -287,10 +325,34 @@ export function computeStandings(leagueMatches, matchesMap) {
       t1.pts++;
       t2.pts++;
     }
+
+    // Net run rate — only from completed matches with recorded innings.
+    if (completed && linked) {
+      const quota = linked.overs_per_innings || 0;
+      const inns = (inningsByMatch[linked.id] || []).filter((i) => !i.is_super_over);
+      const t1Inns = inns.filter((i) => i.batting_team_id === t1.id);
+      const t2Inns = inns.filter((i) => i.batting_team_id === t2.id);
+      tally(t1, t1Inns, quota, 'for');
+      tally(t2, t2Inns, quota, 'for');
+      tally(t1, t2Inns, quota, 'against');
+      tally(t2, t1Inns, quota, 'against');
+    }
+  });
+
+  Object.values(teams).forEach((t) => {
+    if (t.oversFor > 0 || t.oversAgainst > 0) {
+      const forRate = t.oversFor > 0 ? t.runsFor / t.oversFor : 0;
+      const againstRate = t.oversAgainst > 0 ? t.runsAgainst / t.oversAgainst : 0;
+      t.nrr = forRate - againstRate;
+    }
   });
 
   return Object.values(teams).sort(
-    (a, b) => b.pts - a.pts || b.w - a.w || a.l - b.l
+    (a, b) =>
+      b.pts - a.pts ||
+      b.w - a.w ||
+      a.l - b.l ||
+      (b.nrr || 0) - (a.nrr || 0)
   );
 }
 

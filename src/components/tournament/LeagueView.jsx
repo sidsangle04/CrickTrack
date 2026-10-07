@@ -74,13 +74,14 @@ export default function LeagueView({
                 <th className="text-center px-2 py-2 font-medium">W</th>
                 <th className="text-center px-2 py-2 font-medium">L</th>
                 <th className="text-center px-2 py-2 font-medium">NR</th>
+                <th className="text-center px-2 py-2 font-medium">NRR</th>
                 <th className="text-center px-4 py-2 font-medium">Pts</th>
               </tr>
             </thead>
             <tbody>
               {standings.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-slate-500 py-6">No fixtures yet</td>
+                  <td colSpan={8} className="text-center text-slate-500 py-6">No fixtures yet</td>
                 </tr>
               ) : (
                 standings.map((s, i) => {
@@ -123,6 +124,11 @@ export default function LeagueView({
                       <td className="text-center px-2 py-2.5 text-emerald-400">{s.w}</td>
                       <td className="text-center px-2 py-2.5 text-slate-300">{s.l}</td>
                       <td className="text-center px-2 py-2.5 text-slate-300">{s.nr}</td>
+                      <td className="text-center px-2 py-2.5 text-slate-300 font-mono text-xs">
+                        {s.nrr === null || s.nrr === undefined
+                          ? '—'
+                          : `${s.nrr >= 0 ? '+' : ''}${s.nrr.toFixed(3)}`}
+                      </td>
                       <td className="text-center px-4 py-2.5 text-white font-bold">{s.pts}</td>
                     </tr>
                   );

@@ -69,12 +69,38 @@ export default function Tournaments() {
     enabled: !!selectedId
   });
 
+  const leagueMatchIds = useMemo(
+    () =>
+      tmMatches
+        .filter((m) => m.stage === 'league' && m.match_id)
+        .map((m) => m.match_id),
+    [tmMatches]
+  );
+
+  const { data: leagueInnings = [] } = useQuery({
+    queryKey: ['tournament-league-innings', selectedId, leagueMatchIds.join(',')],
+    queryFn: () =>
+      leagueMatchIds.length
+        ? base44.entities.Innings.filter({ match_id: { $in: leagueMatchIds } })
+        : [],
+    enabled: leagueMatchIds.length > 0
+  });
+
+  const inningsByMatch = useMemo(
+    () =>
+      leagueInnings.reduce((a, inn) => {
+        (a[inn.match_id] = a[inn.match_id] || []).push(inn);
+        return a;
+      }, {}),
+    [leagueInnings]
+  );
+
   const derived = useMemo(() => {
     if (!tmMatches.length) return null;
     if (selected?.format === 'league_playoffs') {
       const leagueMatches = tmMatches.filter((m) => m.stage === 'league');
       const knockoutMatches = tmMatches.filter((m) => m.stage !== 'league');
-      const standings = computeStandings(leagueMatches, matchesMap);
+      const standings = computeStandings(leagueMatches, matchesMap, inningsByMatch);
       const done = leagueComplete(leagueMatches, matchesMap);
       const roundTeams = done
         ? seedPlayoffs(standings, knockoutMatches, matchesMap).roundTeams
@@ -87,7 +113,7 @@ export default function Tournaments() {
     if (selected?.format === 'league_knockout') {
       const leagueMatches = tmMatches.filter((m) => m.stage === 'league');
       const knockoutMatches = tmMatches.filter((m) => m.stage !== 'league');
-      const standings = computeStandings(leagueMatches, matchesMap);
+      const standings = computeStandings(leagueMatches, matchesMap, inningsByMatch);
       const done = leagueComplete(leagueMatches, matchesMap);
       const round1Teams = done ? seedKnockoutRound1(standings, selected.knockout_teams || 4) : null;
       const knockout = knockoutMatches.length
@@ -96,7 +122,7 @@ export default function Tournaments() {
       return { format: 'league_knockout', leagueMatches, standings, leagueComplete: done, knockout };
     }
     return { format: 'knockout', knockout: deriveBracket(tmMatches, matchesMap) };
-  }, [tmMatches, matchesMap, selected]);
+  }, [tmMatches, matchesMap, selected, inningsByMatch]);
 
   // Persist champion + completed status once the final is decided.
   const championRef = useRef('');
