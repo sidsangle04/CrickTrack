@@ -4,11 +4,14 @@ import { createPageUrl } from './utils';
 import { Home, PlusCircle, BarChart3, Trophy, Upload, ArrowLeftRight, RefreshCw, Users, MapPin, Settings as SettingsIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGroundShape } from '@/lib/GroundShapeContext';
+import MobileTabBar from '@/components/MobileTabBar';
+import { useTabStack } from '@/hooks/useTabStack';
 
 export default function Layout({ children, currentPageName }) {
   const isScoring = currentPageName === 'LiveScoring' || currentPageName === 'ImportMatch';
   const { mode, clearMode } = useGroundShape();
   const isCircular = mode === 'circular';
+  const { activeTab, switchTab } = useTabStack();
 
   const handleChangeMode = () => {
     clearMode();
@@ -189,55 +192,8 @@ export default function Layout({ children, currentPageName }) {
         </AnimatePresence>
       </main>
 
-      {/* Mobile Nav */}
-      <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-700/50 px-4 py-2 z-50"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="flex justify-around">
-          <Link
-            to={createPageUrl('Home')}
-            className={`flex flex-col items-center py-2 px-2 rounded-lg ${
-            currentPageName === 'Home' ? 'text-emerald-400' : 'text-slate-500'}`
-            }>
-            
-            <Home className="w-5 h-5" />
-            <span className="text-xs mt-1">Matches</span>
-          </Link>
-          <Link
-            to={createPageUrl('Analytics')}
-            className={`flex flex-col items-center py-2 px-2 rounded-lg ${
-            currentPageName === 'Analytics' ? 'text-emerald-400' : 'text-slate-500'}`
-            }>
-            
-            <BarChart3 className="w-5 h-5" />
-            <span className="text-xs mt-1">Analytics</span>
-          </Link>
-          <Link
-            to={createPageUrl('Players')}
-            className={`flex flex-col items-center py-2 px-2 rounded-lg ${
-            currentPageName === 'Players' ? 'text-emerald-400' : 'text-slate-500'}`
-            }>
-            <Users className="w-5 h-5" />
-            <span className="text-xs mt-1">Players</span>
-          </Link>
-          <Link
-            to={createPageUrl('Tournaments')}
-            className={`flex flex-col items-center py-2 px-2 rounded-lg ${
-            currentPageName === 'Tournaments' ? 'text-emerald-400' : 'text-slate-500'}`
-            }>
-            <Trophy className="w-5 h-5" />
-            <span className="text-xs mt-1">Cup</span>
-            </Link>
-            <Link
-            to={createPageUrl('Venues')}
-            className={`flex flex-col items-center py-2 px-2 rounded-lg ${
-            currentPageName === 'Venues' ? 'text-emerald-400' : 'text-slate-500'}`
-            }>
-            <MapPin className="w-5 h-5" />
-            <span className="text-xs mt-1">Venues</span>
-            </Link>
-            </div>
-            </nav>
+      {/* Mobile Nav — tabs keep their own route and scroll position */}
+      <MobileTabBar activeTab={activeTab} onSelectTab={switchTab} />
 
             </div>);
             }
