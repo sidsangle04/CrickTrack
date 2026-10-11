@@ -879,7 +879,7 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap, scopeMatch
 // ══════════════════════════════════════════════════════════════════════════
 export default function Analytics() {
   const { mode } = useGroundShape();
-  const modeLabel = mode === 'circular' ? 'Circular' : 'TURF';
+  const modeLabel = mode === 'circular' ? 'Standard' : 'TURF';
   const { data: allPlayers = [] } = useQuery({
     queryKey: ['all-players-analytics'],
     queryFn: () => base44.entities.Player.list(),

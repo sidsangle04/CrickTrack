@@ -258,7 +258,7 @@ export default function PlayerComparison() {
               </div>
               <h3 className="text-lg font-medium text-white mb-2">No head-to-head yet</h3>
               <p className="text-slate-400 text-sm max-w-md">
-                {matchup.batter.name} has never faced {matchup.bowler.name} with the bat in {mode === 'circular' ? 'Circular' : 'TURF'} mode.
+                {matchup.batter.name} has never faced {matchup.bowler.name} with the bat in {mode === 'circular' ? 'Standard' : 'TURF'} mode.
                 Score or import a match between their teams and the duel will appear here.
               </p>
             </div>

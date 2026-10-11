@@ -24,7 +24,7 @@ import { useGroundShape } from '@/lib/GroundShapeContext';
 export default function TeamManagement() {
   const queryClient = useQueryClient();
   const { mode } = useGroundShape();
-  const modeLabel = mode === 'circular' ? 'Circular' : 'TURF';
+  const modeLabel = mode === 'circular' ? 'Standard' : 'TURF';
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [showPlayerModal, setShowPlayerModal] = useState(false);

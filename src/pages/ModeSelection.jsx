@@ -42,7 +42,7 @@ export default function ModeSelection() {
           </div>
         </button>
 
-        {/* Circular card */}
+        {/* Standard (circular) card */}
         <button
           onClick={() => setMode('circular')}
           className="group relative overflow-hidden rounded-3xl p-8 text-left bg-gradient-to-br from-cyan-500/15 to-cyan-700/5 border border-cyan-500/30 hover:border-cyan-400/60 transition-all hover:scale-[1.02]"
@@ -54,11 +54,11 @@ export default function ModeSelection() {
             <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center mb-5">
               <Circle className="w-6 h-6 text-cyan-400" />
             </div>
-            <h2 className="text-2xl font-bold text-white mb-1.5">Circular</h2>
-            <p className="text-sm text-slate-300 mb-1">Circular ground scoring</p>
+            <h2 className="text-2xl font-bold text-white mb-1.5">Standard</h2>
+            <p className="text-sm text-slate-300 mb-1">Standard ground scoring</p>
             <p className="text-xs text-slate-400 mb-6">General cricket on a circular field, standard fielding zones.</p>
             <span className="inline-flex items-center gap-1.5 text-sm font-medium text-cyan-400 group-hover:gap-2.5 transition-all">
-              Enter Circular <ChevronRight className="w-4 h-4" />
+              Enter Standard <ChevronRight className="w-4 h-4" />
             </span>
           </div>
         </button>

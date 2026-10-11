@@ -22,7 +22,7 @@ import { useGroundShape } from '@/lib/GroundShapeContext';
 
 export default function Home() {
   const { mode } = useGroundShape();
-  const modeLabel = mode === 'circular' ? 'Circular' : 'TURF';
+  const modeLabel = mode === 'circular' ? 'Standard' : 'TURF';
   const [filter, setFilter] = useState('all');
   const [deletingId, setDeletingId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);

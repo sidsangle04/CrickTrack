@@ -10,7 +10,7 @@ import VenueFormModal from '@/components/venues/VenueFormModal';
 export default function Venues() {
   const queryClient = useQueryClient();
   const { mode } = useGroundShape();
-  const modeLabel = mode === 'circular' ? 'Circular' : 'TURF';
+  const modeLabel = mode === 'circular' ? 'Standard' : 'TURF';
 
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);

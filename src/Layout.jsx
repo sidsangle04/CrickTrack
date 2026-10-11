@@ -60,7 +60,7 @@ export default function Layout({ children, currentPageName }) {
                       ? 'bg-cyan-500/15 text-cyan-400 border-cyan-500/40'
                       : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40'
                   }`}>
-                    {isCircular ? 'Circular' : 'TURF'}
+                    {isCircular ? 'Standard' : 'TURF'}
                   </span>
                 </div>
                 <p className="text-[10px] text-slate-400 -mt-0.5">Tag | Analyse | Elevate </p>
@@ -150,15 +150,15 @@ export default function Layout({ children, currentPageName }) {
                     ? 'bg-cyan-500/15 text-cyan-400 border-cyan-500/40'
                     : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40'
                 }`}
-                title={`Active mode: ${isCircular ? 'Circular' : 'TURF'}`}
+                title={`Active mode: ${isCircular ? 'Standard' : 'TURF'}`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                {isCircular ? 'Circular' : 'TURF'}
+                {isCircular ? 'Standard' : 'TURF'}
               </div>
               <button
                 onClick={handleChangeMode}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 text-slate-300 rounded-lg font-medium text-xs hover:text-white hover:bg-slate-700 transition-all"
-                title="Switch mode (TURF / Circular)"
+                title="Switch mode (TURF / Standard)"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span className="hidden lg:inline">Change</span>

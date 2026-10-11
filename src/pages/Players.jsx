@@ -19,7 +19,7 @@ const ROLE_LABEL = { batsman: 'Batsman', bowler: 'Bowler', all_rounder: 'All-Rou
 
 export default function Players() {
   const { mode } = useGroundShape();
-  const modeLabel = mode === 'circular' ? 'Circular' : 'TURF';
+  const modeLabel = mode === 'circular' ? 'Standard' : 'TURF';
   const [search, setSearch] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');

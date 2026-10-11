@@ -24,7 +24,7 @@ export default function Tournaments() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { mode } = useGroundShape();
-  const modeLabel = mode === 'circular' ? 'Circular' : 'TURF';
+  const modeLabel = mode === 'circular' ? 'Standard' : 'TURF';
   const [selectedId, setSelectedId] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
 
