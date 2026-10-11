@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Home, PlusCircle, BarChart3, Trophy, Upload, ArrowLeftRight, RefreshCw, Users, MapPin } from 'lucide-react';
+import { Home, PlusCircle, BarChart3, Trophy, Upload, ArrowLeftRight, RefreshCw, Users, MapPin, Settings as SettingsIcon } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 
 export default function Layout({ children, currentPageName }) {
@@ -40,7 +41,9 @@ export default function Layout({ children, currentPageName }) {
       `}</style>
       
       {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-slate-900/80 border-b border-slate-700/50">
+      <header
+        className="sticky top-0 z-50 backdrop-blur-xl bg-slate-900/80 border-b border-slate-700/50"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <Link to={createPageUrl('Home')} className="flex items-center gap-3">
@@ -131,6 +134,16 @@ export default function Layout({ children, currentPageName }) {
             </nav>
             
             <div className="flex items-center gap-2">
+              <Link
+                to="/Settings"
+                className={`p-2 rounded-lg shrink-0 transition-all ${
+                  currentPageName === 'Settings'
+                    ? 'bg-emerald-500/20 text-emerald-400'
+                    : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
+                }`}
+                title="Settings">
+                <SettingsIcon className="w-4 h-4" />
+              </Link>
               <div
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border ${
                   isCircular
@@ -163,12 +176,23 @@ export default function Layout({ children, currentPageName }) {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        {children}
+      <main className="max-w-7xl mx-auto px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-6">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentPageName}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}>
+            {children}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* Mobile Nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-700/50 px-4 py-2 z-50">
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-700/50 px-4 py-2 z-50"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="flex justify-around">
           <Link
             to={createPageUrl('Home')}

@@ -13,7 +13,10 @@ import SplashVideo from '@/components/SplashVideo';
 import Tournaments from '@/pages/Tournaments';
 import Venues from '@/pages/Venues';
 import ModeSelection from '@/pages/ModeSelection';
+import Settings from './pages/Settings';
+import WebViewBackHandler from '@/components/WebViewBackHandler';
 import { GroundShapeProvider, useGroundShape } from '@/lib/GroundShapeContext';
+import { ThemeProvider } from 'next-themes';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -91,6 +94,11 @@ const AuthenticatedApp = () => {
           <Venues />
         </LayoutWrapper>
       } />
+      <Route path="/Settings" element={
+        <LayoutWrapper currentPageName="Settings">
+          <Settings />
+        </LayoutWrapper>
+      } />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
@@ -100,18 +108,21 @@ const AuthenticatedApp = () => {
 function App() {
 
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <SplashVideo />
-          <NavigationTracker />
-          <GroundShapeProvider>
-            <AuthenticatedApp />
-          </GroundShapeProvider>
-        </Router>
-        <Toaster />
-      </QueryClientProvider>
-    </AuthProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <AuthProvider>
+        <QueryClientProvider client={queryClientInstance}>
+          <Router>
+            <SplashVideo />
+            <NavigationTracker />
+            <WebViewBackHandler />
+            <GroundShapeProvider>
+              <AuthenticatedApp />
+            </GroundShapeProvider>
+          </Router>
+          <Toaster />
+        </QueryClientProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 

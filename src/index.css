@@ -86,3 +86,25 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Native WebView shell: no rubber-band scrolling, and no scrollbars on phones. */
+@layer base {
+  html,
+  body {
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+  }
+
+  @media (max-width: 767px) {
+    html {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    ::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+      display: none;
+    }
+  }
+}
