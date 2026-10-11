@@ -18,6 +18,16 @@ export default function ScoreHeader({
   const maxOvers = innings?.is_super_over ? 1 : (isTest ? Infinity : (match?.overs_per_innings || 20));
   const banner = getLeadTrailBanner(match, allInnings || [], innings, team1Name, team2Name);
   const oversLeft = isTest && match?.is_over_limited ? oversRemaining(match, allInnings || []) : null;
+
+  // Run rates. CRR once a ball has been bowled; RRR throughout a chase, from
+  // the first ball, so the scorer always sees the pace being asked for.
+  const ballsBowled = (innings?.current_over_number || 0) * 6 + (innings?.current_ball_in_over || 0);
+  const runsSoFar = innings?.total_runs || 0;
+  const runsNeeded = (innings?.target || 0) - runsSoFar;
+  const oversLeftForRrr = Number.isFinite(maxOvers) ? maxOvers - ballsBowled / 6 : 0;
+  const isChase = !isTest && runsNeeded > 0 && oversLeftForRrr > 0;
+  const crr = ballsBowled > 0 ? runsSoFar / (ballsBowled / 6) : 0;
+  const rrr = oversLeftForRrr > 0 ? runsNeeded / oversLeftForRrr : 0;
   
   return (
     <div className="bg-gradient-to-b from-slate-900 to-slate-950 px-4 pt-2 pb-4">
@@ -82,20 +92,18 @@ export default function ScoreHeader({
           )}
         </div>
         
-        {/* Run Rate */}
-        {innings && (innings.current_over_number > 0 || innings.current_ball_in_over > 0) && (
-          <div className="mt-2 flex items-center justify-center gap-4 text-sm">
-            <span className="text-slate-500">
-              CRR: <span className="text-white font-medium">
-                {((innings.total_runs || 0) / ((innings.current_over_number || 0) + (innings.current_ball_in_over || 0) / 6) || 0).toFixed(2)}
-              </span>
-            </span>
-            {innings?.target && Number.isFinite(maxOvers) && innings.current_over_number < maxOvers && (
-              <span className="text-slate-500">
-                RRR: <span className="text-amber-400 font-medium">
-                  {(((innings.target - innings.total_runs) / (maxOvers - innings.current_over_number - innings.current_ball_in_over / 6)) || 0).toFixed(2)}
-                </span>
-              </span>
+        {/* Run rates — CRR and RRR shown together through a chase */}
+        {innings && (isChase || ballsBowled > 0) && (
+          <div className="mt-3 flex items-center justify-center gap-3">
+            <div className="px-3 py-1 rounded-lg bg-slate-800/70">
+              <span className="text-[10px] uppercase tracking-wider text-slate-500">CRR</span>
+              <span className="ml-1.5 text-sm font-semibold text-white">{crr.toFixed(2)}</span>
+            </div>
+            {isChase && (
+              <div className="px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                <span className="text-[10px] uppercase tracking-wider text-amber-500/80">RRR</span>
+                <span className="ml-1.5 text-sm font-semibold text-amber-400">{rrr.toFixed(2)}</span>
+              </div>
             )}
           </div>
         )}
