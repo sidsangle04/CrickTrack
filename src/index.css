@@ -108,3 +108,24 @@
     }
   }
 }
+
+/* WebView touch shell: chrome (headers, tabs, buttons, list actions) is not
+   selectable, so a long press never starts a text selection instead of a tap. */
+header,
+nav,
+button,
+[role="button"],
+[role="tab"] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Minimum comfortable touch target on phones for every button. */
+@media (max-width: 767px) {
+  button,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

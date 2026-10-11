@@ -20,7 +20,7 @@ export default function Layout({ children, currentPageName }) {
 
   if (isScoring) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         <div className="max-w-3xl mx-auto px-4 py-6">
           {children}
         </div>
@@ -219,15 +219,6 @@ export default function Layout({ children, currentPageName }) {
             }>
             <Users className="w-5 h-5" />
             <span className="text-xs mt-1">Players</span>
-          </Link>
-          <Link
-            to={createPageUrl('PlayerComparison')}
-            className={`flex flex-col items-center py-2 px-2 rounded-lg ${
-            currentPageName === 'PlayerComparison' ? 'text-emerald-400' : 'text-slate-500'}`
-            }>
-            
-            <ArrowLeftRight className="w-5 h-5" />
-            <span className="text-xs mt-1">Compare</span>
           </Link>
           <Link
             to={createPageUrl('Tournaments')}

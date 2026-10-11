@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
-import { Search, Loader2, Users, ChevronRight } from 'lucide-react';
+import { Search, Loader2, Users, ChevronRight, ArrowLeftRight } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 
@@ -71,9 +71,18 @@ export default function Players() {
 
   return (
     <div className="pb-24 md:pb-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">Players</h1>
-        <p className="text-slate-400 text-sm">Search any {modeLabel} player and open their full profile with stats & insights</p>
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-white mb-1">Players</h1>
+          <p className="text-slate-400 text-sm">Search any {modeLabel} player and open their full profile with stats & insights</p>
+        </div>
+        <Link
+          to={createPageUrl('PlayerComparison')}
+          className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-sm font-medium hover:bg-slate-700 transition-all"
+        >
+          <ArrowLeftRight className="w-4 h-4" />
+          Compare
+        </Link>
       </div>
 
       {/* Search & filters */}

@@ -19,6 +19,7 @@ import { deriveBracket, computeStandings, leagueComplete, seedKnockoutRound1, se
 import { computeQualification } from '@/lib/qualification';
 import LeagueView from '@/components/tournament/LeagueView';
 import { useGroundShape } from '@/lib/GroundShapeContext';
+import PullToRefresh from '@/components/PullToRefresh';
 
 export default function Tournaments() {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ export default function Tournaments() {
   const [selectedId, setSelectedId] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
 
-  const { data: tournaments = [], isLoading } = useQuery({
+  const { data: tournaments = [], isLoading, refetch: refetchTournaments } = useQuery({
     queryKey: ['tournaments', mode],
     queryFn: () => base44.entities.Tournament.list('-created_date', 50)
   });
@@ -310,6 +311,7 @@ export default function Tournaments() {
   }
 
   return (
+    <PullToRefresh onRefresh={refetchTournaments}>
     <div className="pb-24 md:pb-6">
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -405,5 +407,6 @@ export default function Tournaments() {
         />
       )}
     </div>
+    </PullToRefresh>
   );
 }

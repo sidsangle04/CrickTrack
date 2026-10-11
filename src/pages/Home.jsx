@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useGroundShape } from '@/lib/GroundShapeContext';
+import PullToRefresh from '@/components/PullToRefresh';
 
 export default function Home() {
   const { mode } = useGroundShape();
@@ -42,7 +43,7 @@ export default function Home() {
     setDeletingId(null);
   };
   
-  const { data: matches = [], isLoading: matchesLoading } = useQuery({
+  const { data: matches = [], isLoading: matchesLoading, refetch: refetchMatches } = useQuery({
     queryKey: ['matches'],
     queryFn: () => base44.entities.Match.list('-created_date', 50)
   });
@@ -98,6 +99,7 @@ export default function Home() {
   };
 
   return (
+    <PullToRefresh onRefresh={refetchMatches}>
     <div className="pb-24 md:pb-6">
       {/* Header */}
       <div className="mb-6">
@@ -284,5 +286,6 @@ export default function Home() {
         </div>
       )}
     </div>
+    </PullToRefresh>
   );
 }
