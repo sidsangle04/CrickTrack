@@ -1,6 +1,7 @@
 import React from "react";
 import { AlertTriangle, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 const field =
   "w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-emerald-500";
@@ -73,18 +74,19 @@ export default function BallByBallReview({ plan, onChange, onConfirm, onCancel, 
           value={plan.match.oversPerInnings}
           onChange={(v) => setMatch("oversPerInnings", parseFloat(v) || 0)}
         />
-        <label className="block">
+        <div className="block">
           <span className="block text-xs font-medium text-slate-400 mb-1.5">Ball type</span>
-          <select
-            value={plan.match.ballType}
-            onChange={(e) => setMatch("ballType", e.target.value)}
-            className={field}
-          >
-            <option value="leather">Leather</option>
-            <option value="tennis">Tennis</option>
-            <option value="tape">Tape</option>
-          </select>
-        </label>
+          <Select value={plan.match.ballType} onValueChange={(v) => setMatch("ballType", v)}>
+            <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+              <SelectValue placeholder="Select ball type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="leather">Leather</SelectItem>
+              <SelectItem value="tennis">Tennis</SelectItem>
+              <SelectItem value="tape">Tape</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <h3 className="text-white font-semibold text-sm mb-3">Innings</h3>

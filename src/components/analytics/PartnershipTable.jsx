@@ -8,21 +8,21 @@ export default function PartnershipTable({ partnerships, playersMap, teamName })
 
   if (pships.length === 0) {
     return (
-      <div className="bg-white rounded-xl p-4 border border-slate-200 text-center text-slate-500 text-sm">
+      <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/50 text-center text-slate-400 text-sm">
         No partnership data
       </div>);
 
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-200 text-center bg-gray-400">
-        <span className="text-sm font-semibold tracking-wide text-slate-700">
+    <div className="bg-slate-800/60 rounded-xl border border-slate-700/50 overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-700/50 text-center bg-slate-800/80">
+        <span className="text-sm font-semibold tracking-wide text-slate-300">
           {(teamName || 'TEAM').toUpperCase()} — INNINGS
         </span>
       </div>
 
-      <div className="divide-y divide-slate-100">
+      <div className="divide-y divide-slate-700/50">
         {pships.map((p) => {
           const b1 = playersMap[p.batter1_id]?.name || 'Batter 1';
           const b2 = playersMap[p.batter2_id]?.name || 'Batter 2';
@@ -37,23 +37,23 @@ export default function PartnershipTable({ partnerships, playersMap, teamName })
           const notOut = p.is_active;
 
           return (
-            <div key={p.id} className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-3 bg-gray-400">
+            <div key={p.id} className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-3 bg-slate-800/60">
               <div className="text-right">
-                <div className="text-sm font-medium text-slate-800">{b1}</div>
-                <div className="text-xs text-slate-500">{r1} ({balls1})</div>
+                <div className="text-sm font-medium text-white">{b1}</div>
+                <div className="text-xs text-slate-400">{r1} ({balls1})</div>
               </div>
 
               <div className="flex flex-col items-center min-w-[120px]">
-                <div className="text-base font-bold text-slate-800">{total}{notOut ? '*' : ''}</div>
-                <div className="w-full h-2.5 rounded-full overflow-hidden flex bg-slate-100 mt-1.5">
+                <div className="text-base font-bold text-white">{total}{notOut ? '*' : ''}</div>
+                <div className="w-full h-2.5 rounded-full overflow-hidden flex bg-slate-700 mt-1.5">
                   <div style={{ width: `${w1}%`, backgroundColor: DARK }} />
                   <div style={{ width: `${w2}%`, backgroundColor: LIGHT }} />
                 </div>
               </div>
 
               <div className="text-left">
-                <div className="text-sm font-medium text-slate-800">{b2}</div>
-                <div className="text-xs text-slate-500">{r2} ({balls2})</div>
+                <div className="text-sm font-medium text-white">{b2}</div>
+                <div className="text-xs text-slate-400">{r2} ({balls2})</div>
               </div>
             </div>);
 
