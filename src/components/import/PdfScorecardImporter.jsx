@@ -7,6 +7,8 @@ import { base44 } from "@/api/base44Client";
 import { useGroundShape } from "@/lib/GroundShapeContext";
 import { normalizePdfScorecard, PDF_EXTRACT_SCHEMA } from "@/lib/pdfScorecardNormalize";
 import { writePdfScorecardMatch } from "@/lib/pdfScorecardImport";
+import { writeBallByBallMatch } from "@/lib/ballByBallImport";
+import { attachPdfDeliveries, pdfDeliverySchema } from "@/lib/pdfDeliveryParse";
 import PdfScorecardDropzone from "./PdfScorecardDropzone";
 import PdfScorecardReview from "./PdfScorecardReview";
 
@@ -19,6 +21,7 @@ export default function PdfScorecardImporter() {
   const [log, setLog] = useState([]);
   const [error, setError] = useState("");
   const [matchId, setMatchId] = useState("");
+  const [progress, setProgress] = useState("");
 
   const busy = status === "reading" || status === "importing";
   const addLog = (msg) => setLog((prev) => [...prev, msg]);
@@ -26,6 +29,7 @@ export default function PdfScorecardImporter() {
   const handleSelect = async (selected) => {
     setFile(selected);
     setStatus("reading");
+    setProgress("Uploading the PDF…");
     setError("");
     setLog([]);
     try {
@@ -35,6 +39,7 @@ export default function PdfScorecardImporter() {
         file_uri,
         expires_in: 900,
       });
+      setProgress("Reading the scorecard…");
       const res = await base44.integrations.Core.ExtractDataFromUploadedFile({
         file_url: signed_url,
         json_schema: PDF_EXTRACT_SCHEMA,
@@ -43,7 +48,25 @@ export default function PdfScorecardImporter() {
         throw new Error(res?.details || "The scorecard could not be read from that PDF.");
       }
       const raw = Array.isArray(res.output) ? res.output[0] : res.output;
-      setPlan(normalizePdfScorecard(raw));
+      let nextPlan = normalizePdfScorecard(raw);
+
+      // A full match PDF carries the ball-by-ball commentary as well, so read
+      // both innings and keep the log only if it adds up to the scorecard.
+      if (raw?.has_ball_by_ball) {
+        setProgress("Reading the ball-by-ball commentary…");
+        const [first, second] = await Promise.all(
+          [1, 2].map((which) =>
+            base44.integrations.Core.ExtractDataFromUploadedFile({
+              file_url: signed_url,
+              json_schema: pdfDeliverySchema(which),
+            })
+          )
+        );
+        const outputOf = (r) => (Array.isArray(r?.output) ? r.output[0] : r?.output);
+        nextPlan = attachPdfDeliveries(nextPlan, [outputOf(first), outputOf(second)]);
+      }
+
+      setPlan(nextPlan);
       setStatus("review");
     } catch (e) {
       setError(e.message || "Could not read that PDF.");
@@ -57,7 +80,9 @@ export default function PdfScorecardImporter() {
     setLog([]);
     setError("");
     try {
-      const { matchId: id } = await writePdfScorecardMatch(plan, mode, addLog);
+      const { matchId: id } = plan.hasBallByBall
+        ? await writeBallByBallMatch(plan, mode, addLog)
+        : await writePdfScorecardMatch(plan, mode, addLog);
       setMatchId(id);
       setStatus("done");
     } catch (e) {
@@ -82,7 +107,7 @@ export default function PdfScorecardImporter() {
       {status === "reading" && (
         <div className="flex items-center gap-3 p-5 rounded-2xl bg-slate-800/50 border border-slate-700/50 mb-6 text-slate-300 text-sm">
           <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
-          Reading the scorecard from {file?.name}…
+          {progress || `Reading ${file?.name}…`}
         </div>
       )}
 

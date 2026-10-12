@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Info, AlertTriangle, ChevronDown, Loader2 } from "lucide-react";
+import { Info, AlertTriangle, ChevronDown, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PdfRosterEditor from "./PdfRosterEditor";
 
@@ -35,13 +35,26 @@ export default function PdfScorecardReview({ plan, onChange, onConfirm, onCancel
         Correct anything the reader got wrong, then import.
       </p>
 
-      <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs mb-5">
-        <Info className="w-4 h-4 mt-0.5 shrink-0" />
-        <span>
-          A printed scorecard has no ball-by-ball log. Innings totals, batting, bowling, extras and the
-          result are imported — delivery-level analytics will not be available for this match.
-        </span>
-      </div>
+      {plan.hasBallByBall ? (
+        <div className="flex items-start gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs mb-5">
+          <Sparkles className="w-4 h-4 mt-0.5 shrink-0" />
+          <span>
+            Ball-by-ball commentary found, and it adds up to the scorecard:{" "}
+            {plan.innings
+              .map((inn) => `${inn.deliveries.length} deliveries in innings ${inn.number}`)
+              .join(", ")}
+            . Delivery-level analytics will be available for this match.
+          </span>
+        </div>
+      ) : (
+        <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs mb-5">
+          <Info className="w-4 h-4 mt-0.5 shrink-0" />
+          <span>
+            A printed scorecard has no ball-by-ball log. Innings totals, batting, bowling, extras and the
+            result are imported — delivery-level analytics will not be available for this match.
+          </span>
+        </div>
+      )}
 
       {errors.length > 0 && (
         <div className="space-y-2 mb-5">
@@ -121,6 +134,7 @@ export default function PdfScorecardReview({ plan, onChange, onConfirm, onCancel
               <p className="text-slate-400 text-xs">
                 {inn.runs}/{inn.wickets} ({inn.overs} ov) · {inn.batters.length} batters ·{" "}
                 {inn.bowlers.length} bowlers
+                {inn.deliveries?.length ? ` · ${inn.deliveries.length} deliveries` : ""}
               </p>
             </div>
             <ChevronDown

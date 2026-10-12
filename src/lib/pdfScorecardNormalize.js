@@ -251,6 +251,11 @@ export const PDF_EXTRACT_SCHEMA = {
     result: { type: "string", description: "The result line, e.g. 'EMCC won by 4 wickets'." },
     toss: { type: "string", description: "Toss line if printed." },
     overs_per_innings: { type: "number", description: "Overs allotted per innings if stated." },
+    has_ball_by_ball: {
+      type: "boolean",
+      description:
+        "True only if the document also contains ball-by-ball commentary pages for the innings, false if it is a scorecard on its own.",
+    },
     innings: {
       type: "array",
       description: "One entry per innings, in the order they were played.",
