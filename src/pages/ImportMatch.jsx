@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { useGroundShape } from "@/lib/GroundShapeContext";
 import { parseCSVText, parseHTMLScorecard } from "@/lib/playCricketParse";
 import { writeImportedMatch } from "@/lib/playCricketImport";
+import BallByBallImporter from "@/components/import/BallByBallImporter";
 
 export default function ImportMatch() {
   const navigate = useNavigate();
@@ -102,8 +103,11 @@ export default function ImportMatch() {
 
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Import Match Data</h1>
-        <p className="text-slate-400 text-sm">Pull a completed match from Play-Cricket by URL, or upload a CSV/HTML scorecard. Imports teams, players, scorecards and a reconstructed ball-by-ball feed for analytics.</p>
+        <p className="text-slate-400 text-sm">Import a detailed ball-by-ball scorecard from Excel or CSV, or pull a completed match from Play-Cricket. Imports teams, players, scorecards and deliveries for full reports and analytics.</p>
       </div>
+
+      {/* Ball-by-ball Excel / CSV import */}
+      <BallByBallImporter />
 
       {/* URL import */}
       <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50 mb-6">

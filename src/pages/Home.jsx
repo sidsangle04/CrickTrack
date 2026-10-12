@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   Loader2,
   Trash2,
+  Upload,
   X
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -110,7 +111,7 @@ export default function Home() {
 
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <Link 
           to={createPageUrl('MatchSetup')}
           className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/30 hover:border-emerald-500/50 transition-all group"
@@ -134,6 +135,14 @@ export default function Home() {
           <Trophy className="w-8 h-8 text-amber-400 mb-3 group-hover:scale-110 transition-transform" />
           <h3 className="font-semibold text-white">Tournaments</h3>
           <p className="text-sm text-slate-400">Knockout brackets & cup</p>
+        </Link>
+        <Link 
+          to={createPageUrl('ImportMatch')}
+          className="p-5 rounded-2xl bg-gradient-to-br from-sky-500/20 to-sky-600/10 border border-sky-500/30 hover:border-sky-500/50 transition-all group"
+        >
+          <Upload className="w-8 h-8 text-sky-400 mb-3 group-hover:scale-110 transition-transform" />
+          <h3 className="font-semibold text-white">Import</h3>
+          <p className="text-sm text-slate-400">Excel or CSV scorecard</p>
         </Link>
       </div>
 
