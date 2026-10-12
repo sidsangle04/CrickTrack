@@ -22,6 +22,9 @@ function Field({ label, value, onChange, type = "text", placeholder }) {
 
 export default function BallByBallReview({ plan, onChange, onConfirm, onCancel, busy }) {
   const errors = plan.issues.filter((i) => i.level === "error");
+  if (!plan.match.team1Name.trim() || !plan.match.team2Name.trim()) {
+    errors.push({ message: "Enter both team names before importing." });
+  }
   const warnings = plan.issues.filter((i) => i.level === "warning");
   const setMatch = (key, value) => onChange({ ...plan, match: { ...plan.match, [key]: value } });
   const setBattingTeam = (index, side) =>

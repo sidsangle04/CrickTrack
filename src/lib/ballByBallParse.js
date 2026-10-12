@@ -258,6 +258,11 @@ function normalizeDelivery(row, cols) {
     extrasRuns = runsBat || (is_wide || is_no_ball ? 1 : 0);
     runsBat = 0;
   }
+  // The same column value repeated in both places (a wide entered as Runs 1 and
+  // Extra Runs 1) is one delivery, not two.
+  if ((is_wide || is_no_ball) && extrasRuns !== null && runsBat > 0 && runsBat === extrasRuns) {
+    runsBat = 0;
+  }
 
   const wide_runs = is_wide ? extrasRuns || 1 : 0;
   const no_ball_runs = is_no_ball ? extrasRuns || 1 : 0;
@@ -384,6 +389,7 @@ export async function buildImportPlan(file) {
   const innings = [];
   let skipped = 0;
   let untagged = 0;
+  let derivedNonStriker = 0;
 
   groupOrder.forEach((key, groupIdx) => {
     const group = groups.get(key);
@@ -391,6 +397,7 @@ export async function buildImportPlan(file) {
     let ballInOver = 0;
     let deliveryNumber = 0;
     let lastNonStriker = "";
+    const recentStrikers = [];
     const deliveries = [];
 
     // Over and ball numbering is read from the file when present (scorers number
@@ -404,9 +411,23 @@ export async function buildImportPlan(file) {
     sortRows(group.rows).forEach((row) => {
       const d = normalizeDelivery(row, cols);
       if (!d) { skipped += 1; return; }
-      if (!d.non_striker) d.non_striker = lastNonStriker;
+
+      // Files that only name the facing batter: the partner is the other batter
+      // still at the crease, taken from the most recent strikers.
+      if (!d.non_striker) {
+        d.non_striker =
+          lastNonStriker && lastNonStriker !== d.striker
+            ? lastNonStriker
+            : recentStrikers.find((n) => n !== d.striker) || "";
+      }
+      if (d.striker && recentStrikers[0] !== d.striker) {
+        const at = recentStrikers.indexOf(d.striker);
+        if (at >= 0) recentStrikers.splice(at, 1);
+        recentStrikers.unshift(d.striker);
+        if (recentStrikers.length > 4) recentStrikers.pop();
+      }
       if (d.non_striker) lastNonStriker = d.non_striker;
-      if (!d.non_striker) { skipped += 1; return; }
+      if (!d.non_striker) { d.non_striker = d.striker; derivedNonStriker += 1; }
       if (!d.shot_type && !d.line && !d.length) untagged += 1;
 
       const fileOver = cols.over === undefined ? NaN : parseFloat(norm(row[cols.over]));
@@ -430,12 +451,20 @@ export async function buildImportPlan(file) {
   });
 
   if (innings.length === 0) {
-    throw new Error("The ball-by-ball table has no usable rows. Check that Batter and Bowler are filled in on every row.");
+    throw new Error(
+      "The ball-by-ball table has no usable rows. Check that the Batter and Bowler columns are filled in on every row."
+    );
   }
   if (skipped > 0) {
     issues.push({
       level: "warning",
-      message: `${skipped} row${skipped === 1 ? "" : "s"} skipped — batter, non-striker or bowler was missing.`,
+      message: `${skipped} row${skipped === 1 ? "" : "s"} skipped — the batter or bowler name was missing.`,
+    });
+  }
+  if (derivedNonStriker > 0) {
+    issues.push({
+      level: "warning",
+      message: `${derivedNonStriker} deliveries had no non-striker in the file; the facing batter was used so the totals stay correct.`,
     });
   }
   if (untagged > 0) {
