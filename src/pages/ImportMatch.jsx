@@ -9,6 +9,7 @@ import { useGroundShape } from "@/lib/GroundShapeContext";
 import { parseCSVText, parseHTMLScorecard } from "@/lib/playCricketParse";
 import { writeImportedMatch } from "@/lib/playCricketImport";
 import BallByBallImporter from "@/components/import/BallByBallImporter";
+import PdfScorecardImporter from "@/components/import/PdfScorecardImporter";
 
 export default function ImportMatch() {
   const navigate = useNavigate();
@@ -103,8 +104,11 @@ export default function ImportMatch() {
 
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Import Match Data</h1>
-        <p className="text-slate-400 text-sm">Import a detailed ball-by-ball scorecard from Excel or CSV, or pull a completed match from Play-Cricket. Imports teams, players, scorecards and deliveries for full reports and analytics.</p>
+        <p className="text-slate-400 text-sm">Import a detailed ball-by-ball scorecard from Excel or CSV, a printed Play-Cricket PDF scorecard, or pull a completed match from Play-Cricket. Imports teams, players and scorecards for full reports and analytics.</p>
       </div>
+
+      {/* Play-Cricket PDF scorecard */}
+      <PdfScorecardImporter />
 
       {/* Ball-by-ball Excel / CSV import */}
       <BallByBallImporter />
