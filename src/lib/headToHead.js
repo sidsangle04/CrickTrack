@@ -97,7 +97,8 @@ export function buildHeadToHead({ playerA, playerB, deliveries, batterInnings, b
     appearances.get(m.id)?.has(playerId) === true;
 
   const shared = matches.filter((m) => played(m, playerA.id) && played(m, playerB.id));
-  const sharedIds = matchIdsOf(shared);
+  // Match records key on `id` — `match_id` only exists on innings and deliveries
+  const sharedIds = new Set(shared.map((m) => m.id));
   const sharedDeliveries = deliveries.filter((d) => sharedIds.has(d.match_id));
   const sharedInnings = batterInnings.filter((b) => sharedIds.has(b.match_id));
 
