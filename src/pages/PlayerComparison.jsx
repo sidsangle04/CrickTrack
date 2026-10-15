@@ -8,6 +8,10 @@ import H2HStatCards from '@/components/compare/H2HStatCards';
 import DominanceMeter from '@/components/compare/DominanceMeter';
 import CoachInsight from '@/components/compare/CoachInsight';
 import CareerCompare from '@/components/compare/CareerCompare';
+import CareerTotals from '@/components/compare/CareerTotals';
+import HeadToHeadSection from '@/components/compare/HeadToHeadSection';
+import HeadToHeadVerdict from '@/components/compare/HeadToHeadVerdict';
+import { buildHeadToHead } from '@/lib/headToHead';
 
 // Dismissal types credited to the bowler (run outs / retirements don't count)
 const BOWLER_CREDITED = ['bowled', 'caught', 'lbw', 'stumped', 'hit_wicket'];
@@ -53,6 +57,11 @@ export default function PlayerComparison() {
     allMatches.forEach(m => { if ((m.ground_mode || 'turf') === mode) s.add(m.id); });
     return s;
   }, [allMatches, mode]);
+
+  const modeMatches = useMemo(
+    () => allMatches.filter(m => (m.ground_mode || 'turf') === mode),
+    [allMatches, mode]
+  );
 
   const modePlayers = useMemo(
     () => allPlayers.filter(p => (p.ground_mode || 'turf') === mode),
@@ -175,6 +184,23 @@ export default function PlayerComparison() {
     };
   };
 
+  const careerA = useMemo(() => (playerA ? getCareer(playerA.id) : null), [playerA, modeBatterInnings, modeBowlerInnings]);
+  const careerB = useMemo(() => (playerB ? getCareer(playerB.id) : null), [playerB, modeBatterInnings, modeBowlerInnings]);
+
+  const headToHead = useMemo(() => {
+    if (!playerA || !playerB) return null;
+    return buildHeadToHead({
+      playerA,
+      playerB,
+      deliveries: modeDeliveries,
+      batterInnings: modeBatterInnings,
+      bowlerInnings: modeBowlerInnings,
+      matches: modeMatches,
+    });
+  }, [playerA, playerB, modeDeliveries, modeBatterInnings, modeBowlerInnings, modeMatches]);
+
+  const modeLabel = mode === 'circular' ? 'Standard' : 'TURF';
+
   if (playersLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -250,6 +276,14 @@ export default function PlayerComparison() {
             </div>
           </div>
 
+          <CareerTotals
+            playerA={playerA}
+            playerB={playerB}
+            careerA={careerA}
+            careerB={careerB}
+            modeLabel={modeLabel}
+          />
+
           {/* Batter vs bowler duel */}
           {matchup.type === 'duel' && h2h?.empty && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -283,8 +317,8 @@ export default function PlayerComparison() {
               </div>
               <CareerCompare
                 type="batting"
-                statsA={getCareer(playerA.id).batting}
-                statsB={getCareer(playerB.id).batting}
+                statsA={careerA.batting}
+                statsB={careerB.batting}
                 playerA={playerA}
                 playerB={playerB}
               />
@@ -298,12 +332,20 @@ export default function PlayerComparison() {
               </div>
               <CareerCompare
                 type="bowling"
-                statsA={getCareer(playerA.id).bowling}
-                statsB={getCareer(playerB.id).bowling}
+                statsA={careerA.bowling}
+                statsB={careerB.bowling}
                 playerA={playerA}
                 playerB={playerB}
               />
             </>
+          )}
+
+          {/* Record against each other, then the head-to-head verdict */}
+          {headToHead && headToHead.sharedCount > 0 && (
+            <HeadToHeadSection h2h={headToHead} playerA={playerA} playerB={playerB} />
+          )}
+          {headToHead && (
+            <HeadToHeadVerdict h2h={headToHead} playerA={playerA} playerB={playerB} />
           )}
         </>
       )}

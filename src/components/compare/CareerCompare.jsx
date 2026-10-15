@@ -74,15 +74,19 @@ export default function CareerCompare({ type, statsA, statsB, playerA, playerB }
 
   const totalPoints = pointsA + pointsB;
   const shareA = totalPoints > 0 ? (pointsA / totalPoints) * 100 : 50;
-  const winner = pointsA > pointsB ? playerA.name : pointsB > pointsA ? playerB.name : null;
+  // A gap of five percentage points or less is inside the margin — no real edge
+  const even = Math.abs(shareA - 50) <= 5;
+  const winner = !even && pointsA !== pointsB
+    ? (pointsA > pointsB ? playerA.name : playerB.name)
+    : null;
 
   let headline, body;
   if (!totalPoints) {
     headline = 'Nothing to split them yet';
     body = `Neither player has recorded ${type} stats in this mode yet.`;
   } else if (!winner) {
-    headline = 'Dead even on the stats card';
-    body = `${playerA.name} and ${playerB.name} finish level at ${pointsA}–${pointsB} across the key ${type} metrics — a genuine toss-up between them.`;
+    headline = `Too close to call — ${playerA.name} and ${playerB.name} are level`;
+    body = `On the weighted card it reads ${Math.round(shareA)}%–${Math.round(100 - shareA)}%, a gap of just ${Math.round(Math.abs(shareA - (100 - shareA)))} points. That sits inside the five-point band, so on this record the two are equally strong — neither holds a meaningful upper hand.`;
   } else {
     const loser = winner === playerA.name ? playerB.name : playerA.name;
     const winnerLeads = winner === playerA.name ? leadsA : leadsB;
