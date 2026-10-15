@@ -57,16 +57,7 @@ export default function Layout({ children, currentPageName }) {
                 className="h-10 w-auto rounded-lg shadow-lg shrink-0 bg-white p-1" />
               
               <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-bold text-white tracking-tight">CrickTrack</h1>
-                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold border ${
-                    isCircular
-                      ? 'bg-cyan-500/15 text-cyan-400 border-cyan-500/40'
-                      : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40'
-                  }`}>
-                    {isCircular ? 'Standard' : 'TURF'}
-                  </span>
-                </div>
+                <h1 className="text-lg font-bold text-white tracking-tight">CrickTrack</h1>
                 <p className="text-[10px] text-slate-400 -mt-0.5">Tag | Analyse | Elevate </p>
               </div>
             </Link>
