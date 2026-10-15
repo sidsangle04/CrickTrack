@@ -92,7 +92,7 @@ export default function Venues() {
 
       {isLoading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
         </div>
       ) : venueList.length === 0 ? (
         <div className="rounded-2xl bg-slate-800/50 border border-slate-700/50 py-16 text-center">

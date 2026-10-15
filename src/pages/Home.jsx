@@ -137,17 +137,17 @@ export default function Home() {
         </Link>
         <Link 
           to={createPageUrl('TeamManagement')}
-          className="p-5 rounded-2xl bg-slate-800/50 border border-slate-700/50 hover:border-emerald-500/40 transition-all group"
+          className="p-5 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/30 hover:border-purple-500/50 transition-all group"
         >
-          <Trophy className="w-8 h-8 text-emerald-400 mb-3 group-hover:scale-110 transition-transform" />
+          <Trophy className="w-8 h-8 text-purple-400 mb-3 group-hover:scale-110 transition-transform" />
           <h3 className="font-semibold text-white">Teams</h3>
           <p className="text-sm text-slate-400">Manage squads & players</p>
         </Link>
         <Link 
           to={createPageUrl('Venues')}
-          className="p-5 rounded-2xl bg-slate-800/50 border border-slate-700/50 hover:border-emerald-500/40 transition-all group"
+          className="p-5 rounded-2xl bg-gradient-to-br from-sky-500/20 to-sky-600/10 border border-sky-500/30 hover:border-sky-500/50 transition-all group"
         >
-          <MapPin className="w-8 h-8 text-emerald-400 mb-3 group-hover:scale-110 transition-transform" />
+          <MapPin className="w-8 h-8 text-sky-400 mb-3 group-hover:scale-110 transition-transform" />
           <h3 className="font-semibold text-white">Venues</h3>
           <p className="text-sm text-slate-400">Grounds & par scores</p>
         </Link>
@@ -191,7 +191,7 @@ export default function Home() {
       {/* Match List */}
       {matchesLoading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
         </div>
       ) : filteredMatches.length === 0 ? (
         <div className="text-center py-12">

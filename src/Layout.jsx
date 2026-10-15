@@ -34,6 +34,16 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <style>{`
+        :root {
+          --primary: #10b981;
+          --primary-dark: #059669;
+          --accent: #f59e0b;
+          --bg-dark: #0f172a;
+          --bg-card: #1e293b;
+        }
+      `}</style>
+      
       {/* Header */}
       <header
         className="sticky top-0 z-50 backdrop-blur-xl bg-slate-900/80 border-b border-slate-700/50"
@@ -44,7 +54,7 @@ export default function Layout({ children, currentPageName }) {
               <img
                 src="https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/c49e9414c_CrickTrackLogo.png"
                 alt="CrickTrack"
-                className="h-10 w-auto rounded-lg shadow-lg shrink-0 bg-slate-950 p-1" />
+                className="h-10 w-auto rounded-lg shadow-lg shrink-0 bg-white p-1" />
               
               <div>
                 <div className="flex items-center gap-2">

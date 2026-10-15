@@ -35,7 +35,7 @@ export default function TeamManagement() {
     name: '',
     short_name: '',
     home_ground: '',
-    primary_color: '#D32F2F'
+    primary_color: '#10b981'
   });
 
   const [playerForm, setPlayerForm] = useState({
@@ -109,7 +109,7 @@ export default function TeamManagement() {
   });
 
   const resetTeamForm = () => {
-    setTeamForm({ name: '', short_name: '', home_ground: '', primary_color: '#D32F2F' });
+    setTeamForm({ name: '', short_name: '', home_ground: '', primary_color: '#10b981' });
     setEditingTeam(null);
     setShowTeamModal(false);
   };
@@ -155,7 +155,7 @@ export default function TeamManagement() {
       name: team.name,
       short_name: team.short_name,
       home_ground: team.home_ground || '',
-      primary_color: team.primary_color || '#D32F2F'
+      primary_color: team.primary_color || '#10b981'
     });
     setEditingTeam(team);
     setShowTeamModal(true);
@@ -210,7 +210,7 @@ export default function TeamManagement() {
 
         {playersLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+            <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
           </div>
         ) : players.length === 0 ? (
           <div className="text-center py-12">
@@ -385,7 +385,7 @@ export default function TeamManagement() {
 
       {teamsLoading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
         </div>
       ) : modeTeams.length === 0 ? (
         <div className="text-center py-12">

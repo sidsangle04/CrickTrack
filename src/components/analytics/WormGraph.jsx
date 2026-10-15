@@ -81,21 +81,21 @@ export default function WormGraph({ innings, deliveries, teamsMap, maxOvers }) {
       <div style={{ width: '100%', height: 280 }}>
         <ResponsiveContainer>
           <LineChart data={data} margin={{ top: 12, right: 14, left: -14, bottom: 4 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#FFE3E3" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
             <XAxis
               dataKey="over"
               type="number"
               domain={[0, maxOvers ?? 'dataMax']}
-              tick={{ fill: '#6E6666' }}
-              stroke="#FFC9C9"
+              tick={{ fill: '#94a3b8' }}
+              stroke="#475569"
               fontSize={11}
-              label={{ value: 'Overs', position: 'insideBottom', offset: -2, fill: '#6E6666', fontSize: 11 }}
+              label={{ value: 'Overs', position: 'insideBottom', offset: -2, fill: '#64748b', fontSize: 11 }}
             />
             <YAxis
-              tick={{ fill: '#6E6666' }}
-              stroke="#FFC9C9"
+              tick={{ fill: '#94a3b8' }}
+              stroke="#475569"
               fontSize={11}
-              label={{ value: 'Runs', angle: -90, position: 'insideLeft', fill: '#6E6666', fontSize: 11 }}
+              label={{ value: 'Runs', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 11 }}
             />
             <Tooltip
               content={({ active, payload, label }) => {
@@ -117,8 +117,8 @@ export default function WormGraph({ innings, deliveries, teamsMap, maxOvers }) {
                   .filter(Boolean);
                 if (!rows.length) return null;
                 return (
-                  <div style={{ background: '#FFFFFF', border: '1px solid #FFE3E3', borderRadius: 8, color: '#2D2A2A', padding: '8px 10px' }}>
-                    <div style={{ fontSize: 11, color: '#6E6666', marginBottom: 4 }}>Over {ovStr(Number(label))}</div>
+                  <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0', padding: '8px 10px' }}>
+                    <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>Over {ovStr(Number(label))}</div>
                     {rows}
                   </div>
                 );
@@ -131,7 +131,7 @@ export default function WormGraph({ innings, deliveries, teamsMap, maxOvers }) {
             {series.map(s => (
               <Line key={`${s.key}_w`} type="monotone" dataKey={`${s.key}_w`}
                 stroke="none" connectNulls={false} legendType="none"
-                dot={{ r: 4, fill: s.color, stroke: '#FFFFFF', strokeWidth: 1 }} />
+                dot={{ r: 4, fill: s.color, stroke: '#0f172a', strokeWidth: 1 }} />
             ))}
           </LineChart>
         </ResponsiveContainer>
