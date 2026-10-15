@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Home, PlusCircle, BarChart3, Trophy, Upload, RefreshCw, Users, Settings as SettingsIcon } from 'lucide-react';
+import { Home, BarChart3, Trophy, Upload, RefreshCw, Users, Settings as SettingsIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 import MobileTabBar from '@/components/MobileTabBar';
@@ -147,13 +147,6 @@ export default function Layout({ children, currentPageName }) {
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span className="hidden lg:inline">Change</span>
               </button>
-              <Link
-                to={createPageUrl('MatchSetup')}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg font-medium text-sm shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all hover:scale-105">
-                
-                <PlusCircle className="w-4 h-4" />
-                <span className="hidden sm:inline">New Match</span>
-              </Link>
             </div>
           </div>
         </div>
