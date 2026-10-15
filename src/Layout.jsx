@@ -5,6 +5,7 @@ import { Home, PlusCircle, BarChart3, Trophy, Upload, ArrowLeftRight, RefreshCw,
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 import MobileTabBar from '@/components/MobileTabBar';
+import TrustFooter from '@/components/TrustFooter';
 import { useTabStack } from '@/hooks/useTabStack';
 
 export default function Layout({ children, currentPageName }) {
@@ -191,6 +192,8 @@ export default function Layout({ children, currentPageName }) {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      <TrustFooter />
 
       {/* Mobile Nav — tabs keep their own route and scroll position */}
       <MobileTabBar activeTab={activeTab} onSelectTab={switchTab} />

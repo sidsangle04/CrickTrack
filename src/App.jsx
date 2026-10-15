@@ -3,7 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import Players from './pages/Players';
 import PlayerProfile from './pages/PlayerProfile';
 import PageNotFound from './lib/PageNotFound';
@@ -14,6 +14,8 @@ import Tournaments from '@/pages/Tournaments';
 import Venues from '@/pages/Venues';
 import ModeSelection from '@/pages/ModeSelection';
 import Settings from './pages/Settings';
+import About from './pages/About';
+import Contact from './pages/Contact';
 import WebViewBackHandler from '@/components/WebViewBackHandler';
 import { GroundShapeProvider, useGroundShape } from '@/lib/GroundShapeContext';
 import { ThemeProvider } from 'next-themes';
@@ -29,6 +31,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
   const { isReady } = useGroundShape();
+  const { pathname } = useLocation();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -50,8 +53,11 @@ const AuthenticatedApp = () => {
     }
   }
 
+  // Trust pages stay reachable before a scoring mode has been chosen
+  const isTrustPage = pathname === '/About' || pathname === '/Contact';
+
   // Mode not yet chosen at launch — show the mode selection landing screen
-  if (!isReady) {
+  if (!isReady && !isTrustPage) {
     return <ModeSelection />;
   }
 
@@ -97,6 +103,16 @@ const AuthenticatedApp = () => {
       <Route path="/Settings" element={
         <LayoutWrapper currentPageName="Settings">
           <Settings />
+        </LayoutWrapper>
+      } />
+      <Route path="/About" element={
+        <LayoutWrapper currentPageName="About">
+          <About />
+        </LayoutWrapper>
+      } />
+      <Route path="/Contact" element={
+        <LayoutWrapper currentPageName="Contact">
+          <Contact />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />
