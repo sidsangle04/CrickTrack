@@ -19,36 +19,36 @@ module.exports = {
   			 * The app's screens were authored light-on-dark against Tailwind's `slate`
   			 * and `emerald` scales. The CrickTrack palette is light, so both scales are
   			 * re-pointed at it and the whole app follows the theme in one pass:
-  			 *   slate   -> the #F5F3FF / #E9D8FD / #1A202C neutral ramp (inverted)
-  			 *   emerald -> the #6B46C1 purple ramp
+  			 *   slate   -> the #FFF5F5 / #FFE3E3 / #2D2A2A neutral ramp (inverted)
+  			 *   emerald -> the #D32F2F red ramp
   			 * `white` is the ink colour here: every `text-white` was "the lightest colour"
-  			 * on a dark surface, which is #1A202C on a light one.
+  			 * on a dark surface, which is #2D2A2A on a light one.
   			 */
-  			white: '#1A202C',
+  			white: '#2D2A2A',
   			slate: {
-  				50: '#1A202C',
-  				100: '#1A202C',
-  				200: '#2D3748',
-  				300: '#4A5568',
-  				400: '#6B7280',
-  				500: '#9F7AEA',
-  				600: '#D6BCFA',
-  				700: '#E9D8FD',
+  				50: '#2D2A2A',
+  				100: '#2D2A2A',
+  				200: '#3D3838',
+  				300: '#524B4B',
+  				400: '#6E6666',
+  				500: '#FF9999',
+  				600: '#FFBDBD',
+  				700: '#FFE3E3',
   				800: '#FFFFFF',
-  				900: '#F5F3FF',
+  				900: '#FFF5F5',
   				950: '#FFFFFF'
   			},
   			emerald: {
-  				50: '#F5F3FF',
-  				100: '#E9D8FD',
-  				200: '#D6BCFA',
-  				300: '#9F7AEA',
-  				400: '#6B46C1',
-  				500: '#6B46C1',
-  				600: '#553C9A',
-  				700: '#44337A',
-  				800: '#322659',
-  				900: '#21183C'
+  				50: '#FFF5F5',
+  				100: '#FFE3E3',
+  				200: '#FFC9C9',
+  				300: '#FF9999',
+  				400: '#D32F2F',
+  				500: '#D32F2F',
+  				600: '#B71C1C',
+  				700: '#8E1414',
+  				800: '#6B0F0F',
+  				900: '#4A0A0A'
   			},
   			/* Accent hues whose light 300/400 text shades need to darken for a light page. */
   			red: { 300: '#F87171', 400: '#DC2626' },

@@ -81,21 +81,21 @@ export default function WormGraph({ innings, deliveries, teamsMap, maxOvers }) {
       <div style={{ width: '100%', height: 280 }}>
         <ResponsiveContainer>
           <LineChart data={data} margin={{ top: 12, right: 14, left: -14, bottom: 4 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E9D8FD" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#FFE3E3" />
             <XAxis
               dataKey="over"
               type="number"
               domain={[0, maxOvers ?? 'dataMax']}
-              tick={{ fill: '#6B7280' }}
-              stroke="#D6BCFA"
+              tick={{ fill: '#6E6666' }}
+              stroke="#FFC9C9"
               fontSize={11}
-              label={{ value: 'Overs', position: 'insideBottom', offset: -2, fill: '#6B7280', fontSize: 11 }}
+              label={{ value: 'Overs', position: 'insideBottom', offset: -2, fill: '#6E6666', fontSize: 11 }}
             />
             <YAxis
-              tick={{ fill: '#6B7280' }}
-              stroke="#D6BCFA"
+              tick={{ fill: '#6E6666' }}
+              stroke="#FFC9C9"
               fontSize={11}
-              label={{ value: 'Runs', angle: -90, position: 'insideLeft', fill: '#6B7280', fontSize: 11 }}
+              label={{ value: 'Runs', angle: -90, position: 'insideLeft', fill: '#6E6666', fontSize: 11 }}
             />
             <Tooltip
               content={({ active, payload, label }) => {
@@ -117,8 +117,8 @@ export default function WormGraph({ innings, deliveries, teamsMap, maxOvers }) {
                   .filter(Boolean);
                 if (!rows.length) return null;
                 return (
-                  <div style={{ background: '#FFFFFF', border: '1px solid #E9D8FD', borderRadius: 8, color: '#1A202C', padding: '8px 10px' }}>
-                    <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>Over {ovStr(Number(label))}</div>
+                  <div style={{ background: '#FFFFFF', border: '1px solid #FFE3E3', borderRadius: 8, color: '#2D2A2A', padding: '8px 10px' }}>
+                    <div style={{ fontSize: 11, color: '#6E6666', marginBottom: 4 }}>Over {ovStr(Number(label))}</div>
                     {rows}
                   </div>
                 );
