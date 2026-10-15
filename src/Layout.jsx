@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Home, PlusCircle, BarChart3, Trophy, Upload, ArrowLeftRight, RefreshCw, Users, MapPin, Settings as SettingsIcon } from 'lucide-react';
+import { Home, PlusCircle, BarChart3, Trophy, Upload, ArrowLeftRight, RefreshCw, Users, Settings as SettingsIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 import MobileTabBar from '@/components/MobileTabBar';
@@ -9,7 +9,7 @@ import TrustFooter from '@/components/TrustFooter';
 import { useTabStack } from '@/hooks/useTabStack';
 
 export default function Layout({ children, currentPageName }) {
-  const isScoring = currentPageName === 'LiveScoring' || currentPageName === 'ImportMatch';
+  const isScoring = currentPageName === 'LiveScoring';
   const { mode, clearMode } = useGroundShape();
   const isCircular = mode === 'circular';
   const { activeTab, switchTab } = useTabStack();
@@ -126,14 +126,14 @@ export default function Layout({ children, currentPageName }) {
                 Tournaments
               </Link>
               <Link
-                to={createPageUrl('Venues')}
+                to={createPageUrl('ImportMatch')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                currentPageName === 'Venues' ?
+                currentPageName === 'ImportMatch' ?
                 'bg-emerald-500/20 text-emerald-400' :
                 'text-slate-400 hover:text-white hover:bg-slate-800'}`
                 }>
-                <MapPin className="w-4 h-4 inline mr-2" />
-                Venues
+                <Upload className="w-4 h-4 inline mr-2" />
+                Import
               </Link>
             </nav>
             

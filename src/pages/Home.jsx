@@ -15,9 +15,9 @@ import {
   CheckCircle2,
   Loader2,
   Trash2,
-  Upload,
   X
 } from 'lucide-react';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { format } from 'date-fns';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 import PullToRefresh from '@/components/PullToRefresh';
@@ -26,6 +26,7 @@ export default function Home() {
   const { mode } = useGroundShape();
   const modeLabel = mode === 'circular' ? 'Standard' : 'TURF';
   const [filter, setFilter] = useState('all');
+  const [venueFilter, setVenueFilter] = useState('all');
   const [deletingId, setDeletingId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const queryClient = useQueryClient();
@@ -54,10 +55,24 @@ export default function Home() {
     queryFn: () => base44.entities.Team.list()
   });
 
+  const { data: venuesPage } = useQuery({
+    queryKey: ['venues', mode, 'picker'],
+    queryFn: () =>
+      base44.entities.Venue.filter(
+        { ground_mode: mode || 'turf' },
+        { sort: 'name', limit: 200 }
+      )
+  });
+  const venues = venuesPage?.items || [];
+
   const teamsMap = teams.reduce((acc, t) => ({ ...acc, [t.id]: t }), {});
 
   const filteredMatches = matches.filter(m => {
     if ((m.ground_mode || 'turf') !== mode) return false;
+    if (venueFilter !== 'all') {
+      const selected = venues.find(v => v.id === venueFilter);
+      if (m.venue_id !== venueFilter && (!selected?.name || m.venue !== selected.name)) return false;
+    }
     if (filter === 'all') return true;
     if (filter === 'live') return m.status === 'live' || m.status === 'super_over';
     if (filter === 'completed') return m.status === 'completed';
@@ -111,7 +126,7 @@ export default function Home() {
 
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
         <Link 
           to={createPageUrl('MatchSetup')}
           className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/30 hover:border-emerald-500/50 transition-all group"
@@ -129,22 +144,32 @@ export default function Home() {
           <p className="text-sm text-slate-400">Manage squads & players</p>
         </Link>
         <Link 
-          to={createPageUrl('Tournaments')}
-          className="p-5 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/30 hover:border-amber-500/50 transition-all group"
-        >
-          <Trophy className="w-8 h-8 text-amber-400 mb-3 group-hover:scale-110 transition-transform" />
-          <h3 className="font-semibold text-white">Tournaments</h3>
-          <p className="text-sm text-slate-400">Knockout brackets & cup</p>
-        </Link>
-        <Link 
-          to={createPageUrl('ImportMatch')}
+          to={createPageUrl('Venues')}
           className="p-5 rounded-2xl bg-gradient-to-br from-sky-500/20 to-sky-600/10 border border-sky-500/30 hover:border-sky-500/50 transition-all group"
         >
-          <Upload className="w-8 h-8 text-sky-400 mb-3 group-hover:scale-110 transition-transform" />
-          <h3 className="font-semibold text-white">Import</h3>
-          <p className="text-sm text-slate-400">Excel or CSV scorecard</p>
+          <MapPin className="w-8 h-8 text-sky-400 mb-3 group-hover:scale-110 transition-transform" />
+          <h3 className="font-semibold text-white">Venues</h3>
+          <p className="text-sm text-slate-400">Grounds & par scores</p>
         </Link>
       </div>
+
+      {/* Venue browsing */}
+      {venues.length > 0 && (
+        <div className="flex items-center gap-3 mb-4">
+          <MapPin className="w-4 h-4 text-slate-500 shrink-0" />
+          <Select value={venueFilter} onValueChange={setVenueFilter}>
+            <SelectTrigger className="w-full sm:w-72 bg-slate-800 border-slate-700 text-slate-200">
+              <SelectValue placeholder="All venues" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All venues</SelectItem>
+              {venues.map(v => (
+                <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Filter Tabs */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2">

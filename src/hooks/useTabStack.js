@@ -5,8 +5,9 @@ export const TAB_ROOTS = {
   matches: '/Home',
   analytics: '/Analytics',
   players: '/Players',
+  compare: '/PlayerComparison',
   cup: '/Tournaments',
-  venues: '/Venues'
+  import: '/ImportMatch'
 };
 
 // Which tab a page belongs to. Pages that are not listed (LiveScoring, Scorecard,
@@ -17,9 +18,9 @@ const PATH_TABS = {
   '/Analytics': 'analytics',
   '/Players': 'players',
   '/PlayerProfile': 'players',
-  '/PlayerComparison': 'players',
+  '/PlayerComparison': 'compare',
   '/Tournaments': 'cup',
-  '/Venues': 'venues'
+  '/ImportMatch': 'import'
 };
 
 // Module scope: every tab keeps its own deepest route and scroll offset for the

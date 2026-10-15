@@ -2,9 +2,8 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "../utils";
-import { Upload, FileText, CheckCircle2, AlertTriangle, Loader2, ArrowLeft, Link2 } from "lucide-react";
+import { Upload, FileText, CheckCircle2, AlertTriangle, Loader2, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
 import { useGroundShape } from "@/lib/GroundShapeContext";
 import { parseCSVText, parseHTMLScorecard } from "@/lib/playCricketParse";
 import { writeImportedMatch } from "@/lib/playCricketImport";
@@ -97,11 +96,6 @@ export default function ImportMatch() {
 
   return (
     <div className="pb-24 md:pb-6">
-      <Link to={createPageUrl("Home")} className="flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4" />
-        Back to Matches
-      </Link>
-
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Import Match Data</h1>
         <p className="text-slate-400 text-sm">Import a detailed ball-by-ball scorecard from Excel or CSV, a printed Play-Cricket PDF scorecard, or pull a completed match from Play-Cricket. Imports teams, players and scorecards for full reports and analytics.</p>
