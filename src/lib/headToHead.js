@@ -1,6 +1,10 @@
 // Head-to-head maths for the Compare section.
 // Builds the direct batter-vs-bowler record from ball-by-ball deliveries and
 // each player's output in the matches they both appeared in.
+//
+// Bowling is credited from the scorecard (BatterInnings.dismissed_by_bowler_id)
+// as well as from tagged deliveries, so a wicket still counts when the match
+// was scored without ball-by-ball tagging.
 
 // Dismissal types credited to the bowler (run outs / retirements don't count)
 const BOWLER_CREDITED = ['bowled', 'caught', 'lbw', 'stumped', 'hit_wicket'];
@@ -11,9 +15,9 @@ const concededOn = (d) =>
 
 const matchIdsOf = (items) => new Set(items.map((i) => i.match_id));
 
-// One batter's figures against one specific bowler.
-function againstBowler(batterId, deliveries) {
-  const d = deliveries.filter((x) => x.striker_id === batterId);
+// One batter's record against one specific bowler.
+function againstBowler(batterId, bowlerId, deliveries, batterInnings) {
+  const d = deliveries.filter((x) => x.bowler_id === bowlerId && x.striker_id === batterId);
   const balls = d.filter((x) => !x.is_wide).length;
   const legalBalls = d.filter((x) => x.is_legal_delivery !== false).length;
   const runs = d.reduce((s, x) => s + (x.runs_bat || 0), 0);
@@ -21,9 +25,21 @@ function againstBowler(batterId, deliveries) {
   const sixes = d.filter((x) => (x.runs_bat || 0) === 6).length;
   const dots = d.filter((x) => (x.runs_total || 0) === 0 && !x.is_wicket).length;
   const conceded = d.reduce((s, x) => s + concededOn(x), 0);
-  const outs = d.filter(
+
+  // Scorecard dismissals — the fuller record, and the only one available when
+  // the innings was scored without delivery tagging.
+  const card = batterInnings.filter(
+    (b) =>
+      b.player_id === batterId &&
+      b.dismissed_by_bowler_id === bowlerId &&
+      BOWLER_CREDITED.includes(b.dismissal_type)
+  );
+  const fromBall = d.filter(
     (x) => x.is_wicket && x.player_out_id === batterId && BOWLER_CREDITED.includes(x.wicket_type)
   );
+  const outs = card.length > 0 ? card : fromBall;
+
+  const matchIds = new Set([...d.map((x) => x.match_id), ...card.map((b) => b.match_id)]);
 
   return {
     deliveries: d.length,
@@ -34,10 +50,10 @@ function againstBowler(batterId, deliveries) {
     dots,
     conceded,
     dismissals: outs.length,
-    dismissalTypes: outs.map((x) => x.wicket_type),
+    dismissalTypes: outs.map((o) => o.dismissal_type || o.wicket_type),
     strikeRate: balls > 0 ? (runs / balls) * 100 : 0,
     economy: legalBalls > 0 ? (conceded / legalBalls) * 6 : 0,
-    matches: matchIdsOf(d).size,
+    matches: matchIds.size,
     // Points the batter earns in the duel, and the points his bowling earns him
     batPoints: runs + fours * 2 + sixes * 4,
     bowlPoints: outs.length * 25 + dots * 1.5,
@@ -83,14 +99,21 @@ export function buildHeadToHead({ playerA, playerB, deliveries, batterInnings, b
   const shared = matches.filter((m) => played(m, playerA.id) && played(m, playerB.id));
   const sharedIds = matchIdsOf(shared);
   const sharedDeliveries = deliveries.filter((d) => sharedIds.has(d.match_id));
+  const sharedInnings = batterInnings.filter((b) => sharedIds.has(b.match_id));
 
-  const aVsB = againstBowler(playerA.id, sharedDeliveries.filter((d) => d.bowler_id === playerB.id));
-  const bVsA = againstBowler(playerB.id, sharedDeliveries.filter((d) => d.bowler_id === playerA.id));
+  // aVsB: player A with the bat against player B's bowling
+  const aVsB = againstBowler(playerA.id, playerB.id, sharedDeliveries, sharedInnings);
+  const bVsA = againstBowler(playerB.id, playerA.id, sharedDeliveries, sharedInnings);
 
   const duelDeliveries = sharedDeliveries.filter(
     (d) =>
       (d.striker_id === playerA.id && d.bowler_id === playerB.id) ||
       (d.striker_id === playerB.id && d.bowler_id === playerA.id)
+  );
+  const duelDismissals = sharedInnings.filter(
+    (b) =>
+      (b.player_id === playerA.id && b.dismissed_by_bowler_id === playerB.id) ||
+      (b.player_id === playerB.id && b.dismissed_by_bowler_id === playerA.id)
   );
 
   const pointsA = aVsB.batPoints + bVsA.bowlPoints;
@@ -101,8 +124,12 @@ export function buildHeadToHead({ playerA, playerB, deliveries, batterInnings, b
   return {
     sharedCount: shared.length,
     withBallByBall: matchIdsOf(sharedDeliveries).size,
-    duelMatches: matchIdsOf(duelDeliveries).size,
-    hasDuel: aVsB.deliveries > 0 || bVsA.deliveries > 0,
+    duelMatches: new Set([
+      ...duelDeliveries.map((d) => d.match_id),
+      ...duelDismissals.map((b) => b.match_id),
+    ]).size,
+    hasDuel: aVsB.deliveries > 0 || bVsA.deliveries > 0 || aVsB.dismissals > 0 || bVsA.dismissals > 0,
+    hasBallByBall: aVsB.deliveries > 0 || bVsA.deliveries > 0,
     aVsB,
     bVsA,
     duelShareA,

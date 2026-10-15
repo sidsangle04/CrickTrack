@@ -2,6 +2,25 @@ import React from 'react';
 import { Medal, FileText } from 'lucide-react';
 
 const times = (n) => (n === 1 ? 'once' : `${n} times`);
+const runs = (n) => `${n} run${n === 1 ? '' : 's'}`;
+const balls = (n) => `${n} ball${n === 1 ? '' : 's'}`;
+const wickets = (n) => `${n} wicket${n === 1 ? '' : 's'}`;
+
+// One direction of the duel, described in words.
+function duelLine(batterName, bowlerName, s) {
+  if (s.deliveries > 0) {
+    return (
+      `${batterName} has made ${runs(s.runs)} off ${balls(s.balls)} from ${bowlerName} at a strike rate of ${s.strikeRate.toFixed(1)}` +
+      (s.dismissals > 0
+        ? `, falling ${times(s.dismissals)} (${s.dismissalTypes.join(', ')}).`
+        : ', and is yet to be dismissed by him.')
+    );
+  }
+  return (
+    `${bowlerName} has dismissed ${batterName} ${times(s.dismissals)} (${s.dismissalTypes.join(', ')}), ` +
+    `though the match has no ball-by-ball data so his runs off that bowling are not recorded.`
+  );
+}
 
 function Verdict({ headline, body, share, playerA, playerB }) {
   return (
@@ -53,10 +72,10 @@ export default function HeadToHeadVerdict({ h2h, playerA, playerB }) {
 
   const sharedLine =
     `In the ${sharedCount} match${sharedCount === 1 ? '' : 'es'} they have both played, ` +
-    `${playerA.name} has ${sharedA.runs} run${sharedA.runs === 1 ? '' : 's'}` +
-    `${sharedA.wickets > 0 ? ` and ${sharedA.wickets} wicket${sharedA.wickets === 1 ? '' : 's'}` : ''}, ` +
-    `while ${playerB.name} has ${sharedB.runs} run${sharedB.runs === 1 ? '' : 's'}` +
-    `${sharedB.wickets > 0 ? ` and ${sharedB.wickets} wicket${sharedB.wickets === 1 ? '' : 's'}` : ''}.`;
+    `${playerA.name} has ${runs(sharedA.runs)}` +
+    `${sharedA.wickets > 0 ? ` and ${wickets(sharedA.wickets)}` : ''}, ` +
+    `while ${playerB.name} has ${runs(sharedB.runs)}` +
+    `${sharedB.wickets > 0 ? ` and ${wickets(sharedB.wickets)}` : ''}.`;
 
   if (!hasDuel) {
     return (
@@ -64,9 +83,8 @@ export default function HeadToHeadVerdict({ h2h, playerA, playerB }) {
         headline="No direct record between them yet"
         body={
           `They have shared ${sharedCount} match${sharedCount === 1 ? '' : 'es'}, but ` +
-          `${withBallByBall === 0 ? 'none of them carry' : 'only some of them carry'} ball-by-ball data, ` +
-          `so a batter-versus-bowler record cannot be built. ${sharedLine} ` +
-          `Import a full delivery-by-delivery scorecard to unlock the duel.`
+          `neither has bowled to the other, so there is no duel to judge. ${sharedLine} ` +
+          `Score a match between their teams and this section fills in.`
         }
         playerA={playerA}
         playerB={playerB}
@@ -78,23 +96,11 @@ export default function HeadToHeadVerdict({ h2h, playerA, playerB }) {
   const gap = Math.abs(pct - (100 - pct));
 
   const direct = [];
-  if (aVsB.deliveries > 0) {
-    direct.push(
-      `${playerA.name} has made ${aVsB.runs} run${aVsB.runs === 1 ? '' : 's'} off ${aVsB.balls} ball${aVsB.balls === 1 ? '' : 's'} ` +
-      `from ${playerB.name} at a strike rate of ${aVsB.strikeRate.toFixed(1)}` +
-      (aVsB.dismissals > 0
-        ? `, falling ${times(aVsB.dismissals)} (${aVsB.dismissalTypes.join(', ')}).`
-        : `, and is yet to be dismissed by him.`)
-    );
+  if (aVsB.deliveries > 0 || aVsB.dismissals > 0) {
+    direct.push(duelLine(playerA.name, playerB.name, aVsB));
   }
-  if (bVsA.deliveries > 0) {
-    direct.push(
-      `${playerB.name} has made ${bVsA.runs} run${bVsA.runs === 1 ? '' : 's'} off ${bVsA.balls} ball${bVsA.balls === 1 ? '' : 's'} ` +
-      `from ${playerA.name} at a strike rate of ${bVsA.strikeRate.toFixed(1)}` +
-      (bVsA.dismissals > 0
-        ? `, falling ${times(bVsA.dismissals)} (${bVsA.dismissalTypes.join(', ')}).`
-        : `, and is yet to be dismissed by him.`)
-    );
+  if (bVsA.deliveries > 0 || bVsA.dismissals > 0) {
+    direct.push(duelLine(playerB.name, playerA.name, bVsA));
   }
 
   if (duelEven) {

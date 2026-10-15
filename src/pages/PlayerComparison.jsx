@@ -90,9 +90,38 @@ export default function PlayerComparison() {
   //  - exactly one pure bowler  -> batter vs bowler duel
   //  - both pure bowlers        -> bowling career comparison
   //  - neither a pure bowler    -> batting career comparison
+  const headToHead = useMemo(() => {
+    if (!playerA || !playerB) return null;
+    return buildHeadToHead({
+      playerA,
+      playerB,
+      deliveries: modeDeliveries,
+      batterInnings: modeBatterInnings,
+      bowlerInnings: modeBowlerInnings,
+      matches: modeMatches,
+    });
+  }, [playerA, playerB, modeDeliveries, modeBatterInnings, modeBowlerInnings, modeMatches]);
+
+  // Match-up mode. Bowling is decided by what actually happened on the field —
+  // if either player has bowled to the other, that duel is shown, whatever role
+  // their profile lists. Roles only decide when there is no bowling between them.
   const isBowlerRole = (p) => p?.role === 'bowler';
   const matchup = useMemo(() => {
     if (!playerA || !playerB) return null;
+    const { aVsB, bVsA } = headToHead || {};
+    const aFacedB = (aVsB?.deliveries || 0) > 0 || (aVsB?.dismissals || 0) > 0;
+    const bFacedA = (bVsA?.deliveries || 0) > 0 || (bVsA?.dismissals || 0) > 0;
+
+    if (aFacedB || bFacedA) {
+      // Lead with the direction where a wicket fell, else the one with more balls
+      const scoreAB = (aVsB.dismissals || 0) * 1000 + (aVsB.deliveries || 0);
+      const scoreBA = (bVsA.dismissals || 0) * 1000 + (bVsA.deliveries || 0);
+      const aBats = aFacedB && (!bFacedA || scoreAB >= scoreBA);
+      return aBats
+        ? { type: 'duel', batter: playerA, bowler: playerB }
+        : { type: 'duel', batter: playerB, bowler: playerA };
+    }
+
     const aB = isBowlerRole(playerA), bB = isBowlerRole(playerB);
     if (aB && bB) return { type: 'bowler-vs-bowler' };
     if (aB || bB) {
@@ -101,14 +130,18 @@ export default function PlayerComparison() {
       return { type: 'duel', batter, bowler };
     }
     return { type: 'batter-vs-batter' };
-  }, [playerA, playerB]);
+  }, [playerA, playerB, headToHead]);
 
   // ---- Batter vs bowler: ball-by-ball duel ----
   const h2h = useMemo(() => {
     if (matchup?.type !== 'duel') return null;
     const { batter, bowler } = matchup;
     const d = modeDeliveries.filter(x => x.striker_id === batter.id && x.bowler_id === bowler.id);
-    if (d.length === 0) return { empty: true };
+    // Wickets can also come from the scorecard when the innings has no ball tags
+    const card = modeBatterInnings.filter(b =>
+      b.player_id === batter.id && b.dismissed_by_bowler_id === bowler.id &&
+      BOWLER_CREDITED.includes(b.dismissal_type));
+    if (d.length === 0 && card.length === 0) return { empty: true };
 
     const ballsFaced = d.filter(x => !x.is_wide).length;
     const legalBalls = d.filter(x => x.is_legal_delivery !== false).length;
@@ -118,8 +151,10 @@ export default function PlayerComparison() {
     const dots = d.filter(x => (x.runs_total || 0) === 0 && !x.is_wicket).length;
     const fours = d.filter(x => (x.runs_bat || 0) === 4).length;
     const sixes = d.filter(x => (x.runs_bat || 0) === 6).length;
-    const wkts = d.filter(x => x.is_wicket && x.player_out_id === batter.id && BOWLER_CREDITED.includes(x.wicket_type));
-    const matches = new Set(d.map(x => x.match_id)).size;
+    const wkts = d.length
+      ? d.filter(x => x.is_wicket && x.player_out_id === batter.id && BOWLER_CREDITED.includes(x.wicket_type))
+      : card;
+    const matches = new Set([...d.map(x => x.match_id), ...card.map(b => b.match_id)]).size;
 
     const strikeRate = ballsFaced > 0 ? (runsBat / ballsFaced) * 100 : 0;
     const economy = legalBalls > 0 ? (conceded / legalBalls) * 6 : 0;
@@ -135,7 +170,7 @@ export default function PlayerComparison() {
     return {
       empty: false,
       matches, ballsFaced, legalBalls, runsBat, conceded, dots, fours, sixes,
-      wickets: wkts.length, wicketTypes: wkts.map(x => x.wicket_type),
+      wickets: wkts.length, wicketTypes: wkts.map(x => x.wicket_type || x.dismissal_type),
       strikeRate, economy, boundaryPct, dotPct, batterShare, verdict
     };
   }, [matchup, modeDeliveries]);
@@ -186,18 +221,6 @@ export default function PlayerComparison() {
 
   const careerA = useMemo(() => (playerA ? getCareer(playerA.id) : null), [playerA, modeBatterInnings, modeBowlerInnings]);
   const careerB = useMemo(() => (playerB ? getCareer(playerB.id) : null), [playerB, modeBatterInnings, modeBowlerInnings]);
-
-  const headToHead = useMemo(() => {
-    if (!playerA || !playerB) return null;
-    return buildHeadToHead({
-      playerA,
-      playerB,
-      deliveries: modeDeliveries,
-      batterInnings: modeBatterInnings,
-      bowlerInnings: modeBowlerInnings,
-      matches: modeMatches,
-    });
-  }, [playerA, playerB, modeDeliveries, modeBatterInnings, modeBowlerInnings, modeMatches]);
 
   const modeLabel = mode === 'circular' ? 'Standard' : 'TURF';
 
