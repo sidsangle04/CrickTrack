@@ -44,7 +44,7 @@ export default function Layout({ children, currentPageName }) {
               <img
                 src="https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/c49e9414c_CrickTrackLogo.png"
                 alt="CrickTrack"
-                className="h-10 w-auto rounded-lg shadow-lg shrink-0 bg-white p-1" />
+                className="h-10 w-auto rounded-lg shadow-lg shrink-0 bg-slate-950 p-1" />
               
               <div>
                 <div className="flex items-center gap-2">

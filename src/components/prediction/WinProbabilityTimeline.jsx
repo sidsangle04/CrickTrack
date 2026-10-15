@@ -30,17 +30,17 @@ export default function WinProbabilityTimeline({ innings = [], deliveries = [], 
 
       <ResponsiveContainer width="100%" height={200}>
         <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-          <XAxis dataKey="ball" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-          <YAxis domain={[0, 100]} unit="%" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#DEE2E6" />
+          <XAxis dataKey="ball" tick={{ fill: '#6C757D', fontSize: 11 }} />
+          <YAxis domain={[0, 100]} unit="%" tick={{ fill: '#6C757D', fontSize: 11 }} />
           <Tooltip
-            contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 12 }}
-            labelStyle={{ color: '#94a3b8' }}
+            contentStyle={{ background: '#FFFFFF', border: '1px solid #DEE2E6', borderRadius: 12 }}
+            labelStyle={{ color: '#6C757D' }}
             labelFormatter={(v) => `Ball ${v}`}
             formatter={(v) => [`${v}%`, team1Name]}
           />
-          <ReferenceLine y={50} stroke="#64748b" strokeDasharray="4 4" />
-          <Line type="monotone" dataKey="chance" stroke="#10b981" strokeWidth={2} dot={false} />
+          <ReferenceLine y={50} stroke="#CED4DA" strokeDasharray="4 4" />
+          <Line type="monotone" dataKey="chance" stroke="#008C45" strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>

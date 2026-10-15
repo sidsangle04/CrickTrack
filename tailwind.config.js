@@ -16,36 +16,62 @@ module.exports = {
   		},
   		colors: {
   			/*
-  			 * The app's surfaces were authored against Tailwind's `slate` and `emerald`
-  			 * scales. Both are re-pointed at the CrickTrack palette so every existing
-  			 * utility class follows the theme: `slate` is the neutral ramp built from
-  			 * #262626 / #333333 / #E0E0E0, `emerald` is the accent ramp built from #FF9800.
+  			 * The app's screens were authored light-on-dark against Tailwind's `slate`
+  			 * and `emerald` scales. The CrickTrack palette is light, so both scales are
+  			 * re-pointed at it and the whole app follows the theme in one pass:
+  			 *   slate   -> the #F8F9FA / #E9ECEF / #212529 neutral ramp (inverted)
+  			 *   emerald -> the #008C45 green ramp
+  			 *   amber   -> the #FFD700 gold ramp
+  			 * `white` is the ink colour here: every `text-white` was "the lightest colour"
+  			 * on a dark surface, which is #212529 on a light one.
   			 */
+  			white: '#212529',
   			slate: {
-  				50: '#FAFAFA',
-  				100: '#F5F5F5',
-  				200: '#E0E0E0',
-  				300: '#C7C7C7',
-  				400: '#A3A3A3',
-  				500: '#808080',
-  				600: '#5C5C5C',
-  				700: '#3D3D3D',
-  				800: '#333333',
-  				900: '#262626',
-  				950: '#1A1A1A'
+  				50: '#212529',
+  				100: '#212529',
+  				200: '#343A40',
+  				300: '#495057',
+  				400: '#6C757D',
+  				500: '#868E96',
+  				600: '#ADB5BD',
+  				700: '#DEE2E6',
+  				800: '#E9ECEF',
+  				900: '#F8F9FA',
+  				950: '#FFFFFF'
   			},
   			emerald: {
-  				50: '#FFF3E0',
-  				100: '#FFE0B2',
-  				200: '#FFCC80',
-  				300: '#FFB74D',
-  				400: '#FFB74D',
-  				500: '#FF9800',
-  				600: '#F57C00',
-  				700: '#E65100',
-  				800: '#BF360C',
-  				900: '#8C2B09'
+  				50: '#E8F5EE',
+  				100: '#C6E7D5',
+  				200: '#8FD1AC',
+  				300: '#4FB57F',
+  				400: '#0A7A3D',
+  				500: '#008C45',
+  				600: '#00713A',
+  				700: '#005C2F',
+  				800: '#004726',
+  				900: '#00361C'
   			},
+  			amber: {
+  				50: '#FFF9E0',
+  				100: '#FFF0B3',
+  				200: '#FFE680',
+  				300: '#C9A227',
+  				400: '#8A6D00',
+  				500: '#FFD700',
+  				600: '#E6C200',
+  				700: '#B38F00',
+  				800: '#8A6D00',
+  				900: '#6B5400'
+  			},
+  			/* Accent hues whose light 300/400 text shades need to darken for a light page. */
+  			red: { 300: '#F87171', 400: '#DC2626' },
+  			blue: { 300: '#60A5FA', 400: '#2563EB' },
+  			cyan: { 300: '#22D3EE', 400: '#0891B2' },
+  			rose: { 300: '#FB7185', 400: '#E11D48' },
+  			purple: { 300: '#C084FC', 400: '#7C3AED' },
+  			sky: { 300: '#38BDF8', 400: '#0284C7' },
+  			yellow: { 300: '#FDE047', 400: '#CA8A04' },
+  			gold: 'hsl(var(--gold))',
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
