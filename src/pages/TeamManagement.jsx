@@ -210,7 +210,7 @@ export default function TeamManagement() {
 
         {playersLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+            <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
           </div>
         ) : players.length === 0 ? (
           <div className="text-center py-12">
@@ -385,7 +385,7 @@ export default function TeamManagement() {
 
       {teamsLoading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+          <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
         </div>
       ) : modeTeams.length === 0 ? (
         <div className="text-center py-12">

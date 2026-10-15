@@ -224,7 +224,7 @@ export default function Tournaments() {
 
         {!derived ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+            <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
           </div>
         ) : isLeagueStage ? (
           <>
@@ -330,7 +330,7 @@ export default function Tournaments() {
 
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+          <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
         </div>
       ) : modeTournaments.length === 0 ? (
         <div className="text-center py-12">

@@ -56,28 +56,28 @@ export default function RunsProgression({ deliveries, maxOvers }) {
       <div style={{ width: '100%', height: 260 }}>
         <ResponsiveContainer>
           <LineChart data={data} margin={{ top: 12, right: 14, left: -14, bottom: 4 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#DEE2E6" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
             <XAxis
               dataKey="over"
               type="number"
               domain={[0, maxOvers ?? 'dataMax']}
-              tick={{ fill: '#6C757D' }}
-              stroke="#CED4DA"
+              tick={{ fill: '#94A3B8' }}
+              stroke="#475569"
               fontSize={11}
-              label={{ value: 'Overs', position: 'insideBottom', offset: -2, fill: '#6C757D', fontSize: 11 }}
+              label={{ value: 'Overs', position: 'insideBottom', offset: -2, fill: '#94A3B8', fontSize: 11 }}
             />
             <YAxis
-              tick={{ fill: '#6C757D' }}
-              stroke="#CED4DA"
+              tick={{ fill: '#94A3B8' }}
+              stroke="#475569"
               fontSize={11}
-              label={{ value: 'Runs', angle: -90, position: 'insideLeft', fill: '#6C757D', fontSize: 11 }}
+              label={{ value: 'Runs', angle: -90, position: 'insideLeft', fill: '#94A3B8', fontSize: 11 }}
             />
             <Tooltip
               formatter={(v) => [v, 'Runs']}
               labelFormatter={(l) => `Over ${ovStr(Math.round(l * 6))}`}
-              contentStyle={{ background: '#FFFFFF', border: '1px solid #DEE2E6', borderRadius: 8, color: '#212529' }}
+              contentStyle={{ background: '#0F172A', border: '1px solid #334155', borderRadius: 8, color: '#E2E8F0' }}
             />
-            <Line type="monotone" dataKey="runs" stroke="#008C45" strokeWidth={2.5} dot={false} name="Runs" />
+            <Line type="monotone" dataKey="runs" stroke="#38BDF8" strokeWidth={2.5} dot={false} name="Runs" />
             <Line
               type="monotone"
               dataKey="wicketRuns"
