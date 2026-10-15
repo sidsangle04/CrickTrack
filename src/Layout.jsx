@@ -34,16 +34,6 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <style>{`
-        :root {
-          --primary: #10b981;
-          --primary-dark: #059669;
-          --accent: #f59e0b;
-          --bg-dark: #0f172a;
-          --bg-card: #1e293b;
-        }
-      `}</style>
-      
       {/* Header */}
       <header
         className="sticky top-0 z-50 backdrop-blur-xl bg-slate-900/80 border-b border-slate-700/50"
