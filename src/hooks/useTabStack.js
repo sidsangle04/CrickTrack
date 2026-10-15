@@ -5,7 +5,6 @@ export const TAB_ROOTS = {
   matches: '/Home',
   analytics: '/Analytics',
   players: '/Players',
-  compare: '/PlayerComparison',
   cup: '/Tournaments',
   import: '/ImportMatch'
 };
@@ -18,7 +17,7 @@ const PATH_TABS = {
   '/Analytics': 'analytics',
   '/Players': 'players',
   '/PlayerProfile': 'players',
-  '/PlayerComparison': 'compare',
+  '/PlayerComparison': 'players',
   '/Tournaments': 'cup',
   '/ImportMatch': 'import'
 };

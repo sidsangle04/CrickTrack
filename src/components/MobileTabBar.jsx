@@ -1,11 +1,10 @@
 import React from 'react';
-import { Home, BarChart3, Users, ArrowLeftRight, Trophy, Upload } from 'lucide-react';
+import { Home, BarChart3, Users, Trophy, Upload } from 'lucide-react';
 
 const TABS = [
   { key: 'matches', label: 'Matches', Icon: Home },
   { key: 'analytics', label: 'Analytics', Icon: BarChart3 },
   { key: 'players', label: 'Players', Icon: Users },
-  { key: 'compare', label: 'Compare', Icon: ArrowLeftRight },
   { key: 'cup', label: 'Cup', Icon: Trophy },
   { key: 'import', label: 'Import', Icon: Upload }
 ];
