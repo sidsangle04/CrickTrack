@@ -16,27 +16,49 @@ module.exports = {
   		},
   		colors: {
   			/*
-  			 * The app's screens were authored dark: `slate` for surfaces, `emerald`
-  			 * for the brand accent, `white` for the brightest ink. Both scales are
-  			 * re-pointed at the CrickTrack palette so every screen follows the theme
-  			 * in one pass:
-  			 *   slate   -> the #0F172A / #1E293B navy ramp (Tailwind's own slate)
-  			 *   emerald -> #1A237E indigo for fills, #38BDF8 sky for text accents
-  			 * `white` is the ink colour here: #F8FAFC, the lightest colour on a dark page.
+  			 * The app's screens were authored light-on-dark against Tailwind's `slate`
+  			 * and `emerald` scales. The CrickTrack palette is light, so both scales are
+  			 * re-pointed at it and the whole app follows the theme in one pass:
+  			 *   slate   -> the #F5F3FF / #E9D8FD / #1A202C neutral ramp (inverted)
+  			 *   emerald -> the #6B46C1 purple ramp
+  			 * `white` is the ink colour here: every `text-white` was "the lightest colour"
+  			 * on a dark surface, which is #1A202C on a light one.
   			 */
-  			white: '#F8FAFC',
-  			emerald: {
-  				50: '#E8EAF6',
-  				100: '#C5CAE9',
-  				200: '#9FA8DA',
-  				300: '#7DD3FC',
-  				400: '#38BDF8',
-  				500: '#1A237E',
-  				600: '#141C63',
-  				700: '#0F1548',
-  				800: '#0A0F32',
-  				900: '#070B24'
+  			white: '#1A202C',
+  			slate: {
+  				50: '#1A202C',
+  				100: '#1A202C',
+  				200: '#2D3748',
+  				300: '#4A5568',
+  				400: '#6B7280',
+  				500: '#9F7AEA',
+  				600: '#D6BCFA',
+  				700: '#E9D8FD',
+  				800: '#FFFFFF',
+  				900: '#F5F3FF',
+  				950: '#FFFFFF'
   			},
+  			emerald: {
+  				50: '#F5F3FF',
+  				100: '#E9D8FD',
+  				200: '#D6BCFA',
+  				300: '#9F7AEA',
+  				400: '#6B46C1',
+  				500: '#6B46C1',
+  				600: '#553C9A',
+  				700: '#44337A',
+  				800: '#322659',
+  				900: '#21183C'
+  			},
+  			/* Accent hues whose light 300/400 text shades need to darken for a light page. */
+  			red: { 300: '#F87171', 400: '#DC2626' },
+  			blue: { 300: '#60A5FA', 400: '#2563EB' },
+  			cyan: { 300: '#22D3EE', 400: '#0891B2' },
+  			rose: { 300: '#FB7185', 400: '#E11D48' },
+  			purple: { 300: '#C084FC', 400: '#7C3AED' },
+  			sky: { 300: '#38BDF8', 400: '#0284C7' },
+  			yellow: { 300: '#FDE047', 400: '#CA8A04' },
+  			amber: { 300: '#D97706', 400: '#B45309' },
   			gold: 'hsl(var(--gold))',
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',

@@ -40,14 +40,14 @@ function StatRow({ label, a, b, lowerIsBetter }) {
         <div className="flex-1 flex justify-end">
           <div
             className="h-full rounded-full transition-all"
-            style={{ width: `${(numA / max) * 100}%`, backgroundColor: aWins ? '#10b981' : '#334155' }}
+            style={{ width: `${(numA / max) * 100}%`, backgroundColor: aWins ? '#6B46C1' : '#D6BCFA' }}
           />
         </div>
         <div className="w-px bg-slate-600" />
         <div className="flex-1">
           <div
             className="h-full rounded-full transition-all"
-            style={{ width: `${(numB / max) * 100}%`, backgroundColor: bWins ? '#f43f5e' : '#334155' }}
+            style={{ width: `${(numB / max) * 100}%`, backgroundColor: bWins ? '#f43f5e' : '#D6BCFA' }}
           />
         </div>
       </div>

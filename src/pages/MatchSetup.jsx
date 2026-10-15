@@ -289,7 +289,7 @@ export default function MatchSetup() {
               type="date"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className="bg-slate-900 border-slate-700 text-white [&::-webkit-calendar-picker-indicator]:invert" />
+              className="bg-slate-900 border-slate-700 text-white" />
 
             </div>
             <div>

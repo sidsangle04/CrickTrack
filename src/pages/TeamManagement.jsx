@@ -35,7 +35,7 @@ export default function TeamManagement() {
     name: '',
     short_name: '',
     home_ground: '',
-    primary_color: '#10b981'
+    primary_color: '#6B46C1'
   });
 
   const [playerForm, setPlayerForm] = useState({
@@ -109,7 +109,7 @@ export default function TeamManagement() {
   });
 
   const resetTeamForm = () => {
-    setTeamForm({ name: '', short_name: '', home_ground: '', primary_color: '#10b981' });
+    setTeamForm({ name: '', short_name: '', home_ground: '', primary_color: '#6B46C1' });
     setEditingTeam(null);
     setShowTeamModal(false);
   };
@@ -155,7 +155,7 @@ export default function TeamManagement() {
       name: team.name,
       short_name: team.short_name,
       home_ground: team.home_ground || '',
-      primary_color: team.primary_color || '#10b981'
+      primary_color: team.primary_color || '#6B46C1'
     });
     setEditingTeam(team);
     setShowTeamModal(true);
