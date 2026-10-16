@@ -1,5 +1,6 @@
 import React from 'react';
 import { CircleDot, BarChart3, Users } from 'lucide-react';
+import Reveal from '@/components/landing/Reveal';
 
 const TURF_IMAGE =
   'https://images.pexels.com/photos/9067719/pexels-photo-9067719.jpeg?auto=compress&cs=tinysrgb&w=1600';
@@ -28,7 +29,7 @@ const STEPS = [
 export default function LandingOverview() {
   return (
     <section className="py-16 md:py-20">
-      <div className="max-w-2xl">
+      <Reveal className="max-w-2xl">
         <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
           What CrickTrack does
         </span>
@@ -40,12 +41,13 @@ export default function LandingOverview() {
           interesting. CrickTrack keeps the detail: every ball is tagged once and reused everywhere,
           from the live scorecard on the day to the season stats at the end of it.
         </p>
-      </div>
+      </Reveal>
 
       <div className="mt-12 grid gap-6 md:grid-cols-3">
-        {STEPS.map(({ Icon, step, title, text }) => (
-          <div
+        {STEPS.map(({ Icon, step, title, text }, index) => (
+          <Reveal
             key={step}
+            delay={index * 0.1}
             className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-6 transition-colors hover:border-slate-600/70">
             <div className="flex items-center justify-between">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10">
@@ -55,21 +57,23 @@ export default function LandingOverview() {
             </div>
             <h3 className="mt-5 text-lg font-semibold text-white">{title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-slate-400">{text}</p>
-          </div>
+          </Reveal>
         ))}
       </div>
 
-      <figure className="mt-12 overflow-hidden rounded-2xl border border-slate-700/50 shadow-xl shadow-black/30">
-        <img
-          src={TURF_IMAGE}
-          alt="Kids playing cricket barefoot with a makeshift bat"
-          loading="lazy"
-          className="h-56 w-full object-cover object-center md:h-72"
-        />
-        <figcaption className="border-t border-slate-700/50 bg-slate-900/60 px-5 py-3 text-xs text-slate-400">
-          Where it starts: no pads, no gear, just a bat and a ball.
-        </figcaption>
-      </figure>
+      <Reveal delay={0.1}>
+        <figure className="mt-12 overflow-hidden rounded-2xl border border-slate-700/50 shadow-xl shadow-black/30">
+          <img
+            src={TURF_IMAGE}
+            alt="Kids playing cricket barefoot with a makeshift bat"
+            loading="lazy"
+            className="h-56 w-full object-cover object-center md:h-72"
+          />
+          <figcaption className="border-t border-slate-700/50 bg-slate-900/60 px-5 py-3 text-xs text-slate-400">
+            Where it starts: no pads, no gear, just a bat and a ball.
+          </figcaption>
+        </figure>
+      </Reveal>
     </section>
   );
 }
