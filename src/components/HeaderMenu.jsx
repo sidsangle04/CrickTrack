@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   Menu,
-  Home,
+  LayoutDashboard,
   BarChart3,
   Users,
   Trophy,
@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const LINKS = [
-  { label: 'Matches', page: 'Home', to: null, icon: Home },
+  { label: 'Dashboard', page: 'Dashboard', to: '/Dashboard', icon: LayoutDashboard },
   { label: 'Analytics', page: 'Analytics', to: null, icon: BarChart3 },
   { label: 'Players', page: 'Players', to: null, icon: Users },
   { label: 'Tournaments', page: 'Tournaments', to: null, icon: Trophy },

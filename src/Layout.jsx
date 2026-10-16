@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Home, BarChart3, Trophy, Upload, RefreshCw, Users, Settings as SettingsIcon } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Trophy, Upload, RefreshCw, Users, Settings as SettingsIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 import MobileTabBar from '@/components/MobileTabBar';
@@ -66,15 +66,14 @@ export default function Layout({ children, currentPageName }) {
             
             <nav className="hidden md:flex items-center gap-1">
               <Link
-                to={createPageUrl('Home')}
+                to="/Dashboard"
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                currentPageName === 'Home' ?
+                currentPageName === 'Dashboard' ?
                 'bg-emerald-500/20 text-emerald-400' :
                 'text-slate-400 hover:text-white hover:bg-slate-800'}`
                 }>
-                
-                <Home className="w-4 h-4 inline mr-2" />
-                Matches
+                <LayoutDashboard className="w-4 h-4 inline mr-2" />
+                Dashboard
               </Link>
               <Link
                 to={createPageUrl('Analytics')}
