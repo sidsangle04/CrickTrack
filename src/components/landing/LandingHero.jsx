@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Compass, Radio } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import Reveal from '@/components/landing/Reveal';
-import CricketBall from '@/components/landing/CricketBall';
+import FieldSweep from '@/components/landing/FieldSweep';
 
 const HERO_IMAGE =
   'https://images.unsplash.com/photo-1512719994953-eabf50895df7?auto=format&fit=crop&w=1400&q=80';
@@ -19,8 +19,6 @@ export default function LandingHero({ onExplore }) {
     <section className="relative overflow-hidden rounded-3xl border border-slate-700/50 bg-gradient-to-br from-slate-800/70 via-slate-900/60 to-slate-950">
       <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -left-20 h-72 w-72 rounded-full bg-cyan-500/10 blur-3xl" />
-
-      <CricketBall className="left-[6%] top-[7%] h-7 w-7 md:h-9 md:w-9" />
 
       <div className="relative grid items-center gap-10 px-6 py-14 md:px-14 md:py-20 lg:grid-cols-2">
         <div>
@@ -79,12 +77,13 @@ export default function LandingHero({ onExplore }) {
         </div>
 
         <Reveal delay={0.22} className="relative">
-          <div className="overflow-hidden rounded-2xl border border-slate-700/50 shadow-2xl shadow-black/40">
+          <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 shadow-2xl shadow-black/40">
             <img
               src={HERO_IMAGE}
               alt="Cricket match in progress on a grass field"
               className="h-64 w-full object-cover md:h-80 lg:h-[26rem]"
             />
+            <FieldSweep />
             <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
           </div>
         </Reveal>
