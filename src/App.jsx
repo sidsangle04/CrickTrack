@@ -10,6 +10,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import SplashVideo from '@/components/SplashVideo';
+import Landing from './pages/Landing';
 import Tournaments from '@/pages/Tournaments';
 import Venues from '@/pages/Venues';
 import ModeSelection from '@/pages/ModeSelection';
@@ -54,7 +55,7 @@ const AuthenticatedApp = () => {
   }
 
   // Trust pages stay reachable before a scoring mode has been chosen
-  const isTrustPage = pathname === '/About' || pathname === '/Contact';
+  const isTrustPage = pathname === '/' || pathname === '/About' || pathname === '/Contact';
 
   // Mode not yet chosen at launch — show the mode selection landing screen
   if (!isReady && !isTrustPage) {
@@ -65,8 +66,8 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route path="/" element={
-        <LayoutWrapper currentPageName={mainPageKey}>
-          <MainPage />
+        <LayoutWrapper currentPageName="Landing">
+          <Landing />
         </LayoutWrapper>
       } />
       {Object.entries(Pages).map(([path, Page]) => (

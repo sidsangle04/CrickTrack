@@ -46,7 +46,11 @@ export function useTabStack() {
       currentTab = tab;
       setActiveTab(tab);
     }
-    stackFor(currentTab).path = location.pathname + location.search;
+    // The marketing home page is not part of any tab, so it never becomes a
+    // tab's remembered route (otherwise the Matches tab would land on it).
+    if (location.pathname !== '/') {
+      stackFor(currentTab).path = location.pathname + location.search;
+    }
 
     if (pendingScroll.current !== null) {
       const y = pendingScroll.current;
