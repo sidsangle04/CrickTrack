@@ -7,6 +7,7 @@ import { useGroundShape } from '@/lib/GroundShapeContext';
 import MobileTabBar from '@/components/MobileTabBar';
 import TrustFooter from '@/components/TrustFooter';
 import AuthButtons from '@/components/AuthButtons';
+import HeaderMenu from '@/components/HeaderMenu';
 import { useTabStack } from '@/hooks/useTabStack';
 
 export default function Layout({ children, currentPageName }) {
@@ -119,6 +120,7 @@ export default function Layout({ children, currentPageName }) {
             </nav>
             
             <div className="flex items-center gap-2">
+              <HeaderMenu currentPageName={currentPageName} />
               <Link
                 to="/Settings"
                 className={`p-2 rounded-lg shrink-0 transition-all ${
