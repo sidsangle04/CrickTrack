@@ -1,6 +1,9 @@
 import React from 'react';
 import { CircleDot, BarChart3, Users } from 'lucide-react';
 
+const TURF_IMAGE =
+  'https://images.unsplash.com/photo-1776229705277-8d46c945ff1a?auto=format&fit=crop&w=1600&q=80';
+
 const STEPS = [
   {
     Icon: CircleDot,
@@ -55,6 +58,18 @@ export default function LandingOverview() {
           </div>
         ))}
       </div>
+
+      <figure className="mt-12 overflow-hidden rounded-2xl border border-slate-700/50 shadow-xl shadow-black/30">
+        <img
+          src={TURF_IMAGE}
+          alt="Club cricketer batting on a turf wicket"
+          loading="lazy"
+          className="h-56 w-full object-cover md:h-72"
+        />
+        <figcaption className="border-t border-slate-700/50 bg-slate-900/60 px-5 py-3 text-xs text-slate-400">
+          Grassroots cricket, recorded properly, from the first ball of the season.
+        </figcaption>
+      </figure>
     </section>
   );
 }
