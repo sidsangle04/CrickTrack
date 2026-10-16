@@ -13,6 +13,13 @@ import SplashVideo from '@/components/SplashVideo';
 import Landing from './pages/Landing';
 import Tournaments from '@/pages/Tournaments';
 import Venues from '@/pages/Venues';
+import DemoMatches from '@/pages/demo/DemoMatches';
+import DemoAnalytics from '@/pages/demo/DemoAnalytics';
+import DemoPlayers from '@/pages/demo/DemoPlayers';
+import DemoPlayerProfile from '@/pages/demo/DemoPlayerProfile';
+import DemoTournaments from '@/pages/demo/DemoTournaments';
+import DemoVenues from '@/pages/demo/DemoVenues';
+import DemoImport from '@/pages/demo/DemoImport';
 import ModeSelection from '@/pages/ModeSelection';
 import Settings from './pages/Settings';
 import Dashboard from './pages/Dashboard';
@@ -33,11 +40,44 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 // Pages any visitor can open without an account.
 const PUBLIC_PATHS = ['/', '/About', '/Contact'];
 
+// Sections a signed-out visitor can explore with clearly labelled sample data.
+const DEMO_PATHS = [
+  '/Home',
+  '/Analytics',
+  '/Players',
+  '/PlayerProfile',
+  '/Tournaments',
+  '/Venues',
+  '/ImportMatch',
+];
+
+// Sections that read or write the account's own data — these always need a login.
+const PRIVATE_PATHS = [
+  '/Dashboard',
+  '/Settings',
+  '/MatchSetup',
+  '/LiveScoring',
+  '/Scorecard',
+  '/TeamManagement',
+  '/PlayerComparison',
+];
+
+// Sample-data stand-ins used while nobody is signed in.
+const DEMO_PAGES = {
+  '/Home': DemoMatches,
+  '/Analytics': DemoAnalytics,
+  '/Players': DemoPlayers,
+  '/PlayerProfile': DemoPlayerProfile,
+  '/Tournaments': DemoTournaments,
+  '/Venues': DemoVenues,
+  '/ImportMatch': DemoImport,
+};
+
 // Pages that render without a scoring mode having been chosen.
 const MODE_FREE_PATHS = [...PUBLIC_PATHS, '/Dashboard'];
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, isAuthenticated } = useAuth();
   const { isReady } = useGroundShape();
   const { pathname } = useLocation();
 
@@ -50,23 +90,44 @@ const AuthenticatedApp = () => {
     );
   }
 
-  const isPublicPage = PUBLIC_PATHS.includes(pathname);
+  // Public pages and the demo sections stay open to visitors.
+  const isOpenPage = PUBLIC_PATHS.includes(pathname) || DEMO_PATHS.includes(pathname);
 
   // Handle authentication errors
   if (authError) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required' && !isPublicPage) {
-      // Public pages stay open to visitors; everything else needs an account
+    } else if (authError.type === 'auth_required' && !isOpenPage) {
       navigateToLogin();
       return null;
     }
   }
 
-  // Mode not yet chosen — the public pages and the dashboard stay reachable
-  if (!isReady && !MODE_FREE_PATHS.includes(pathname)) {
+  // Anything that reads or writes your own data needs an account.
+  if (!isAuthenticated && PRIVATE_PATHS.includes(pathname)) {
+    navigateToLogin();
+    return null;
+  }
+
+  // Mode not yet chosen — the public pages and the dashboard stay reachable, and
+  // a visitor browsing the demo sections is never asked to pick one.
+  const modeFree =
+    MODE_FREE_PATHS.includes(pathname) || (!isAuthenticated && DEMO_PATHS.includes(pathname));
+  if (!isReady && !modeFree) {
     return <ModeSelection />;
   }
+
+  // Signed-out visitors get the sample-data version of a section; everyone else
+  // gets the real thing.
+  const withLayout = (pageName, Page) => {
+    const Demo = !isAuthenticated ? DEMO_PAGES[`/${pageName}`] : null;
+    const Comp = Demo || Page;
+    return (
+      <LayoutWrapper currentPageName={pageName}>
+        <Comp />
+      </LayoutWrapper>
+    );
+  };
 
   // Render the main app
   return (
@@ -77,56 +138,16 @@ const AuthenticatedApp = () => {
         </LayoutWrapper>
       } />
       {Object.entries(Pages).map(([path, Page]) => (
-        <Route
-          key={path}
-          path={`/${path}`}
-          element={
-            <LayoutWrapper currentPageName={path}>
-              <Page />
-            </LayoutWrapper>
-          }
-        />
+        <Route key={path} path={`/${path}`} element={withLayout(path, Page)} />
       ))}
-      <Route path="/Players" element={
-        <LayoutWrapper currentPageName="Players">
-          <Players />
-        </LayoutWrapper>
-      } />
-      <Route path="/PlayerProfile" element={
-        <LayoutWrapper currentPageName="PlayerProfile">
-          <PlayerProfile />
-        </LayoutWrapper>
-      } />
-      <Route path="/Tournaments" element={
-        <LayoutWrapper currentPageName="Tournaments">
-          <Tournaments />
-        </LayoutWrapper>
-      } />
-      <Route path="/Venues" element={
-        <LayoutWrapper currentPageName="Venues">
-          <Venues />
-        </LayoutWrapper>
-      } />
-      <Route path="/Settings" element={
-        <LayoutWrapper currentPageName="Settings">
-          <Settings />
-        </LayoutWrapper>
-      } />
-      <Route path="/About" element={
-        <LayoutWrapper currentPageName="About">
-          <About />
-        </LayoutWrapper>
-      } />
-      <Route path="/Contact" element={
-        <LayoutWrapper currentPageName="Contact">
-          <Contact />
-        </LayoutWrapper>
-      } />
-      <Route path="/Dashboard" element={
-        <LayoutWrapper currentPageName="Dashboard">
-          <Dashboard />
-        </LayoutWrapper>
-      } />
+      <Route path="/Players" element={withLayout('Players', Players)} />
+      <Route path="/PlayerProfile" element={withLayout('PlayerProfile', PlayerProfile)} />
+      <Route path="/Tournaments" element={withLayout('Tournaments', Tournaments)} />
+      <Route path="/Venues" element={withLayout('Venues', Venues)} />
+      <Route path="/Settings" element={withLayout('Settings', Settings)} />
+      <Route path="/About" element={withLayout('About', About)} />
+      <Route path="/Contact" element={withLayout('Contact', Contact)} />
+      <Route path="/Dashboard" element={withLayout('Dashboard', Dashboard)} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
