@@ -42,14 +42,15 @@ export function useTabStack() {
 
   useEffect(() => {
     const tab = PATH_TABS[location.pathname];
-    if (tab && tab !== currentTab) {
-      currentTab = tab;
-      setActiveTab(tab);
-    }
-    // The marketing home page is not part of any tab, so it never becomes a
-    // tab's remembered route (otherwise the Matches tab would land on it).
-    if (location.pathname !== '/') {
-      stackFor(currentTab).path = location.pathname + location.search;
+    if (tab) {
+      if (tab !== currentTab) {
+        currentTab = tab;
+        setActiveTab(tab);
+      }
+      // Only a page that belongs to a tab becomes that tab's remembered route,
+      // so tapping a tab from anywhere (Settings, a live match, ...) lands on
+      // the tab itself. Screens outside the tabs are never remembered.
+      stackFor(tab).path = location.pathname + location.search;
     }
 
     if (pendingScroll.current !== null) {
@@ -67,18 +68,26 @@ export function useTabStack() {
 
   const switchTab = useCallback(
     (key) => {
-      if (key === currentTab) {
+      const target = stackFor(key);
+      const targetPath = target.path || TAB_ROOTS[key];
+
+      // Already on this tab's page: a second tap just returns to the top.
+      if (location.pathname + location.search === targetPath) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
-      stackFor(currentTab).scroll = window.scrollY;
-      const target = stackFor(key);
+
+      // Only remember a scroll offset for the tab that owns the current page.
+      if (PATH_TABS[location.pathname] === currentTab) {
+        stackFor(currentTab).scroll = window.scrollY;
+      }
+
       pendingScroll.current = target.scroll || 0;
       currentTab = key;
       setActiveTab(key);
-      navigate(target.path || TAB_ROOTS[key]);
+      navigate(targetPath);
     },
-    [navigate]
+    [navigate, location.pathname, location.search]
   );
 
   return { activeTab, switchTab };
