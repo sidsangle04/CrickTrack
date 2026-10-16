@@ -7,7 +7,7 @@ import DashboardStats from '@/components/dashboard/DashboardStats';
 import QuickActions from '@/components/dashboard/QuickActions';
 
 export default function Dashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { mode } = useGroundShape();
 
   const modeLabel = mode === 'circular' ? 'Standard' : mode === 'turf' ? 'TURF' : null;
@@ -26,7 +26,7 @@ export default function Dashboard() {
 
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-1">
-          <ProfileCard user={user} onLogout={() => logout()} />
+          <ProfileCard user={user} />
           <ModeCard modeLabel={modeLabel} />
         </div>
         <div className="space-y-5 lg:col-span-2">

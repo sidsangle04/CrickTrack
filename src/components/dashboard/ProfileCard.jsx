@@ -1,8 +1,8 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { CalendarDays, LogOut, Mail, Shield } from 'lucide-react';
+import { CalendarDays, Mail, Shield } from 'lucide-react';
 
-export default function ProfileCard({ user, onLogout }) {
+export default function ProfileCard({ user }) {
   const name = user?.full_name || 'CrickTrack member';
   const initials = name
     .split(' ')
@@ -42,14 +42,6 @@ export default function ProfileCard({ user, onLogout }) {
           </div>
         )}
       </dl>
-
-      <button
-        type="button"
-        onClick={onLogout}
-        className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-2.5 text-sm font-semibold text-slate-300 transition-all hover:border-red-500/40 hover:text-red-400">
-        <LogOut className="h-4 w-4" />
-        Log out
-      </button>
     </div>
   );
 }

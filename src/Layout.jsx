@@ -12,13 +12,13 @@ import { useTabStack } from '@/hooks/useTabStack';
 
 export default function Layout({ children, currentPageName }) {
   const isScoring = currentPageName === 'LiveScoring';
-  const { mode, clearMode } = useGroundShape();
+  const { mode, setMode } = useGroundShape();
   const isCircular = mode === 'circular';
   const { activeTab, switchTab } = useTabStack();
 
+  // "Change" flips straight to the other scoring mode from wherever you are.
   const handleChangeMode = () => {
-    clearMode();
-    // navigate to the landing page so the mode selection screen mounts
+    setMode(isCircular ? 'turf' : 'circular');
     if (typeof window !== 'undefined') {
       window.scrollTo(0, 0);
     }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Mail, Shield } from 'lucide-react';
+import { User, Mail, Shield, LogOut } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import DeleteAccountCard from '@/components/settings/DeleteAccountCard';
 
@@ -28,6 +28,20 @@ export default function Settings() {
         <DetailRow icon={User} label="Name" value={user?.full_name || '—'} />
         <DetailRow icon={Mail} label="Email" value={user?.email || '—'} />
         <DetailRow icon={Shield} label="Role" value={user?.role || 'user'} />
+      </div>
+
+      <div className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-5">
+        <h2 className="text-sm font-semibold text-white uppercase tracking-wide">Sign out</h2>
+        <p className="mt-1 text-sm text-slate-400">
+          You'll be taken back to the CrickTrack home page.
+        </p>
+        <button
+          type="button"
+          onClick={() => logout()}
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-2.5 text-sm font-semibold text-slate-300 transition-all hover:border-red-500/40 hover:text-red-400 sm:w-auto">
+          <LogOut className="h-4 w-4" />
+          Log out
+        </button>
       </div>
 
       <DeleteAccountCard onDeleted={() => logout(true)} />

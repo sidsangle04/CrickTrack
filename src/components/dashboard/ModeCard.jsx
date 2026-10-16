@@ -15,7 +15,7 @@ export default function ModeCard({ modeLabel }) {
 
   return (
     <div className="rounded-2xl border border-slate-700/50 bg-slate-800/50 p-6">
-      <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Scoring mode</h2>
+      <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Default Scoring Mode</h2>
       <p className="mt-2 text-sm text-slate-300">
         {modeLabel ? `You're set up for ${modeLabel} cricket.` : 'Pick a format to start scoring.'}
       </p>

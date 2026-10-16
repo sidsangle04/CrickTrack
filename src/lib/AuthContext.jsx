@@ -115,8 +115,8 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     
     if (shouldRedirect) {
-      // Use the SDK's logout method which handles token cleanup and redirect
-      base44.auth.logout(window.location.href);
+      // Signing out always lands on the public home page, never the page you left.
+      base44.auth.logout(`${window.location.origin}/`);
     } else {
       // Just remove the token without redirect
       base44.auth.logout();
