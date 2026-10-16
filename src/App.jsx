@@ -15,6 +15,7 @@ import Tournaments from '@/pages/Tournaments';
 import Venues from '@/pages/Venues';
 import ModeSelection from '@/pages/ModeSelection';
 import Settings from './pages/Settings';
+import Dashboard from './pages/Dashboard';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import WebViewBackHandler from '@/components/WebViewBackHandler';
@@ -28,6 +29,12 @@ const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
+
+// Pages any visitor can open without an account.
+const PUBLIC_PATHS = ['/', '/About', '/Contact'];
+
+// Pages that render without a scoring mode having been chosen.
+const MODE_FREE_PATHS = [...PUBLIC_PATHS, '/Dashboard'];
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -43,22 +50,21 @@ const AuthenticatedApp = () => {
     );
   }
 
+  const isPublicPage = PUBLIC_PATHS.includes(pathname);
+
   // Handle authentication errors
   if (authError) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
+    } else if (authError.type === 'auth_required' && !isPublicPage) {
+      // Public pages stay open to visitors; everything else needs an account
       navigateToLogin();
       return null;
     }
   }
 
-  // Trust pages stay reachable before a scoring mode has been chosen
-  const isTrustPage = pathname === '/' || pathname === '/About' || pathname === '/Contact';
-
-  // Mode not yet chosen at launch — show the mode selection landing screen
-  if (!isReady && !isTrustPage) {
+  // Mode not yet chosen — the public pages and the dashboard stay reachable
+  if (!isReady && !MODE_FREE_PATHS.includes(pathname)) {
     return <ModeSelection />;
   }
 
@@ -114,6 +120,11 @@ const AuthenticatedApp = () => {
       <Route path="/Contact" element={
         <LayoutWrapper currentPageName="Contact">
           <Contact />
+        </LayoutWrapper>
+      } />
+      <Route path="/Dashboard" element={
+        <LayoutWrapper currentPageName="Dashboard">
+          <Dashboard />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />

@@ -1,9 +1,8 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, Compass, Radio } from 'lucide-react';
-import { createPageUrl } from '@/utils';
+import { Compass, Radio } from 'lucide-react';
 import Reveal from '@/components/landing/Reveal';
 import FieldSweep from '@/components/landing/FieldSweep';
+import AuthButtons from '@/components/AuthButtons';
 
 const HERO_IMAGE =
   'https://images.unsplash.com/photo-1512719994953-eabf50895df7?auto=format&fit=crop&w=1400&q=80';
@@ -55,12 +54,7 @@ export default function LandingHero({ onExplore }) {
                 <Compass className="h-4 w-4" />
                 Explore Features
               </button>
-              <Link
-                to={createPageUrl('Home')}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/70 px-6 py-3 text-sm font-semibold text-slate-200 transition-all hover:border-slate-600 hover:text-white">
-                Go to Matches
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+              <AuthButtons variant="hero" />
             </div>
           </Reveal>
 

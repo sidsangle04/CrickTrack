@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 import MobileTabBar from '@/components/MobileTabBar';
 import TrustFooter from '@/components/TrustFooter';
+import AuthButtons from '@/components/AuthButtons';
 import { useTabStack } from '@/hooks/useTabStack';
 
 export default function Layout({ children, currentPageName }) {
@@ -128,6 +129,7 @@ export default function Layout({ children, currentPageName }) {
                 title="Settings">
                 <SettingsIcon className="w-4 h-4" />
               </Link>
+              <AuthButtons variant="header" />
               <div
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border ${
                   isCircular
