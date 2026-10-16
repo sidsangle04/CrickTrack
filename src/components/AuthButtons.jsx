@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-import { Home, LogIn } from 'lucide-react';
+import { Home, LayoutDashboard, LogIn } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 
 // Signed-in visitors land on the Matches page, not the dashboard.
@@ -23,12 +23,16 @@ export default function AuthButtons({ variant = 'header' }) {
   const icon = isHero ? 'h-4 w-4' : 'h-3.5 w-3.5';
 
   if (isAuthenticated) {
+    // The header's action opens the Dashboard; the landing hero keeps Matches.
+    const to = isHero ? MATCHES_URL : '/Dashboard';
+    const label = isHero ? 'Matches' : 'Dashboard';
+    const Icon = isHero ? Home : LayoutDashboard;
     return (
       <Link
-        to={MATCHES_URL}
+        to={to}
         className={`${base} bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:scale-[1.03] hover:shadow-emerald-500/40`}>
-        <Home className={icon} />
-        Matches
+        <Icon className={icon} />
+        {label}
       </Link>
     );
   }
