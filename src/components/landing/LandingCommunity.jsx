@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, ShieldCheck, Users, Trophy } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 
+const COMMUNITY_IMAGE =
+  'https://images.unsplash.com/photo-1759733841123-b8e1d75ee45c?auto=format&fit=crop&w=1200&q=80';
+
 const AUDIENCES = [
   {
     Icon: ShieldCheck,
@@ -25,18 +28,29 @@ export default function LandingCommunity() {
   return (
     <section className="py-16 md:py-20">
       <div className="rounded-3xl border border-slate-700/50 bg-gradient-to-br from-slate-800/60 to-slate-900/40 p-8 md:p-12">
-        <div className="max-w-2xl">
-          <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
-            Made for the cricket community
-          </span>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-4xl">
-            Every level of the game, on one platform
-          </h2>
-          <p className="mt-4 text-base leading-relaxed text-slate-400">
-            CrickTrack is used wherever cricket is played for the love of it, from a midweek
-            tape-ball league to a full club season. Two separate scoring modes keep TURF and
-            standard grounds apart, so each competition keeps its own teams, players and stats.
-          </p>
+        <div className="grid items-center gap-10 lg:grid-cols-2">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
+              Made for the cricket community
+            </span>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-4xl">
+              Every level of the game, on one platform
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-slate-400">
+              CrickTrack is used wherever cricket is played for the love of it, from a midweek
+              tape-ball league to a full club season. Two separate scoring modes keep TURF and
+              standard grounds apart, so each competition keeps its own teams, players and stats.
+            </p>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-slate-700/50 shadow-xl shadow-black/30">
+            <img
+              src={COMMUNITY_IMAGE}
+              alt="Cricket stumps on a grass field"
+              loading="lazy"
+              className="h-56 w-full object-cover md:h-72"
+            />
+          </div>
         </div>
 
         <div className="mt-10 grid gap-5 md:grid-cols-3">
