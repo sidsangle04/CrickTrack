@@ -1,7 +1,24 @@
 import React from 'react';
-import { User, Mail, Shield, LogOut } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { User, Mail, Shield, LogOut, Info, MessageCircle, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import DeleteAccountCard from '@/components/settings/DeleteAccountCard';
+
+function LinkRow({ icon: Icon, label, description, to }) {
+  return (
+    <Link
+      to={to}
+      className="flex items-center gap-3 py-3 border-b border-slate-700/40 last:border-0 group"
+    >
+      <Icon className="w-4 h-4 text-slate-500 shrink-0" />
+      <span className="flex-1 min-w-0">
+        <span className="block text-sm font-medium text-white">{label}</span>
+        <span className="block text-xs text-slate-500">{description}</span>
+      </span>
+      <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-colors" />
+    </Link>
+  );
+}
 
 function DetailRow({ icon: Icon, label, value }) {
   return (
@@ -28,6 +45,22 @@ export default function Settings() {
         <DetailRow icon={User} label="Name" value={user?.full_name || '—'} />
         <DetailRow icon={Mail} label="Email" value={user?.email || '—'} />
         <DetailRow icon={Shield} label="Role" value={user?.role || 'user'} />
+      </div>
+
+      <div className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-5">
+        <h2 className="text-sm font-semibold text-white uppercase tracking-wide mb-1">About &amp; Contact</h2>
+        <LinkRow
+          icon={Info}
+          label="About CrickTrack"
+          description="What the app does and how it works"
+          to="/About"
+        />
+        <LinkRow
+          icon={MessageCircle}
+          label="Contact us"
+          description="Questions, feedback or support"
+          to="/Contact"
+        />
       </div>
 
       <div className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-5">
