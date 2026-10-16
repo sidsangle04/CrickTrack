@@ -1,12 +1,22 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, Home, BarChart3, Users, Trophy, Upload, Settings as SettingsIcon } from 'lucide-react';
+import {
+  Menu,
+  Home,
+  BarChart3,
+  Users,
+  Trophy,
+  Upload,
+  Settings as SettingsIcon,
+  RefreshCw,
+} from 'lucide-react';
 import { createPageUrl } from '../utils';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 
 const LINKS = [
@@ -22,7 +32,7 @@ const LINKS = [
  * Header navigation for narrow screens: the wide-screen inline menu is hidden
  * below the md breakpoint, so this button keeps every section one tap away.
  */
-export default function HeaderMenu({ currentPageName }) {
+export default function HeaderMenu({ currentPageName, modeLabel, onSwitchMode }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -49,6 +59,20 @@ export default function HeaderMenu({ currentPageName }) {
             </Link>
           </DropdownMenuItem>
         ))}
+
+        {/* The inline mode switcher is hidden on phones; it lives here instead. */}
+        {onSwitchMode && (
+          <>
+            <DropdownMenuSeparator className="bg-slate-700 sm:hidden" />
+            <DropdownMenuItem
+              onSelect={() => onSwitchMode()}
+              className="sm:hidden gap-3 text-slate-300 cursor-pointer"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Switch mode{modeLabel ? ` (${modeLabel})` : ''}
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

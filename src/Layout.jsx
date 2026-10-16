@@ -51,16 +51,16 @@ export default function Layout({ children, currentPageName }) {
         className="sticky top-0 z-50 backdrop-blur-xl bg-slate-900/80 border-b border-slate-700/50"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <Link to={createPageUrl('Home')} className="flex items-center gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <Link to={createPageUrl('Home')} className="flex items-center gap-2 min-w-0">
               <img
                 src="https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/c49e9414c_CrickTrackLogo.png"
                 alt="CrickTrack"
                 className="h-10 w-auto rounded-lg shadow-lg shrink-0 bg-white p-1" />
               
-              <div>
-                <h1 className="text-lg font-bold text-white tracking-tight">CrickTrack</h1>
-                <p className="text-[10px] text-slate-400 -mt-0.5">Tag | Analyse | Elevate </p>
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-lg font-bold text-white tracking-tight truncate">CrickTrack</h1>
+                <p className="hidden sm:block text-[10px] text-slate-400 -mt-0.5">Tag | Analyse | Elevate </p>
               </div>
             </Link>
             
@@ -119,11 +119,15 @@ export default function Layout({ children, currentPageName }) {
               </Link>
             </nav>
             
-            <div className="flex items-center gap-2">
-              <HeaderMenu currentPageName={currentPageName} />
+            <div className="flex items-center gap-2 shrink-0">
+              <HeaderMenu
+                currentPageName={currentPageName}
+                modeLabel={isCircular ? 'Standard' : 'TURF'}
+                onSwitchMode={handleChangeMode}
+              />
               <Link
                 to="/Settings"
-                className={`p-2 rounded-lg shrink-0 transition-all ${
+                className={`hidden md:inline-flex items-center justify-center p-2 rounded-lg shrink-0 transition-all ${
                   currentPageName === 'Settings'
                     ? 'bg-emerald-500/20 text-emerald-400'
                     : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
@@ -133,7 +137,7 @@ export default function Layout({ children, currentPageName }) {
               </Link>
               <AuthButtons variant="header" />
               <div
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border ${
+                className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border ${
                   isCircular
                     ? 'bg-cyan-500/15 text-cyan-400 border-cyan-500/40'
                     : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40'
@@ -145,7 +149,7 @@ export default function Layout({ children, currentPageName }) {
               </div>
               <button
                 onClick={handleChangeMode}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 text-slate-300 rounded-lg font-medium text-xs hover:text-white hover:bg-slate-700 transition-all"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 text-slate-300 rounded-lg font-medium text-xs hover:text-white hover:bg-slate-700 transition-all"
                 title="Switch mode (TURF / Standard)"
               >
                 <RefreshCw className="w-3.5 h-3.5" />

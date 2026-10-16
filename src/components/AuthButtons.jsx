@@ -2,13 +2,15 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-import { LayoutDashboard, LogIn } from 'lucide-react';
+import { Home, LogIn } from 'lucide-react';
+import { createPageUrl } from '@/utils';
 
-const NEXT_URL = '/Dashboard';
+// Signed-in visitors land on the Matches page, not the dashboard.
+const MATCHES_URL = createPageUrl('Home');
 
 // Opens the platform's secure sign-in screen, which handles both logging in
 // and creating a new account.
-const openAuth = () => base44.auth.redirectToLogin(NEXT_URL);
+const openAuth = () => base44.auth.redirectToLogin(MATCHES_URL);
 
 export default function AuthButtons({ variant = 'header' }) {
   const { isAuthenticated } = useAuth();
@@ -16,17 +18,17 @@ export default function AuthButtons({ variant = 'header' }) {
 
   const base = isHero
     ? 'inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all'
-    : 'inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all';
+    : 'inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold whitespace-nowrap shrink-0 transition-all';
 
   const icon = isHero ? 'h-4 w-4' : 'h-3.5 w-3.5';
 
   if (isAuthenticated) {
     return (
       <Link
-        to={NEXT_URL}
+        to={MATCHES_URL}
         className={`${base} bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:scale-[1.03] hover:shadow-emerald-500/40`}>
-        <LayoutDashboard className={icon} />
-        My dashboard
+        <Home className={icon} />
+        Matches
       </Link>
     );
   }
