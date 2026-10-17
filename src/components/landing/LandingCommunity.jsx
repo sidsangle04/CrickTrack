@@ -47,6 +47,22 @@ export default function LandingCommunity() {
               standard grounds apart, so each competition keeps its own teams, players and stats.
             </p>
           </Reveal>
+
+          <Reveal delay={0.1}>
+            <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-slate-700/50 pt-8">
+              <Link
+                to={createPageUrl('Home')}
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all hover:scale-[1.03] hover:shadow-emerald-500/40">
+                Start scoring
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                to={createPageUrl('About')}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/70 px-6 py-3 text-sm font-semibold text-slate-200 transition-all hover:border-slate-600 hover:text-white">
+                About CrickTrack
+              </Link>
+            </div>
+          </Reveal>
         </div>
       </div>
 
@@ -63,22 +79,6 @@ export default function LandingCommunity() {
           </Reveal>
         ))}
       </div>
-
-      <Reveal delay={0.1}>
-        <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-slate-700/50 pt-8">
-          <Link
-            to={createPageUrl('Home')}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all hover:scale-[1.03] hover:shadow-emerald-500/40">
-            Start scoring
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link
-            to={createPageUrl('About')}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/70 px-6 py-3 text-sm font-semibold text-slate-200 transition-all hover:border-slate-600 hover:text-white">
-            About CrickTrack
-          </Link>
-        </div>
-      </Reveal>
     </section>
   );
 }
