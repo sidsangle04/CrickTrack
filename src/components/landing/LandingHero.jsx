@@ -17,8 +17,8 @@ const PHOTOS = [
     tilt: '-rotate-3',
   },
   {
-    src: 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/56ad59c8f_generated_image.png',
-    alt: 'Cricket ball resting on a worn pitch beside the stumps',
+    src: 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/a7fda1d5f_agent_generate_image___Cinematic_sports_photography_still__A_cricket_turf_pitch_at_.png',
+    alt: 'Yellow stumps and a cricket ball on a floodlit practice pitch at night',
     tilt: 'rotate-2',
   },
   {
