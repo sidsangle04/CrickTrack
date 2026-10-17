@@ -6,7 +6,7 @@ const MATCH_DAY =
 const ON_THE_PITCH =
   'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/56ad59c8f_generated_image.png';
 const CLUB_CRICKET =
-  'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/187d9d4f8_generated_image.png';
+  'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/63a36049c_generated_image.png';
 
 // Screenshots of the real CrickTrack app screens.
 const WAGON_WHEEL =

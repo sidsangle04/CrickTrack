@@ -22,7 +22,7 @@ const PHOTOS = [
     tilt: 'rotate-2',
   },
   {
-    src: 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/187d9d4f8_generated_image.png',
+    src: 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/63a36049c_generated_image.png',
     alt: 'Cricket fielding side celebrating under floodlights',
     tilt: '-rotate-1',
   },
