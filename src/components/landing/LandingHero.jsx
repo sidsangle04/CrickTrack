@@ -22,8 +22,8 @@ const PHOTOS = [
     tilt: 'rotate-2',
   },
   {
-    src: 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/dde23080a_pexels-imddicted-29949985.jpg',
-    alt: 'Packed stadium watching a match on a striped outfield under floodlights',
+    src: 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/d2107d2f9_pexels-pixelcop-2799556.jpg',
+    alt: 'Cricket stadium pavilion and scoreboard under a fiery sunset sky',
     tilt: '-rotate-1',
   },
 ];
