@@ -5,7 +5,7 @@ import HeroMedia from '@/components/landing/HeroMedia';
 import AuthButtons from '@/components/AuthButtons';
 
 const HERO_VIDEO =
-  'https://media.base44.com/videos/public/69cd6e7dda99287bd2ab65f2/14c8f40ba_video_6ad3980c18b912ca773c3f27.mp4';
+  'https://media.base44.com/videos/public/69cd6e7dda99287bd2ab65f2/4eff0fc5b_6877250-hd_1920_1080_30fps.mp4';
 
 const HERO_POSTER =
   'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/fdf707174_generated_image.png';
