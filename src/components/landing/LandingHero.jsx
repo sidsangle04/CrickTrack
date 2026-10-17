@@ -12,18 +12,18 @@ const HERO_POSTER =
 
 const PHOTOS = [
   {
-    src: HERO_POSTER,
-    alt: 'Batsman playing a cover drive on a village pitch',
+    src: 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/1fd179c36_pexels-case-originals-3718433.jpg',
+    alt: 'Batter mid-swing as the ball travels past the stumps towards the wicket-keeper',
     tilt: '-rotate-3',
   },
   {
-    src: 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/a7fda1d5f_agent_generate_image___Cinematic_sports_photography_still__A_cricket_turf_pitch_at_.png',
-    alt: 'Yellow stumps and a cricket ball on a floodlit practice pitch at night',
+    src: 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/80292c44f_IndianTurfCricket.png',
+    alt: 'Evening practice on an artificial turf pitch beside apartment blocks',
     tilt: 'rotate-2',
   },
   {
-    src: 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/67738f24f_generated_9d0d6dd6.png',
-    alt: "Girls' grassroots cricket team celebrating their victory in a huddle",
+    src: 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/dde23080a_pexels-imddicted-29949985.jpg',
+    alt: 'Packed stadium watching a match on a striped outfield under floodlights',
     tilt: '-rotate-1',
   },
 ];
