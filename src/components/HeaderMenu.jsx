@@ -7,6 +7,7 @@ import {
   BarChart3,
   Users,
   Trophy,
+  Target,
   Upload,
   Settings as SettingsIcon,
   RefreshCw,
@@ -22,6 +23,7 @@ import {
 
 const LINKS = [
   { label: 'Home', page: 'Landing', to: '/', icon: HomeIcon },
+  { label: 'Matches', page: 'Home', to: null, icon: Target },
   { label: 'Dashboard', page: 'Dashboard', to: '/Dashboard', icon: LayoutDashboard },
   { label: 'Analytics', page: 'Analytics', to: null, icon: BarChart3 },
   { label: 'Players', page: 'Players', to: null, icon: Users },
