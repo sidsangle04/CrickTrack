@@ -1,11 +1,32 @@
 import React from 'react';
 import { Compass, Radio } from 'lucide-react';
 import Reveal from '@/components/landing/Reveal';
-import FieldSweep from '@/components/landing/FieldSweep';
+import HeroMedia from '@/components/landing/HeroMedia';
 import AuthButtons from '@/components/AuthButtons';
 
-const HERO_IMAGE =
-  'https://images.unsplash.com/photo-1512719994953-eabf50895df7?auto=format&fit=crop&w=1400&q=80';
+const HERO_VIDEO =
+  'https://media.base44.com/videos/public/69cd6e7dda99287bd2ab65f2/56aeb6ae5_Hero_cricket_video.mp4';
+
+const HERO_POSTER =
+  'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/fdf707174_generated_image.png';
+
+const PHOTOS = [
+  {
+    src: HERO_POSTER,
+    alt: 'Batsman playing a cover drive on a village pitch',
+    tilt: '-rotate-3',
+  },
+  {
+    src: 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/56ad59c8f_generated_image.png',
+    alt: 'Cricket ball resting on a worn pitch beside the stumps',
+    tilt: 'rotate-2',
+  },
+  {
+    src: 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/187d9d4f8_generated_image.png',
+    alt: 'Cricket fielding side celebrating under floodlights',
+    tilt: '-rotate-1',
+  },
+];
 
 const STATS = [
   { value: 'Ball-by-ball', label: 'Live scoring' },
@@ -15,14 +36,13 @@ const STATS = [
 
 export default function LandingHero({ onExplore }) {
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-slate-700/50 bg-gradient-to-br from-slate-800/70 via-slate-900/60 to-slate-950">
-      <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-32 -left-20 h-72 w-72 rounded-full bg-cyan-500/10 blur-3xl" />
+    <section className="relative overflow-hidden rounded-3xl border border-slate-700/50 bg-slate-900">
+      <HeroMedia videoUrl={HERO_VIDEO} posterUrl={HERO_POSTER} />
 
-      <div className="relative grid items-center gap-10 px-6 py-14 md:px-14 md:py-20 lg:grid-cols-2">
-        <div>
+      <div className="relative px-6 py-14 md:px-14 md:py-20">
+        <div className="max-w-2xl">
           <Reveal delay={0.05}>
-            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-400">
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-300 backdrop-blur">
               <Radio className="h-3.5 w-3.5" />
               Built for club cricket
             </span>
@@ -57,29 +77,34 @@ export default function LandingHero({ onExplore }) {
               <AuthButtons variant="hero" />
             </div>
           </Reveal>
-
-          <Reveal delay={0.36}>
-            <dl className="mt-12 grid grid-cols-1 gap-6 border-t border-slate-700/50 pt-8 sm:grid-cols-3">
-              {STATS.map((s) => (
-                <div key={s.label}>
-                  <dt className="text-lg font-semibold text-white">{s.value}</dt>
-                  <dd className="mt-0.5 text-xs uppercase tracking-wider text-slate-500">{s.label}</dd>
-                </div>
-              ))}
-            </dl>
-          </Reveal>
         </div>
 
-        <Reveal delay={0.22} className="relative">
-          <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 shadow-2xl shadow-black/40">
-            <img
-              src={HERO_IMAGE}
-              alt="Cricket match in progress on a grass field"
-              className="h-64 w-full object-cover md:h-80 lg:h-[26rem]"
-            />
-            <FieldSweep />
-            <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
+        <Reveal delay={0.36}>
+          <div className="mt-14 flex items-end gap-3 sm:gap-4">
+            {PHOTOS.map((photo) => (
+              <img
+                key={photo.src}
+                src={photo.src}
+                alt={photo.alt}
+                loading="lazy"
+                className={`h-24 w-24 rounded-2xl border-2 border-slate-800/80 object-cover shadow-2xl shadow-black/50 sm:h-32 sm:w-32 ${photo.tilt}`}
+              />
+            ))}
+            <p className="mb-1 hidden max-w-[11rem] text-[11px] uppercase leading-relaxed tracking-wider text-slate-400 sm:block">
+              Every ball, every ground, every season
+            </p>
           </div>
+        </Reveal>
+
+        <Reveal delay={0.44}>
+          <dl className="mt-10 grid max-w-2xl grid-cols-1 gap-6 border-t border-slate-700/50 pt-8 sm:grid-cols-3">
+            {STATS.map((s) => (
+              <div key={s.label}>
+                <dt className="text-lg font-semibold text-white">{s.value}</dt>
+                <dd className="mt-0.5 text-xs uppercase tracking-wider text-slate-500">{s.label}</dd>
+              </div>
+            ))}
+          </dl>
         </Reveal>
       </div>
     </section>
