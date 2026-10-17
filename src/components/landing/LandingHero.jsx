@@ -31,7 +31,6 @@ const PHOTOS = [
 const STATS = [
   { value: 'Ball-by-ball', label: 'Live scoring' },
   { value: '2 modes', label: 'TURF & Standard' },
-  { value: 'Play-Cricket', label: 'Scorecard import' },
 ];
 
 export default function LandingHero({ onExplore }) {
@@ -105,7 +104,7 @@ export default function LandingHero({ onExplore }) {
         </Reveal>
 
         <Reveal delay={0.44}>
-          <dl className="mt-10 grid max-w-2xl grid-cols-1 gap-6 border-t border-slate-700/50 pt-8 sm:grid-cols-3">
+          <dl className="mt-10 grid max-w-2xl grid-cols-1 gap-6 border-t border-slate-700/50 pt-8 sm:grid-cols-2">
             {STATS.map((s) => (
               <div key={s.label}>
                 <dt className="text-lg font-semibold text-white">{s.value}</dt>
