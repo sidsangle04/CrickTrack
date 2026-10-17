@@ -65,6 +65,14 @@ export default function LandingHero({ onExplore }) {
             </p>
           </Reveal>
 
+          <Reveal delay={0.24}>
+            <p className="mt-5 border-l-2 border-emerald-500/60 pl-4 text-sm leading-relaxed text-emerald-100/90">
+              And it isn't only for the pros. If a game is happening in a backyard, a lane or a
+              park, that game deserves a scorecard too. Every player, however they start, has the
+              same quiet dream: to see their name beside a score.
+            </p>
+          </Reveal>
+
           <Reveal delay={0.28}>
             <div className="mt-9 flex flex-wrap items-center gap-3">
               <button
