@@ -26,14 +26,14 @@ export default function HeroMedia({ videoUrl, posterUrl, light = false }) {
         className={
           light
             ? 'absolute inset-0 bg-gradient-to-r from-slate-950/70 via-slate-950/35 to-slate-950/10'
-            : 'absolute inset-0 bg-gradient-to-r from-slate-950/75 via-slate-950/55 to-slate-950/15'
+            : 'absolute inset-0 bg-gradient-to-r from-slate-950/67 via-slate-950/47 to-slate-950/7'
         }
       />
       <div
         className={
           light
             ? 'absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-slate-950/25'
-            : 'absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/10 to-slate-950/40'
+            : 'absolute inset-0 bg-gradient-to-t from-slate-950/72 via-transparent to-slate-950/32'
         }
       />
     </div>
