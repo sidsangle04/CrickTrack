@@ -44,7 +44,7 @@ export default function LandingHero({ onExplore }) {
           <Reveal delay={0.05}>
             <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-300 backdrop-blur">
               <Radio className="h-3.5 w-3.5" />
-              Built for club cricket
+              From backyard to boundary
             </span>
           </Reveal>
 
