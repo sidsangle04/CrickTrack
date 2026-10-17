@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   Menu,
+  Home as HomeIcon,
   LayoutDashboard,
   BarChart3,
   Users,
@@ -20,6 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const LINKS = [
+  { label: 'Home', page: 'Landing', to: '/', icon: HomeIcon },
   { label: 'Dashboard', page: 'Dashboard', to: '/Dashboard', icon: LayoutDashboard },
   { label: 'Analytics', page: 'Analytics', to: null, icon: BarChart3 },
   { label: 'Players', page: 'Players', to: null, icon: Users },

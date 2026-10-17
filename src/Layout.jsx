@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Home, BarChart3, Trophy, Upload, RefreshCw, Users, Settings as SettingsIcon } from 'lucide-react';
+import { Home, Home as HomeIcon, BarChart3, Trophy, Upload, RefreshCw, Users, Settings as SettingsIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 import MobileTabBar from '@/components/MobileTabBar';
@@ -65,6 +65,17 @@ export default function Layout({ children, currentPageName }) {
             </Link>
             
             <nav className="hidden md:flex items-center gap-1">
+              {/* Always leads back to the public home page, signed in or not. */}
+              <Link
+                to="/"
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                currentPageName === 'Landing' ?
+                'bg-emerald-500/20 text-emerald-400' :
+                'text-slate-400 hover:text-white hover:bg-slate-800'}`
+                }>
+                <HomeIcon className="w-4 h-4 inline mr-2" />
+                Home
+              </Link>
               <Link
                 to={createPageUrl('Home')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
