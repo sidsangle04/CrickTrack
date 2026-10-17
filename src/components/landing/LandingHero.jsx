@@ -5,7 +5,7 @@ import HeroMedia from '@/components/landing/HeroMedia';
 import AuthButtons from '@/components/AuthButtons';
 
 const HERO_VIDEO =
-  'https://media.base44.com/videos/public/69cd6e7dda99287bd2ab65f2/2781bdaa0_Hero_background.mp4';
+  'https://media.base44.com/videos/public/69cd6e7dda99287bd2ab65f2/6bdebb339_Cover_Drive_Video.mp4';
 
 const HERO_POSTER =
   'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/fdf707174_generated_image.png';
@@ -22,8 +22,8 @@ const PHOTOS = [
     tilt: 'rotate-2',
   },
   {
-    src: 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/be69bb09d_generated_image.png',
-    alt: "Grassroots women's club cricket team on a village ground",
+    src: 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/67738f24f_generated_9d0d6dd6.png',
+    alt: "Girls' grassroots cricket team celebrating their victory in a huddle",
     tilt: '-rotate-1',
   },
 ];
