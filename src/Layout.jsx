@@ -64,7 +64,10 @@ export default function Layout({ children, currentPageName }) {
               </div>
             </Link>
             
-            <nav className="hidden md:flex items-center gap-1">
+            {/* The full link row only fits from 1280px up; below that the
+                compact menu button carries the same links without crowding
+                the logo. */}
+            <nav className="hidden xl:flex items-center gap-1">
               {/* Always leads back to the public home page, signed in or not. */}
               <Link
                 to="/"

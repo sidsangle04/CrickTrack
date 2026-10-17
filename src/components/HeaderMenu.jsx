@@ -40,7 +40,7 @@ export default function HeaderMenu({ currentPageName, modeLabel, onSwitchMode })
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="md:hidden p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-all shrink-0"
+          className="xl:hidden p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-all shrink-0"
           title="Menu"
           aria-label="Open navigation menu"
         >
