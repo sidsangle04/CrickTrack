@@ -6,7 +6,6 @@ import LandingOverview from '@/components/landing/LandingOverview';
 import LandingStats from '@/components/landing/LandingStats';
 import LandingFeatures from '@/components/landing/LandingFeatures';
 import LandingInsights from '@/components/landing/LandingInsights';
-import LandingYardPhoto from '@/components/landing/LandingYardPhoto';
 import LandingCommunity from '@/components/landing/LandingCommunity';
 
 export default function Landing() {
@@ -24,7 +23,6 @@ export default function Landing() {
       <LandingStats />
       <LandingFeatures />
       <LandingInsights />
-      <LandingYardPhoto />
       <LandingCommunity />
     </div>
   );
