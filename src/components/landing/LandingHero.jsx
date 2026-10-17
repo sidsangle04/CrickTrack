@@ -59,9 +59,10 @@ export default function LandingHero({ onExplore }) {
 
           <Reveal delay={0.2}>
             <p className="mt-6 text-base leading-relaxed text-slate-300">
-              CrickTrack is scoring and analytics software for the people who actually run cricket:
-              club captains, league organisers and weekend teams. Tag each delivery as it happens and
-              the scorecard, wagon wheels, pitch maps and player records build themselves.
+              CrickTrack is scoring and analytics software for the people who actually runs the
+              cricket: club analysts, captains, league organisers and weekend teams. Tag each
+              delivery as it happens and the scorecard, wagon wheels, pitch maps and player records
+              build themselves.
             </p>
           </Reveal>
 
