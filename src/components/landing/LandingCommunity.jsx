@@ -31,9 +31,9 @@ export default function LandingCommunity() {
     <section className="py-16 md:py-20">
       <div className="relative overflow-hidden rounded-3xl border border-slate-700/50 bg-slate-900">
         {/* The clip runs behind the whole section; the overlays keep the copy readable. */}
-        <HeroMedia videoUrl={COMMUNITY_VIDEO} />
+        <HeroMedia videoUrl={COMMUNITY_VIDEO} light />
 
-        <div className="relative p-8 md:p-12">
+        <div className="relative flex min-h-[70vh] flex-col justify-center p-8 md:min-h-[80vh] md:p-12">
           <Reveal className="max-w-2xl">
             <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
               Made for the cricket community

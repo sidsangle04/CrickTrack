@@ -6,7 +6,7 @@ import { useReducedMotion } from 'framer-motion';
  * showing whenever the visitor has asked for reduced motion (or the clip is
  * still loading). The two gradients keep the headline legible over it.
  */
-export default function HeroMedia({ videoUrl, posterUrl }) {
+export default function HeroMedia({ videoUrl, posterUrl, light = false }) {
   const reduceMotion = useReducedMotion();
 
   return (
@@ -22,8 +22,20 @@ export default function HeroMedia({ videoUrl, posterUrl }) {
         preload="metadata"
         tabIndex={-1}
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/75 to-slate-950/35" />
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-slate-950/60" />
+      <div
+        className={
+          light
+            ? 'absolute inset-0 bg-gradient-to-r from-slate-950/70 via-slate-950/35 to-slate-950/10'
+            : 'absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/75 to-slate-950/35'
+        }
+      />
+      <div
+        className={
+          light
+            ? 'absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-slate-950/25'
+            : 'absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-slate-950/60'
+        }
+      />
     </div>
   );
 }
