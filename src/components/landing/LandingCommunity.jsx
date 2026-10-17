@@ -48,19 +48,6 @@ export default function LandingCommunity() {
             </p>
           </Reveal>
 
-          <div className="mt-10 grid gap-5 md:grid-cols-3">
-            {AUDIENCES.map(({ Icon, title, text }, index) => (
-              <Reveal
-                key={title}
-                delay={index * 0.1}
-                className="rounded-2xl border border-slate-700/50 bg-slate-900/70 p-6 backdrop-blur-sm">
-                <Icon className="h-5 w-5 text-emerald-400" />
-                <h3 className="mt-4 text-base font-semibold text-white">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-300">{text}</p>
-              </Reveal>
-            ))}
-          </div>
-
           <Reveal delay={0.1}>
             <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-slate-700/50 pt-8">
               <Link
@@ -77,6 +64,20 @@ export default function LandingCommunity() {
             </div>
           </Reveal>
         </div>
+      </div>
+
+      {/* Audience cards sit below the video panel so the clip stays unobstructed. */}
+      <div className="mt-10 grid gap-5 md:grid-cols-3">
+        {AUDIENCES.map(({ Icon, title, text }, index) => (
+          <Reveal
+            key={title}
+            delay={index * 0.1}
+            className="rounded-2xl border border-slate-700/50 bg-slate-900/60 p-6">
+            <Icon className="h-5 w-5 text-emerald-400" />
+            <h3 className="mt-4 text-base font-semibold text-white">{title}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-slate-300">{text}</p>
+          </Reveal>
+        ))}
       </div>
     </section>
   );
