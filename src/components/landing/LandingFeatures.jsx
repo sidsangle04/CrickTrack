@@ -1,6 +1,8 @@
 import React from 'react';
 import {
   CircleDot,
+  GitCompareArrows,
+  Lightbulb,
   LineChart,
   Target,
   Users,
@@ -19,6 +21,16 @@ const FEATURES = [
     Icon: LineChart,
     title: 'Deep match analytics',
     text: 'Wagon wheels, pitch maps, worm graphs, partnerships and win probability generated as the match unfolds.',
+  },
+  {
+    Icon: GitCompareArrows,
+    title: 'Player comparison & head-to-head',
+    text: 'Pick any two players and compare runs, strike rate, averages and their record against each other.',
+  },
+  {
+    Icon: Lightbulb,
+    title: 'Strengths, weaknesses & insights',
+    text: 'Favourite scoring areas, strong match-ups and the weaknesses to work on, all drawn from the ball-by-ball detail.',
   },
   {
     Icon: Target,
