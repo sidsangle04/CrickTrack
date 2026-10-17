@@ -2,9 +2,6 @@ import React from 'react';
 import { CircleDot, BarChart3, Users } from 'lucide-react';
 import Reveal from '@/components/landing/Reveal';
 
-const TURF_IMAGE =
-  'https://images.pexels.com/photos/9067719/pexels-photo-9067719.jpeg?auto=compress&cs=tinysrgb&w=1600';
-
 const STEPS = [
   {
     Icon: CircleDot,
@@ -61,19 +58,6 @@ export default function LandingOverview() {
         ))}
       </div>
 
-      <Reveal delay={0.1}>
-        <figure className="mt-12 overflow-hidden rounded-2xl border border-slate-700/50 shadow-xl shadow-black/30">
-          <img
-            src={TURF_IMAGE}
-            alt="Kids playing cricket barefoot with a makeshift bat"
-            loading="lazy"
-            className="h-56 w-full object-cover object-center md:h-72"
-          />
-          <figcaption className="border-t border-slate-700/50 bg-slate-900/60 px-5 py-3 text-xs text-slate-400">
-            Where it starts: no pads, no gear, just a bat and a ball.
-          </figcaption>
-        </figure>
-      </Reveal>
     </section>
   );
 }
