@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import LandingHero from '@/components/landing/LandingHero';
+import LandingNav from '@/components/landing/LandingNav';
 import PhotoRoll from '@/components/landing/PhotoRoll';
 import LandingGrassroots from '@/components/landing/LandingGrassroots';
 import LandingOverview from '@/components/landing/LandingOverview';
@@ -17,6 +18,7 @@ export default function Landing() {
   return (
     <div className="pb-24 md:pb-6">
       <LandingHero onExplore={handleExplore} />
+      <LandingNav />
       <PhotoRoll />
       <LandingGrassroots />
       <LandingOverview />

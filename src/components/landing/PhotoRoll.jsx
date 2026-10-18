@@ -71,7 +71,7 @@ export default function PhotoRoll() {
   };
 
   return (
-    <section className="py-14 md:py-20">
+    <section className="py-12 md:py-16">
       <Reveal className="max-w-2xl">
         <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
           Inside the app

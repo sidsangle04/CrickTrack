@@ -1,6 +1,7 @@
 import React from 'react';
 import { GitCompareArrows, Lightbulb, MapPinned } from 'lucide-react';
 import Reveal from '@/components/landing/Reveal';
+import AccordionBlock from '@/components/landing/AccordionBlock';
 import ComparisonPanel from '@/components/landing/panels/ComparisonPanel';
 import InsightTagsPanel from '@/components/landing/panels/InsightTagsPanel';
 
@@ -11,26 +12,42 @@ const PITCH_MAP =
 
 const POINTS = [
   {
+    key: 'compare',
     Icon: GitCompareArrows,
     title: 'Compare any two players',
     text: 'Put two names side by side and see runs, strike rate, averages and head-to-head records in one view.',
   },
   {
+    key: 'strengths',
     Icon: Lightbulb,
     title: 'Spot strengths and weaknesses',
     text: 'CrickTrack reads the detail behind the averages and points to what a player does well and what still needs work.',
   },
   {
+    key: 'ground',
     Icon: MapPinned,
     title: 'Read the ground and the pitch',
     text: 'Scoring areas and pitch maps show where the runs come from and where each delivery actually landed.',
   },
 ];
 
+const VIEWS = [
+  {
+    src: WAGON_WHEEL,
+    title: 'Scoring areas',
+    text: 'Every run plotted by zone, so a batter can see where they score.',
+  },
+  {
+    src: PITCH_MAP,
+    title: 'Pitch map',
+    text: 'Where each delivery landed, and what the bowler was trying.',
+  },
+];
+
 export default function LandingInsights() {
   return (
-    <section className="py-16 md:py-20">
-      <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+    <section id="insight" className="scroll-mt-24 py-12 md:py-16">
+      <div className="grid items-start gap-8 lg:grid-cols-2 lg:gap-14">
         <Reveal>
           <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
             Player insight
@@ -43,18 +60,8 @@ export default function LandingInsights() {
             find the patterns behind a season and see the game the way a coach would.
           </p>
 
-          <div className="mt-8 space-y-5">
-            {POINTS.map(({ Icon, title, text }, index) => (
-              <Reveal key={title} delay={index * 0.08} className="flex gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10">
-                  <Icon className="h-5 w-5 text-emerald-400" />
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-white">{title}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-slate-400">{text}</p>
-                </div>
-              </Reveal>
-            ))}
+          <div className="mt-7">
+            <AccordionBlock items={POINTS} />
           </div>
         </Reveal>
 
@@ -63,19 +70,8 @@ export default function LandingInsights() {
         </Reveal>
       </div>
 
-      <div className="mt-12 grid gap-5 md:grid-cols-3">
-        {[
-          {
-            src: WAGON_WHEEL,
-            title: 'Scoring areas',
-            text: 'Every run plotted by zone, so a batter can see where they score.',
-          },
-          {
-            src: PITCH_MAP,
-            title: 'Pitch map',
-            text: 'Where each delivery landed, and what the bowler was trying.',
-          },
-        ].map(({ src, title, text }, index) => (
+      <div className="mt-10 grid gap-5 md:grid-cols-3">
+        {VIEWS.map(({ src, title, text }, index) => (
           <Reveal
             key={title}
             delay={index * 0.1}

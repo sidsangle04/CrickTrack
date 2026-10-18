@@ -28,12 +28,12 @@ const AUDIENCES = [
 
 export default function LandingCommunity() {
   return (
-    <section className="py-16 md:py-20">
+    <section id="community" className="scroll-mt-24 py-12 md:py-16">
       <div className="relative overflow-hidden rounded-3xl border border-slate-700/50 bg-slate-900">
         {/* The clip runs behind the whole section; the overlays keep the copy readable. */}
         <HeroMedia videoUrl={COMMUNITY_VIDEO} light />
 
-        <div className="relative flex min-h-[70vh] flex-col justify-start p-8 md:min-h-[80vh] md:p-12">
+        <div className="relative flex min-h-[46vh] flex-col justify-start p-8 md:min-h-[52vh] md:p-12">
           <Reveal className="max-w-2xl">
             <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
               Made for the cricket community
@@ -51,7 +51,7 @@ export default function LandingCommunity() {
       </div>
 
       {/* Audience cards sit below the video panel so the clip stays unobstructed. */}
-      <div className="mt-10 grid gap-5 md:grid-cols-3">
+      <div className="mt-8 grid gap-5 md:grid-cols-3">
         {AUDIENCES.map(({ Icon, title, text }, index) => (
           <Reveal
             key={title}

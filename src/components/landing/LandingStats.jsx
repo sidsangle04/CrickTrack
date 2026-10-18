@@ -11,7 +11,7 @@ const STATS = [
 
 export default function LandingStats() {
   return (
-    <section className="pb-2 pt-2 md:pb-4">
+    <section className="pb-2 pt-6 md:pt-8">
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-700/40 lg:grid-cols-4">
         {STATS.map((stat, index) => (
           <Reveal key={stat.label} delay={index * 0.09} className="bg-slate-900/70 px-6 py-7">
