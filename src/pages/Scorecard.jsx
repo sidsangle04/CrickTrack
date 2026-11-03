@@ -139,6 +139,8 @@ export default function Scorecard() {
           <td style="text-align:right">${b.maidens||0}</td>
           <td style="text-align:right">${b.runs_conceded}</td>
           <td style="text-align:right;font-weight:700">${b.wickets}</td>
+          <td style="text-align:right">${b.wides || 0}</td>
+          <td style="text-align:right">${b.no_balls || 0}</td>
           <td style="text-align:right">${econ}</td></tr>`;
       }).join('');
 
@@ -173,7 +175,7 @@ export default function Scorecard() {
         </div>
         <div class="card">
           <h3>Bowling</h3>
-          <table><thead><tr><th>Bowler</th><th style="text-align:right">O</th><th style="text-align:right">M</th><th style="text-align:right">R</th><th style="text-align:right">W</th><th style="text-align:right">Econ</th></tr></thead>
+          <table><thead><tr><th>Bowler</th><th style="text-align:right">O</th><th style="text-align:right">M</th><th style="text-align:right">R</th><th style="text-align:right">W</th><th style="text-align:right">Wd</th><th style="text-align:right">Nb</th><th style="text-align:right">Econ</th></tr></thead>
           <tbody>${bowlerRows}</tbody></table>
         </div>
         ${partnershipCard}`;
@@ -261,11 +263,11 @@ export default function Scorecard() {
       });
       csv += `Total: ${inn.total_runs}/${inn.total_wickets} (${getOversDisplay(inn.total_balls)} overs)\n\n`;
       
-      csv += 'Bowler,Overs,Runs,Wickets,Economy\n';
+      csv += 'Bowler,Overs,Maidens,Runs,Wickets,Wides,NoBalls,Economy\n';
       bowlers.forEach(b => {
         const player = playersMap[b.player_id];
         const econ = (b.balls / 6) > 0 ? (b.runs_conceded / (b.balls / 6)).toFixed(2) : '0.00';
-        csv += `${player?.name || 'Unknown'},${b.overs}.${b.balls % 6},${b.runs_conceded},${b.wickets},${econ}\n`;
+        csv += `${player?.name || 'Unknown'},${b.overs}.${b.balls % 6},${b.maidens || 0},${b.runs_conceded},${b.wickets},${b.wides || 0},${b.no_balls || 0},${econ}\n`;
       });
       csv += '\n';
     });
@@ -482,6 +484,8 @@ export default function Scorecard() {
                           <th className="text-right p-3">M</th>
                           <th className="text-right p-3">R</th>
                           <th className="text-right p-3">W</th>
+                          <th className="text-right p-3">Wd</th>
+                          <th className="text-right p-3">Nb</th>
                           <th className="text-right p-3">Econ</th>
                         </tr>
                       </thead>
@@ -500,6 +504,8 @@ export default function Scorecard() {
                               <td className="text-right p-3 text-slate-400">{bowler.maidens || 0}</td>
                               <td className="text-right p-3 text-slate-400">{bowler.runs_conceded}</td>
                               <td className="text-right p-3 font-semibold text-white">{bowler.wickets}</td>
+                              <td className="text-right p-3 text-slate-400">{bowler.wides || 0}</td>
+                              <td className="text-right p-3 text-slate-400">{bowler.no_balls || 0}</td>
                               <td className="text-right p-3 text-slate-400">{econ}</td>
                             </tr>
                           );
