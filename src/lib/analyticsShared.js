@@ -1,6 +1,10 @@
 // Shared analytics constants & labels used by Analytics and Player Profiles.
 export { getTurfZone, TURF_ZONES } from './groundShape';
 
+// A batting record only counts as an innings when the batter actually batted;
+// "yet to bat" and "did not bat" rows carry no batting figures.
+export const hasBatted = (b) => b?.status !== 'yet_to_bat' && b?.status !== 'did_not_bat';
+
 export const LENGTH_ZONES_ORDER = ['full_toss', 'yorker', 'full', 'good_length', 'good', 'back_of_length', 'short', 'bouncer'];
 
 // Normalize legacy human-readable length values to enum format

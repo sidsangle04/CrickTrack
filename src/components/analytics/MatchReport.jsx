@@ -96,6 +96,7 @@ export default function MatchReport({ match, innings, batterInnings, bowlerInnin
   const t = (id) => teamsMap[id]?.name || 'Team';
 
   const getDismissalText = (b) => {
+    if (b.status === 'did_not_bat') return 'did not bat';
     if (!b.is_out) return 'not out';
     const bowler = playersMap[b.dismissed_by_bowler_id];
     const fielder = playersMap[b.dismissed_by_fielder_id];

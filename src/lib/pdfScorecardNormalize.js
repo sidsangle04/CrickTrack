@@ -109,7 +109,7 @@ const normalizeBatter = (raw) => {
     dismissal_type: isOut ? dismissal.dismissal_type : null,
     bowler: dismissal.bowler,
     fielder: dismissal.fielder,
-    status: didNotBat ? "yet_to_bat" : isOut ? "out" : "not_out",
+    status: didNotBat ? "did_not_bat" : isOut ? "out" : "not_out",
   };
 };
 

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import GroundMapWithHeatmap from '@/components/analytics/GroundMapWithHeatmap';
 import { StatCard, InsightCard } from '@/components/analytics/StatCards';
-import { LENGTH_ZONES_ORDER, LENGTH_NORMALIZE, LENGTH_LABEL, DISMISSAL_LABEL, DISMISSAL_COLOR, RUN_FILTERS } from '@/lib/analyticsShared';
+import { LENGTH_ZONES_ORDER, LENGTH_NORMALIZE, LENGTH_LABEL, DISMISSAL_LABEL, DISMISSAL_COLOR, RUN_FILTERS, hasBatted } from '@/lib/analyticsShared';
 import GroundMap from '../components/scoring/GroundMap';
 import PartnershipCard from '../components/analytics/PartnershipCard';
 import CircularHeatmap from '../components/analytics/CircularHeatmap';
@@ -40,7 +40,7 @@ function LeaderboardsTab({ allPlayers, teams, allBatterInnings, allBowlerInnings
       map[b.player_id].balls += b.balls_faced || 0;
       map[b.player_id].fours += b.fours || 0;
       map[b.player_id].sixes += b.sixes || 0;
-      if (b.status !== 'yet_to_bat') map[b.player_id].innings++;
+      if (hasBatted(b)) map[b.player_id].innings++;
       if (b.is_out) map[b.player_id].outs++;
     });
     return Object.entries(map)
@@ -295,7 +295,7 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap, scopeMatch
   // left runs and balls at nought. Ball-by-ball is only the fallback for a
   // player with no innings record at all.
   const battingTotals = useMemo(() => {
-    const played = allBatterInnings.filter(b => b.status !== 'yet_to_bat' && inScope(b));
+    const played = allBatterInnings.filter(b => hasBatted(b) && inScope(b));
     if (played.length > 0) {
       return played.reduce((t, b) => ({
         runs: t.runs + (b.runs || 0),

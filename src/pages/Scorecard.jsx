@@ -87,6 +87,7 @@ export default function Scorecard() {
   const playersMap = allPlayers.reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
 
   const getDismissalText = (batter) => {
+    if (batter.status === 'did_not_bat') return 'did not bat';
     if (!batter.is_out) return 'not out';
     const bowler = playersMap[batter.dismissed_by_bowler_id];
     const fielder = playersMap[batter.dismissed_by_fielder_id];

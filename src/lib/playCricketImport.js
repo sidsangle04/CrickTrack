@@ -116,7 +116,7 @@ export async function writeImportedMatch(data, mode, addLog = () => {}) {
         is_out: b.is_out,
         dismissal_type: b.is_out ? b.dismissal_type : null,
         dismissed_by_bowler_id: b.is_out && b.dismissal_type !== "run_out" && bowlerPlayer ? bowlerPlayer.id : null,
-        status: b.dismissal === "did not bat" ? "yet_to_bat" : b.is_out ? "out" : "not_out",
+        status: b.dismissal === "did not bat" ? "did_not_bat" : b.is_out ? "out" : "not_out",
         strike_rate: b.balls > 0 ? (b.runs / b.balls) * 100 : 0,
       });
     }

@@ -52,6 +52,7 @@
       "type": "string",
       "enum": [
         "yet_to_bat",
+        "did_not_bat",
         "batting",
         "out",
         "retired_hurt",

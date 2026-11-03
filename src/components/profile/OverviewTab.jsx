@@ -1,13 +1,14 @@
 import React, { useMemo } from 'react';
 import { StatCard } from '@/components/analytics/StatCards';
 import PartnershipCard from '@/components/analytics/PartnershipCard';
+import { hasBatted } from '@/lib/analyticsShared';
 
 // Career overview: aggregate batting + bowling numbers, recent form, best partnerships.
 export default function OverviewTab({ batterInnings, bowlerInnings, partnerships, playersMap }) {
   const batting = useMemo(() => {
     let runs = 0, balls = 0, outs = 0, inns = 0, fours = 0, sixes = 0, hs = 0;
     batterInnings.forEach(b => {
-      if (b.status === 'yet_to_bat') return;
+      if (!hasBatted(b)) return;
       inns++;
       runs += b.runs || 0;
       balls += b.balls_faced || 0;
@@ -41,7 +42,7 @@ export default function OverviewTab({ batterInnings, bowlerInnings, partnerships
   }, [bowlerInnings]);
 
   const recent = useMemo(
-    () => [...batterInnings].filter(b => b.status !== 'yet_to_bat')
+    () => [...batterInnings].filter(hasBatted)
       .sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 5),
     [batterInnings]
   );
