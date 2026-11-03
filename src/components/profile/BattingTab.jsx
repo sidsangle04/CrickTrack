@@ -6,7 +6,7 @@ import { StatCard, InsightCard } from '@/components/analytics/StatCards';
 import { getZone, zonesFor } from '@/lib/groundShape';
 import {
   LENGTH_ZONES_ORDER, LENGTH_NORMALIZE, LENGTH_LABEL,
-  DISMISSAL_LABEL, DISMISSAL_COLOR, RUN_FILTERS,
+  DISMISSAL_LABEL, DISMISSAL_COLOR, RUN_FILTERS, hasBatted,
 } from '@/lib/analyticsShared';
 
 const SHOT_TYPES = [
@@ -26,12 +26,30 @@ export default function BattingTab({ strikerDeliveries, batterInnings, groundSha
     () => strikerDeliveries.filter(d => !d.is_voided && d.is_legal_delivery !== false),
     [strikerDeliveries]
   );
-  const totalRuns = statsDeliveries.reduce((s, d) => s + (d.runs_bat || 0), 0);
-  const ballsFaced = statsDeliveries.length;
-  const strikeRate = ballsFaced > 0 ? ((totalRuns / ballsFaced) * 100).toFixed(1) : '0.0';
-  const fours = statsDeliveries.filter(d => (d.runs_bat || 0) === 4).length;
-  const sixes = statsDeliveries.filter(d => (d.runs_bat || 0) === 6).length;
-  const dots = statsDeliveries.filter(d => (d.runs_bat || 0) === 0 && !d.is_wicket).length;
+  // The innings rows are the scorecard, so they carry the totals — including for
+  // imported scorecards that have no ball-by-ball log. Deliveries only refine the
+  // dot count when a match was actually scored ball by ball.
+  const batting = useMemo(() => {
+    let runs = 0, balls = 0, fours = 0, sixes = 0, dots = 0;
+    batterInnings.forEach(b => {
+      if (!hasBatted(b)) return;
+      runs += b.runs || 0;
+      balls += b.balls_faced || 0;
+      fours += b.fours || 0;
+      sixes += b.sixes || 0;
+      dots += b.dots || 0;
+    });
+    return {
+      runs,
+      balls,
+      fours,
+      sixes,
+      strikeRate: balls > 0 ? ((runs / balls) * 100).toFixed(1) : '0.0',
+      dots: statsDeliveries.length > 0
+        ? statsDeliveries.filter(d => (d.runs_bat || 0) === 0 && !d.is_wicket).length
+        : dots || (balls > 0 ? '—' : 0),
+    };
+  }, [batterInnings, statsDeliveries]);
 
   const shotsWithZone = useMemo(
     () => strikerDeliveries.filter(d => d.shot_x != null && d.shot_y != null && !d.is_voided)
@@ -134,12 +152,12 @@ export default function BattingTab({ strikerDeliveries, batterInnings, groundSha
       <div>
         <p className={sectionLabel}>Batting</p>
         <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-          <StatCard label="Runs" value={totalRuns} color="text-emerald-400" />
-          <StatCard label="Balls" value={ballsFaced} />
-          <StatCard label="Strike Rate" value={strikeRate} color="text-amber-400" />
-          <StatCard label="4s" value={fours} color="text-emerald-400" />
-          <StatCard label="6s" value={sixes} color="text-amber-400" />
-          <StatCard label="Dots" value={dots} />
+          <StatCard label="Runs" value={batting.runs} color="text-emerald-400" />
+          <StatCard label="Balls" value={batting.balls} />
+          <StatCard label="Strike Rate" value={batting.strikeRate} color="text-amber-400" />
+          <StatCard label="4s" value={batting.fours} color="text-emerald-400" />
+          <StatCard label="6s" value={batting.sixes} color="text-amber-400" />
+          <StatCard label="Dots" value={batting.dots} />
         </div>
       </div>
 
