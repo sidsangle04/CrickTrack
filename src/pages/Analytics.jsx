@@ -290,13 +290,39 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap, scopeMatch
   const statsDeliveries = useMemo(() =>
     allDeliveries.filter(d => !d.is_voided && d.is_legal_delivery !== false && inScope(d)), [allDeliveries, scopeMatchIds]);
 
-  const totalRuns = statsDeliveries.reduce((s, d) => s + (d.runs_bat || 0), 0);
-  const ballsFaced = statsDeliveries.length;
+  // Innings records are the source of truth here, the same ones the leaderboard
+  // reads. An imported scorecard has no ball-by-ball rows, so deliveries alone
+  // left runs and balls at nought. Ball-by-ball is only the fallback for a
+  // player with no innings record at all.
+  const battingTotals = useMemo(() => {
+    const played = allBatterInnings.filter(b => b.status !== 'yet_to_bat' && inScope(b));
+    if (played.length > 0) {
+      return played.reduce((t, b) => ({
+        runs: t.runs + (b.runs || 0),
+        balls: t.balls + (b.balls_faced || 0),
+        fours: t.fours + (b.fours || 0),
+        sixes: t.sixes + (b.sixes || 0),
+        outs: t.outs + (b.is_out ? 1 : 0),
+        innings: t.innings + 1,
+      }), { runs: 0, balls: 0, fours: 0, sixes: 0, outs: 0, innings: 0 });
+    }
+    return {
+      runs: statsDeliveries.reduce((s, d) => s + (d.runs_bat || 0), 0),
+      balls: statsDeliveries.length,
+      fours: statsDeliveries.filter(d => (d.runs_bat || 0) === 4).length,
+      sixes: statsDeliveries.filter(d => (d.runs_bat || 0) === 6).length,
+      outs: 0,
+      innings: 0,
+    };
+  }, [allBatterInnings, statsDeliveries, scopeMatchIds]);
+
+  const totalRuns = battingTotals.runs;
+  const ballsFaced = battingTotals.balls;
   const strikeRate = ballsFaced > 0 ? ((totalRuns / ballsFaced) * 100).toFixed(1) : '0.0';
-  const fours = statsDeliveries.filter(d => (d.runs_bat || 0) === 4).length;
-  const sixes = statsDeliveries.filter(d => (d.runs_bat || 0) === 6).length;
-  const timesOut = allBatterInnings.filter(b => b.is_out && inScope(b)).length;
-  const totalInnings = allBatterInnings.filter(b => b.status !== 'yet_to_bat' && inScope(b)).length;
+  const fours = battingTotals.fours;
+  const sixes = battingTotals.sixes;
+  const timesOut = battingTotals.outs;
+  const totalInnings = battingTotals.innings;
   const average = timesOut > 0 ? (totalRuns / timesOut).toFixed(1) : totalRuns > 0 ? '∞' : '0.0';
 
   // Bowling performance stats
