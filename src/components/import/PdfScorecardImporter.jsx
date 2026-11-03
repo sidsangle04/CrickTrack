@@ -52,7 +52,8 @@ export default function PdfScorecardImporter() {
 
       // A full match PDF carries the ball-by-ball commentary as well, so read
       // both innings and keep the log only if it adds up to the scorecard.
-      if (raw?.has_ball_by_ball) {
+      // The flag is only a hint, so the commentary is always tried.
+      {
         setProgress("Reading the ball-by-ball commentary…");
         const [first, second] = await Promise.all(
           [1, 2].map((which) =>
@@ -63,7 +64,7 @@ export default function PdfScorecardImporter() {
           )
         );
         const outputOf = (r) => (Array.isArray(r?.output) ? r.output[0] : r?.output);
-        nextPlan = attachPdfDeliveries(nextPlan, [outputOf(first), outputOf(second)]);
+        nextPlan = attachPdfDeliveries(nextPlan, [outputOf(first), outputOf(second)], !!raw?.has_ball_by_ball);
       }
 
       setPlan(nextPlan);

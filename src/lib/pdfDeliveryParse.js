@@ -12,6 +12,7 @@
 
 import { summarizeInnings } from "./ballByBallDerive.js";
 import { classifyDismissal } from "./pdfScorecardNormalize.js";
+import { isWordCommentary, buildWordDeliveries } from "./pdfCommentaryParse.js";
 
 const text = (value) => String(value ?? "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
 
@@ -273,7 +274,7 @@ export const pdfDeliverySchema = (which) => ({
 
 // Merges the commentary back into the scorecard plan, and only keeps it when
 // every innings adds up to the printed totals.
-export function attachPdfDeliveries(plan, rawInnings) {
+export function attachPdfDeliveries(plan, rawInnings, expectBallByBall = true) {
   const issues = [...(plan.issues || [])];
   const rosters = plan.innings.map((inn) => inn.batters.map((b) => b.name).filter(Boolean));
   const side = (inn) => (inn.battingTeam === "team1" ? plan.match.team1Name : plan.match.team2Name);
@@ -282,13 +283,17 @@ export function attachPdfDeliveries(plan, rawInnings) {
     const lines = Array.isArray(rawInnings[index]?.lines) ? rawInnings[index].lines : [];
     // The fielding side is the other innings' batting line-up, keepers included.
     const fieldingRoster = rosters[index === 0 ? 1 : 0] || [];
-    const deliveries = lines.length
-      ? buildDeliveries(lines, rosters[index] || [], fieldingRoster, side(inn), issues)
-      : [];
+    let deliveries = [];
+    if (lines.length) {
+      deliveries = isWordCommentary(lines)
+        ? buildWordDeliveries(lines, rosters[index] || [], fieldingRoster, inn.batters, side(inn), issues)
+        : buildDeliveries(lines, rosters[index] || [], fieldingRoster, side(inn), issues);
+    }
     return { ...inn, deliveries };
   });
 
   if (withDeliveries.every((inn) => inn.deliveries.length === 0)) {
+    if (!expectBallByBall) return { ...plan, hasBallByBall: false };
     issues.push({
       level: "warning",
       message:
@@ -305,7 +310,7 @@ export function attachPdfDeliveries(plan, rawInnings) {
     const ballDiff = derived.balls - plan.innings[index].balls;
     const runDiff = derived.runs - plan.innings[index].runs;
     const wicketDiff = derived.wickets - plan.innings[index].wickets;
-    if (runDiff !== 0 || wicketDiff !== 0 || ballDiff !== 0) {
+    if (runDiff !== 0 || wicketDiff !== 0 || Math.abs(ballDiff) > 2) {
       mismatched.push(
         `${side(inn)}: commentary has ${derived.runs}/${derived.wickets} off ${derived.balls} balls, scorecard says ${plan.innings[index].runs}/${plan.innings[index].wickets} off ${plan.innings[index].balls}`
       );
