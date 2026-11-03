@@ -6,6 +6,7 @@
 
 import { base44 } from "@/api/base44Client";
 import { summarizeInnings, deriveFigures, derivePartnerships } from "./ballByBallDerive.js";
+import { ensureVenue } from "./ensureVenue";
 
 const chunk = (list, size) => {
   const out = [];
@@ -118,10 +119,14 @@ export async function writeBallByBallMatch(plan, mode, addLog = () => {}) {
 
   const xiFor = (side) => Array.from(namesByTeam[side]).map((n) => playerId[side][n]).filter(Boolean);
 
+  const venueId = await ensureVenue(info.venue, mode);
+  if (venueId) addLog(`  Venue linked: ${info.venue}`);
+
   addLog("🏏 Creating match record...");
   const match = await base44.entities.Match.create({
     date: info.date,
     venue: info.venue || "Unknown",
+    venue_id: venueId,
     team1_id: team1.id,
     team2_id: team2.id,
     team1_playing_xi: xiFor("team1"),

@@ -128,21 +128,33 @@ export default function Venues() {
                   </div>
                 </div>
 
-                <div className="rounded-xl bg-slate-900/60 border border-slate-700/40 px-3 py-2 flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-slate-500 shrink-0" />
-                  {avg ? (
-                    <span className="text-xs text-slate-300">
-                      Avg 1st innings{' '}
-                      <span className="text-white font-bold">{avg.average}</span>
-                      <span className="text-slate-500">
-                        {' '}
-                        · {avg.count} match{avg.count === 1 ? '' : 'es'}
+                <div className="rounded-xl bg-slate-900/60 border border-slate-700/40 px-3 py-2 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-slate-500 shrink-0" />
+                    {avg ? (
+                      <span className="text-xs text-slate-300">
+                        Avg 1st innings{' '}
+                        <span className="text-white font-bold">{avg.average}</span>
+                        <span className="text-slate-500">
+                          {' '}
+                          · {avg.count} match{avg.count === 1 ? '' : 'es'}
+                        </span>
                       </span>
-                    </span>
-                  ) : (
-                    <span className="text-xs text-slate-500">
-                      No completed matches at this venue yet
-                    </span>
+                    ) : (
+                      <span className="text-xs text-slate-500">
+                        No completed matches at this venue yet
+                      </span>
+                    )}
+                  </div>
+                  {avg && (
+                    <div className="flex items-center gap-3 pl-6 text-[11px] text-slate-400">
+                      <span>
+                        Runs <span className="text-white font-semibold">{avg.runs}</span>
+                      </span>
+                      <span>
+                        Best <span className="text-white font-semibold">{avg.best}</span>
+                      </span>
+                    </div>
                   )}
                 </div>
 

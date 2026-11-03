@@ -1,44 +1,58 @@
 import { base44 } from '@/api/base44Client';
 
-// One average first-innings score per venue, derived from completed matches.
-// First innings only, and Super Overs excluded. Venues with no completed match
-// data are simply absent from the result — no fallback is invented.
+// Venue numbers from completed matches: the average first-innings score (which
+// drives the par score), plus total runs scored at the ground and the best
+// innings total there. Super Overs are excluded. A venue with no completed
+// first innings is simply absent from the result — no fallback is invented.
 export async function loadVenueAverages() {
-  const matches = await base44.entities.Match.filter(
+  const matchPage = await base44.entities.Match.filter(
     { status: 'completed' },
     { fields: ['id', 'venue', 'venue_id'], limit: 500 }
   );
-  const ids = matches.items.map((m) => m.id);
+  const matches = matchPage.items || matchPage;
+  const ids = matches.map((m) => m.id);
   if (!ids.length) return {};
 
-  const innings = await base44.entities.Innings.filter(
-    {
-      match_id: { $in: ids },
-      innings_number: 1,
-      is_super_over: { $ne: true }
-    },
-    { fields: ['match_id', 'total_runs'], limit: 500 }
+  const inningsPage = await base44.entities.Innings.filter(
+    { match_id: { $in: ids }, is_super_over: { $ne: true } },
+    { fields: ['match_id', 'innings_number', 'total_runs'], limit: 500 }
   );
+  const innings = inningsPage.items || inningsPage;
 
-  const runsByMatch = {};
-  innings.items.forEach((i) => {
-    runsByMatch[i.match_id] = (runsByMatch[i.match_id] || 0) + (i.total_runs || 0);
+  // Per match: first-innings runs, all runs, best innings.
+  const perMatch = {};
+  innings.forEach((i) => {
+    const runs = i.total_runs || 0;
+    const m = (perMatch[i.match_id] = perMatch[i.match_id] || { first: undefined, total: 0, best: 0 });
+    m.total += runs;
+    if (runs > m.best) m.best = runs;
+    if (i.innings_number === 1) m.first = (m.first || 0) + runs;
   });
 
+  // A venue is keyed by its linked id and by its name, so older matches that
+  // only carry the ground name still count.
   const acc = {};
-  matches.items.forEach((m) => {
-    const runs = runsByMatch[m.id];
-    if (runs === undefined) return;
+  matches.forEach((m) => {
+    const stats = perMatch[m.id];
+    if (!stats || stats.first === undefined) return;
     [m.venue_id, m.venue].filter(Boolean).forEach((key) => {
-      if (!acc[key]) acc[key] = { total: 0, count: 0 };
-      acc[key].total += runs;
-      acc[key].count += 1;
+      if (!acc[key]) acc[key] = { firstTotal: 0, count: 0, runs: 0, best: 0 };
+      const a = acc[key];
+      a.firstTotal += stats.first;
+      a.count += 1;
+      a.runs += stats.total;
+      if (stats.best > a.best) a.best = stats.best;
     });
   });
 
   const out = {};
   Object.entries(acc).forEach(([key, v]) => {
-    out[key] = { average: Math.round(v.total / v.count), count: v.count };
+    out[key] = {
+      average: Math.round(v.firstTotal / v.count),
+      count: v.count,
+      runs: v.runs,
+      best: v.best,
+    };
   });
   return out;
 }

@@ -6,6 +6,7 @@
 
 import { base44 } from "@/api/base44Client";
 import { reconstructInningsDeliveries } from "./playCricketReconstruct";
+import { ensureVenue } from "./ensureVenue";
 
 export async function writeImportedMatch(data, mode, addLog = () => {}) {
   addLog("🔍 Looking up teams...");
@@ -51,12 +52,16 @@ export async function writeImportedMatch(data, mode, addLog = () => {}) {
   }
   addLog(`  ${Object.keys(team1Players).length + Object.keys(team2Players).length} players ready`);
 
+  const venueId = await ensureVenue(data.ground, mode);
+  if (venueId) addLog(`  Venue linked: ${data.ground}`);
+
   addLog("🏏 Creating match record...");
   const t1xi = data.innings1.batters.map((b) => team1Players[b.name]?.id).filter(Boolean);
   const t2xi = data.innings2.batters.map((b) => team2Players[b.name]?.id).filter(Boolean);
   const match = await base44.entities.Match.create({
     date: data.matchDate,
     venue: data.ground,
+    venue_id: venueId,
     team1_id: team1.id,
     team2_id: team2.id,
     team1_playing_xi: t1xi,
