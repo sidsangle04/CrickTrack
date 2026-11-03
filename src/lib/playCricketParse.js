@@ -5,6 +5,8 @@
 // function (which parses the Play-Cricket API response), so both the URL and
 // file import paths feed one shared entity-writer.
 
+import { toIsoDate, todayIso } from "./localDate.js";
+
 const parseScore = (s) => {
   const runs = parseInt(s) || 0;
   const wicketMatch = s.match(/(\d+)-(\d+)/);
@@ -47,11 +49,11 @@ export function parseCSVText(text) {
   const ground = groundLine ? groundLine.split(",")[1]?.trim() : "Unknown";
   const dateLine = lines.find((l) => l.includes("Date,,"));
   const dateRaw = dateLine ? dateLine.split(",,")[1]?.trim() : "";
-  let matchDate = new Date().toISOString().split("T")[0];
+  let matchDate = todayIso();
   if (dateRaw) {
     const cleaned = dateRaw.replace(/(\d+)(st|nd|rd|th)/, "$1");
     const parsed = new Date(cleaned);
-    if (!isNaN(parsed)) matchDate = parsed.toISOString().split("T")[0];
+    if (!isNaN(parsed)) matchDate = toIsoDate(parsed);
   }
   const tossLine = lines.find((l) => l.startsWith("Toss,"));
   const toss = tossLine ? tossLine.split(",").slice(1).join(",").trim() : "";
@@ -168,7 +170,7 @@ export function parseHTMLScorecard(html) {
   const team2Name = teams[1] || "Team 2";
 
   const ground = doc.body?.textContent.match(/Ground\s*[:\-]?\s*([A-Za-z0-9 ,.'-]+)/i)?.[1]?.trim() || "Unknown";
-  const matchDate = new Date().toISOString().split("T")[0];
+  const matchDate = todayIso();
 
   const parseBattingTable = (table) => {
     const rows = Array.from(table.querySelectorAll("tr"));

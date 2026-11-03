@@ -15,6 +15,7 @@
 
 import * as XLSX from "xlsx";
 import { summarizeInnings } from "./ballByBallDerive.js";
+import { todayIso } from "./localDate.js";
 
 const norm = (v) => String(v ?? "").replace(/\u00a0/g, " ").trim();
 const compact = (v) => norm(v).toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -484,7 +485,7 @@ export async function buildImportPlan(file) {
     match: {
       team1Name,
       team2Name,
-      date: info.date || new Date().toISOString().split("T")[0],
+      date: info.date || todayIso(),
       venue: info.venue || "",
       oversPerInnings,
       ballType: ["leather", "tennis", "tape"].includes(slug(info.ballType)) ? slug(info.ballType) : "leather",

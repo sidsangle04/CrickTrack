@@ -2,6 +2,8 @@
 // A printed scorecard carries innings totals and per-player batting and bowling
 // figures but no ball-by-ball log, so nothing here invents deliveries.
 
+import { toIsoDate } from "./localDate.js";
+
 // "34.1 overs" means 34 completed overs and 1 legal ball — 205 balls, not 204.6.
 export const oversToBalls = (overs) => {
   const value =
@@ -30,11 +32,9 @@ const cleanName = (value) =>
     .replace(/\s*\((?:c|wk|wkt|keeper|capt|captain)\)\s*$/i, "")
     .trim();
 
-const isoDate = (d) => d.toISOString().slice(0, 10);
-
 const parseDate = (value) => {
   const s = String(value ?? "").trim();
-  if (!s) return isoDate(new Date());
+  if (!s) return toIsoDate(new Date());
   const iso = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
   if (iso) return `${iso[1]}-${iso[2].padStart(2, "0")}-${iso[3].padStart(2, "0")}`;
   // Printed English scorecards are day-first (12/05/2026 = 12 May 2026).
@@ -44,7 +44,7 @@ const parseDate = (value) => {
     return `${year}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
   }
   const parsed = new Date(s.replace(/(\d+)(st|nd|rd|th)/i, "$1"));
-  return isNaN(parsed) ? isoDate(new Date()) : isoDate(parsed);
+  return isNaN(parsed) ? toIsoDate(new Date()) : toIsoDate(parsed);
 };
 
 // Turns a scorecard's "how out" text into the model's dismissal fields, pulling
