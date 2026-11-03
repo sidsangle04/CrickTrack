@@ -45,7 +45,8 @@ function LeaderboardsTab({ allPlayers, teams, allBatterInnings, allBowlerInnings
     });
     return Object.entries(map)
       .map(([pid, s]) => ({ pid, ...s, avg: s.outs > 0 ? (s.runs / s.outs).toFixed(1) : s.runs > 0 ? '∞' : '0.0', sr: s.balls > 0 ? ((s.runs / s.balls) * 100).toFixed(1) : '0.0' }))
-      .sort((a, b) => b.runs - a.runs);
+      .sort((a, b) => b.runs - a.runs)
+      .slice(0, 25);
   }, [allBatterInnings]);
 
   // Bowling leaderboard
@@ -66,7 +67,8 @@ function LeaderboardsTab({ allPlayers, teams, allBatterInnings, allBowlerInnings
         const economy = s.balls > 0 ? (s.runs / (s.balls / 6)).toFixed(2) : '0.00';
         return { pid, ...s, overs: oversDisplay, economy };
       })
-      .sort((a, b) => b.wickets - a.wickets || parseFloat(a.economy) - parseFloat(b.economy));
+      .sort((a, b) => b.wickets - a.wickets || parseFloat(a.economy) - parseFloat(b.economy))
+      .slice(0, 25);
   }, [allBowlerInnings]);
 
   // Top partnerships
