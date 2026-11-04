@@ -11,6 +11,11 @@
     "player_id": {
       "type": "string"
     },
+    "is_shared": {
+      "type": "boolean",
+      "default": false,
+      "description": "Mirrors the parent match's sharing state; true lets other signed-in users view this innings"
+    },
     "overs": {
       "type": "number",
       "default": 0,
@@ -80,6 +85,9 @@
       "$or": [
         {
           "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.is_shared": true
         },
         {
           "user_condition": {
