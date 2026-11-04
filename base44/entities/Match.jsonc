@@ -11,6 +11,15 @@
       "default": "turf",
       "description": "Which app mode this match belongs to (TURF rectangular vs Circular). Filters all data separation."
     },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "private",
+        "shared"
+      ],
+      "default": "private",
+      "description": "Private = only the creator and admins see this match. Shared = any signed-in user can view it (only the creator and admins can change it)."
+    },
     "date": {
       "type": "string",
       "format": "date",
@@ -73,7 +82,7 @@
     "no_ball_runs": {
       "type": "number",
       "default": 1,
-      "description": "Runs awarded for no-ball"
+      "description": "Runs awarded for no ball"
     },
     "toss_winner_id": {
       "type": "string",
@@ -102,7 +111,7 @@
     "current_innings": {
       "type": "number",
       "default": 1,
-      "description": "Current innings number (1-4 for test, 1-2 for limited)"
+      "description": "Current innings number"
     },
     "batting_team_id": {
       "type": "string",
@@ -150,7 +159,7 @@
     "players_per_team": {
       "type": "number",
       "default": 11,
-      "description": "Players per team (Test: drives Max_Wickets = players_per_team - 1)"
+      "description": "Players per team"
     },
     "is_over_limited": {
       "type": "boolean",
@@ -169,7 +178,7 @@
     "enable_visual_tagging": {
       "type": "boolean",
       "default": true,
-      "description": "Whether ball-by-ball visual tagging (pitch zone, shot location, delivery details) is prompted during scoring. False = quick scoring (outcomes only)."
+      "description": "Whether ball-by-ball visual tagging is prompted during scoring"
     },
     "prematch_team1_pct": {
       "type": "number",
@@ -196,6 +205,9 @@
       "$or": [
         {
           "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.visibility": "shared"
         },
         {
           "user_condition": {
