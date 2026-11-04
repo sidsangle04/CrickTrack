@@ -7,6 +7,7 @@
 import { base44 } from "@/api/base44Client";
 import { reconstructInningsDeliveries } from "./playCricketReconstruct";
 import { ensureVenue } from "./ensureVenue";
+import { findTeamPlayer } from "./playerAlias";
 
 export async function writeImportedMatch(data, mode, addLog = () => {}) {
   addLog("🔍 Looking up teams...");
@@ -29,26 +30,26 @@ export async function writeImportedMatch(data, mode, addLog = () => {}) {
 
   addLog("👥 Setting up players...");
   const allPlayers = await base44.entities.Player.list();
-  const findOrCreatePlayer = async (name, teamId) => {
+  const findOrCreatePlayer = async (name, team) => {
     if (!name) return null;
-    const existing = allPlayers.find((p) => p.name.toLowerCase() === name.toLowerCase() && p.team_id === teamId);
+    const existing = findTeamPlayer(allPlayers, name, team);
     if (existing) return existing;
-    return await base44.entities.Player.create({ name, team_id: teamId, role: "all_rounder", ground_mode: mode });
+    return await base44.entities.Player.create({ name, team_id: team.id, role: "all_rounder", ground_mode: mode });
   };
 
   const team1Players = {};
   const team2Players = {};
   for (const b of data.innings1.batters) {
-    if (b.name && b.name !== "did not bat") team1Players[b.name] = await findOrCreatePlayer(b.name, team1.id);
+    if (b.name && b.name !== "did not bat") team1Players[b.name] = await findOrCreatePlayer(b.name, team1);
   }
   for (const b of data.innings1.bowlers) {
-    if (b.name) team2Players[b.name] = team2Players[b.name] || await findOrCreatePlayer(b.name, team2.id);
+    if (b.name) team2Players[b.name] = team2Players[b.name] || await findOrCreatePlayer(b.name, team2);
   }
   for (const b of data.innings2.batters) {
-    if (b.name && b.name !== "did not bat") team2Players[b.name] = await findOrCreatePlayer(b.name, team2.id);
+    if (b.name && b.name !== "did not bat") team2Players[b.name] = await findOrCreatePlayer(b.name, team2);
   }
   for (const b of data.innings2.bowlers) {
-    if (b.name) team1Players[b.name] = team1Players[b.name] || await findOrCreatePlayer(b.name, team1.id);
+    if (b.name) team1Players[b.name] = team1Players[b.name] || await findOrCreatePlayer(b.name, team1);
   }
   addLog(`  ${Object.keys(team1Players).length + Object.keys(team2Players).length} players ready`);
 

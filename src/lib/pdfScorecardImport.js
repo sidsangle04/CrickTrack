@@ -6,6 +6,7 @@
 import { base44 } from "@/api/base44Client";
 import { oversToBalls } from "./pdfScorecardNormalize";
 import { ensureVenue } from "./ensureVenue";
+import { findTeamPlayer } from "./playerAlias";
 
 const chunk = (list, size) => {
   const out = [];
@@ -62,13 +63,13 @@ export async function writePdfScorecardMatch(plan, mode, addLog = () => {}) {
   const modePlayers = allPlayers.filter((p) => (p.ground_mode || "turf") === mode);
   const playerId = { team1: {}, team2: {} };
 
+  const teamsBySide = { team1, team2 };
+
   const findOrCreatePlayer = async (name, side) => {
     if (!name) return null;
     if (playerId[side][name]) return playerId[side][name];
     const teamId = teamIds[side];
-    const existing = modePlayers.find(
-      (p) => p.name.toLowerCase() === name.toLowerCase() && p.team_id === teamId
-    );
+    const existing = findTeamPlayer(modePlayers, name, teamsBySide[side]);
     if (existing) {
       playerId[side][name] = existing.id;
       return existing.id;
