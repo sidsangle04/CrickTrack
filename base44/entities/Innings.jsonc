@@ -6,6 +6,11 @@
       "type": "string",
       "description": "Reference to Match"
     },
+    "is_shared": {
+      "type": "boolean",
+      "default": false,
+      "description": "Mirrors the parent match's sharing state; true lets other signed-in users view this innings"
+    },
     "innings_number": {
       "type": "number",
       "description": "1 or 2 for regular, 3+ for super overs"
@@ -115,6 +120,9 @@
       "$or": [
         {
           "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.is_shared": true
         },
         {
           "user_condition": {
