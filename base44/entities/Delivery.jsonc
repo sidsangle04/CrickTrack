@@ -8,11 +8,6 @@
     "innings_id": {
       "type": "string"
     },
-    "is_shared": {
-      "type": "boolean",
-      "default": false,
-      "description": "Mirrors the parent match's sharing state; true lets other signed-in users view this delivery"
-    },
     "over_number": {
       "type": "number",
       "description": "Over number (0-indexed)"
@@ -280,9 +275,6 @@
       "$or": [
         {
           "created_by_id": "{{user.id}}"
-        },
-        {
-          "data.is_shared": true
         },
         {
           "user_condition": {
