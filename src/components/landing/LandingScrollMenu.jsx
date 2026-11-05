@@ -33,10 +33,9 @@ export default function LandingScrollMenu() {
           <button
             type="button"
             aria-label="Jump to a section on this page"
-            className="flex items-center gap-2 rounded-full bg-slate-800/95 border border-slate-700 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-200 shadow-lg backdrop-blur hover:border-emerald-500/40 hover:text-white transition-colors"
+            className="flex items-center justify-center w-11 h-11 rounded-full bg-slate-800/95 border border-slate-700 text-slate-200 shadow-lg backdrop-blur hover:border-emerald-500/40 hover:text-white transition-colors"
           >
-            <ChevronDown className="w-4 h-4" />
-            <span className="hidden sm:inline">Scroll to</span>
+            <ChevronDown className="w-5 h-5" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" side="top" className="w-48 bg-slate-800 border-slate-700">

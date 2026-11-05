@@ -133,6 +133,11 @@ export default function Layout({ children, currentPageName }) {
             </nav>
             
             <div className="flex items-center gap-2 shrink-0">
+              <HeaderMenu
+                currentPageName={currentPageName}
+                modeLabel={isCircular ? 'Standard' : 'TURF'}
+                onSwitchMode={handleChangeMode}
+              />
               <Link
                 to="/Settings"
                 className={`hidden md:inline-flex items-center justify-center p-2 rounded-lg shrink-0 transition-all ${
@@ -164,19 +169,6 @@ export default function Layout({ children, currentPageName }) {
                 <span className="hidden lg:inline">Change</span>
               </button>
             </div>
-          </div>
-
-          {/* Jump menu, tucked under the logo so every section is one tap away
-              on any screen size. */}
-          <div className="flex items-center gap-3 pb-3">
-            <HeaderMenu
-              currentPageName={currentPageName}
-              modeLabel={isCircular ? 'Standard' : 'TURF'}
-              onSwitchMode={handleChangeMode}
-            />
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Jump to a section
-            </span>
           </div>
         </div>
       </header>
