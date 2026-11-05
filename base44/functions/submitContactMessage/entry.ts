@@ -60,6 +60,14 @@ export default async function (req) {
       )
     );
 
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.log(`Contact email to ${recipients[index]} failed:`, result.reason?.message || result.reason);
+      } else if (result.value && result.value.success === false) {
+        console.log(`Contact email to ${recipients[index]} not sent:`, result.value.reason, result.value.message);
+      }
+    });
+
     const delivered = results.filter((r) => r.status === 'fulfilled').length;
     if (delivered === 0) {
       return Response.json({ error: 'Your message could not be delivered right now.' }, { status: 502 });
