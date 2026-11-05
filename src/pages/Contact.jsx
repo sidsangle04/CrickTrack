@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { useAuth } from '@/lib/AuthContext';
 
 const fieldClass =
   'w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/60 transition-colors';
 
 export default function Contact() {
+  const { isAuthenticated } = useAuth();
+  const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState('idle');
@@ -15,12 +18,18 @@ export default function Contact() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!message.trim() || status === 'sending') return;
+    if (!isAuthenticated && !email.trim()) {
+      setStatus('error');
+      setError('Please enter your email address so we can reply.');
+      return;
+    }
     setStatus('sending');
     setError('');
     try {
       const response = await base44.functions.invoke('submitContactMessage', {
         subject: subject.trim(),
         message: message.trim(),
+        ...(isAuthenticated ? {} : { email: email.trim() }),
       });
       if (response.data?.success) {
         setStatus('sent');
@@ -50,7 +59,7 @@ export default function Contact() {
           <div>
             <p className="text-white font-medium">Thanks, your message is on its way.</p>
             <p className="text-sm text-slate-400 mt-1">
-              We will reply to the email address on your account.
+              We will reply to {isAuthenticated ? 'the email address on your account' : 'the email address you gave us'}.
             </p>
             <Button
               variant="ghost"
@@ -66,6 +75,23 @@ export default function Contact() {
           onSubmit={handleSubmit}
           className="mt-8 space-y-5 bg-slate-800/60 border border-slate-700/50 rounded-xl p-5 md:p-6"
         >
+          {!isAuthenticated && (
+            <div>
+              <label htmlFor="contact-email" className="block text-xs font-medium text-slate-400 mb-1.5">
+                Your email
+              </label>
+              <input
+                id="contact-email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@example.com"
+                className={fieldClass}
+                required
+              />
+            </div>
+          )}
+
           <div>
             <label htmlFor="contact-subject" className="block text-xs font-medium text-slate-400 mb-1.5">
               Subject

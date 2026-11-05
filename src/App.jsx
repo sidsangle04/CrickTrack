@@ -38,7 +38,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   : <>{children}</>;
 
 // Pages any visitor can open without an account.
-const PUBLIC_PATHS = ['/', '/About', '/Contact'];
+const PUBLIC_PATHS = ['/', '/About', '/Contact', '/about', '/contact'];
 
 // Sections a signed-out visitor can explore with clearly labelled sample data.
 const DEMO_PATHS = [
@@ -147,6 +147,8 @@ const AuthenticatedApp = () => {
       <Route path="/Settings" element={withLayout('Settings', Settings)} />
       <Route path="/About" element={withLayout('About', About)} />
       <Route path="/Contact" element={withLayout('Contact', Contact)} />
+      <Route path="/about" element={withLayout('About', About)} />
+      <Route path="/contact" element={withLayout('Contact', Contact)} />
       <Route path="/Dashboard" element={withLayout('Dashboard', Dashboard)} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>

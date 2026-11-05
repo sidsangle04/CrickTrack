@@ -11,6 +11,8 @@ import {
   Upload,
   Settings as SettingsIcon,
   RefreshCw,
+  Info,
+  Mail,
 } from 'lucide-react';
 import { createPageUrl } from '../utils';
 import {
@@ -20,6 +22,11 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+
+const TRUST_LINKS = [
+  { label: 'About', page: 'About', to: '/About', icon: Info },
+  { label: 'Contact', page: 'Contact', to: '/Contact', icon: Mail },
+];
 
 const LINKS = [
   { label: 'Home', page: 'Landing', to: '/', icon: HomeIcon },
@@ -54,6 +61,22 @@ export default function HeaderMenu({ currentPageName, modeLabel, onSwitchMode })
           <DropdownMenuItem key={label} asChild>
             <Link
               to={to || createPageUrl(page)}
+              className={`flex items-center gap-3 cursor-pointer ${
+                currentPageName === page ? 'text-emerald-400' : 'text-slate-300'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </Link>
+          </DropdownMenuItem>
+        ))}
+
+        <DropdownMenuSeparator className="bg-slate-700" />
+
+        {TRUST_LINKS.map(({ label, page, to, icon: Icon }) => (
+          <DropdownMenuItem key={label} asChild>
+            <Link
+              to={to}
               className={`flex items-center gap-3 cursor-pointer ${
                 currentPageName === page ? 'text-emerald-400' : 'text-slate-300'
               }`}
