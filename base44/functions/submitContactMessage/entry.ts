@@ -43,16 +43,25 @@ export default async function (req) {
       message,
     ].join('\n');
 
-    const subject = `New CrickTrack contact message${topic ? `: ${topic}` : ''}`;
+    // The contact inbox plus any app admins, so a message is never lost.
+    const users = await base44.asServiceRole.entities.User.list();
+    const recipients = [
+      CONTACT_INBOX,
+      ...(users || []).filter((u) => u.role === 'admin' && u.email).map((u) => u.email),
+    ].filter((address, index, all) => all.indexOf(address) === index);
 
-    // This inbox is the only destination — app admins are not copied.
-    const sent = await base44.asServiceRole.integrations.Core.SendEmail({
-      to: CONTACT_INBOX,
-      subject,
-      body: text,
-    }).catch(() => null);
+    const results = await Promise.allSettled(
+      recipients.map((address) =>
+        base44.asServiceRole.integrations.Core.SendEmail({
+          to: address,
+          subject: `New CrickTrack contact message${topic ? `: ${topic}` : ''}`,
+          body: text,
+        })
+      )
+    );
 
-    if (sent?.success === false) {
+    const delivered = results.filter((r) => r.status === 'fulfilled').length;
+    if (delivered === 0) {
       return Response.json({ error: 'Your message could not be delivered right now.' }, { status: 502 });
     }
 
