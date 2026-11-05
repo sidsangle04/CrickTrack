@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Info,
   Mail,
+  Quote,
 } from 'lucide-react';
 import { createPageUrl } from '../utils';
 import {
@@ -25,6 +26,7 @@ import {
 
 const TRUST_LINKS = [
   { label: 'About', page: 'About', to: '/About', icon: Info },
+  { label: "Founder's Note", page: 'FoundersNote', to: '/FoundersNote', icon: Quote },
   { label: 'Contact', page: 'Contact', to: '/Contact', icon: Mail },
 ];
 

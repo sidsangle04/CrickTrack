@@ -12,6 +12,9 @@ export default function TrustFooter() {
           <Link to="/About" className="text-xs font-medium text-slate-400 hover:text-emerald-400 transition-colors">
             About
           </Link>
+          <Link to="/FoundersNote" className="text-xs font-medium text-slate-400 hover:text-emerald-400 transition-colors">
+            Founder's Note
+          </Link>
           <Link to="/Contact" className="text-xs font-medium text-slate-400 hover:text-emerald-400 transition-colors">
             Contact
           </Link>
