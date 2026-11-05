@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Send, CheckCircle2, AlertCircle, Loader2, Mail, Phone } from 'lucide-react';
@@ -8,28 +8,43 @@ const fieldClass =
   'w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/60 transition-colors';
 
 export default function Contact() {
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
 
+  // A signed-in visitor shouldn't have to retype details we already hold.
+  useEffect(() => {
+    if (user?.full_name) setName((value) => value || user.full_name);
+    if (user?.email) setEmail((value) => value || user.email);
+  }, [user?.full_name, user?.email]);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!message.trim() || status === 'sending') return;
-    if (!isAuthenticated && !email.trim()) {
+    if (!name.trim()) {
       setStatus('error');
-      setError('Please enter your email address so we can reply.');
+      setError('Please tell us your name.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) {
+      setStatus('error');
+      setError('Please enter a valid email address so we can reply.');
       return;
     }
     setStatus('sending');
     setError('');
     try {
       const response = await base44.functions.invoke('submitContactMessage', {
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
         subject: subject.trim(),
         message: message.trim(),
-        ...(isAuthenticated ? {} : { email: email.trim() }),
       });
       if (response.data?.success) {
         setStatus('sent');
@@ -82,7 +97,7 @@ export default function Contact() {
           <div>
             <p className="text-white font-medium">Thanks, your message is on its way.</p>
             <p className="text-sm text-slate-400 mt-1">
-              We will reply to {isAuthenticated ? 'the email address on your account' : 'the email address you gave us'}.
+              We will reply to the email address you gave us.
             </p>
             <Button
               variant="ghost"
@@ -98,22 +113,50 @@ export default function Contact() {
           onSubmit={handleSubmit}
           className="mt-8 space-y-5 bg-slate-800/60 border border-slate-700/50 rounded-xl p-5 md:p-6"
         >
-          {!isAuthenticated && (
+          <div className="grid gap-5 sm:grid-cols-2">
             <div>
-              <label htmlFor="contact-email" className="block text-xs font-medium text-slate-400 mb-1.5">
-                Your email
+              <label htmlFor="contact-name" className="block text-xs font-medium text-slate-400 mb-1.5">
+                Name
               </label>
               <input
-                id="contact-email"
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@example.com"
+                id="contact-name"
+                type="text"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Your name"
                 className={fieldClass}
                 required
               />
             </div>
-          )}
+            <div>
+              <label htmlFor="contact-phone" className="block text-xs font-medium text-slate-400 mb-1.5">
+                Contact number
+              </label>
+              <input
+                id="contact-phone"
+                type="tel"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                placeholder="Your phone number"
+                className={fieldClass}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="contact-email" className="block text-xs font-medium text-slate-400 mb-1.5">
+              Email
+            </label>
+            <input
+              id="contact-email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="you@example.com"
+              className={fieldClass}
+              required
+            />
+          </div>
 
           <div>
             <label htmlFor="contact-subject" className="block text-xs font-medium text-slate-400 mb-1.5">
