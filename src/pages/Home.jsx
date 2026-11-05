@@ -55,6 +55,27 @@ export default function Home() {
     queryFn: () => base44.entities.Team.list()
   });
 
+  const matchIds = matches.map(m => m.id);
+
+  const { data: inningsPage } = useQuery({
+    queryKey: ['match-innings', matchIds.join(',')],
+    queryFn: () => base44.entities.Innings.filter({ match_id: { $in: matchIds } }, { limit: 300 }),
+    enabled: matchIds.length > 0
+  });
+  const innings = inningsPage?.items || [];
+
+  // Compact score of one team in a match, read straight from its batting innings.
+  const teamScore = (matchId, teamId) => {
+    const own = innings.filter(i => i.match_id === matchId && i.batting_team_id === teamId && !i.is_super_over);
+    if (!own.length) return '';
+    const inn = own.reduce((a, b) => ((b.innings_number || 0) > (a.innings_number || 0) ? b : a));
+    const balls = inn.total_balls || Math.round((inn.total_overs || 0) * 6);
+    const runs = inn.total_runs || 0;
+    const wickets = inn.total_wickets || 0;
+    const score = wickets >= 10 ? `${runs}` : `${runs}/${wickets}`;
+    return balls > 0 ? `${score} (${Math.floor(balls / 6)}.${balls % 6})` : score;
+  };
+
   const { data: venuesPage } = useQuery({
     queryKey: ['venues', mode, 'picker'],
     queryFn: () =>
@@ -244,21 +265,31 @@ export default function Home() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <div 
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
                         style={{ backgroundColor: team1?.primary_color || '#374151' }}
                       >
                         {team1?.short_name?.charAt(0) || '?'}
                       </div>
-                      <span className="font-semibold text-white">{team1?.name || 'Team 1'}</span>
+                      <span className="font-semibold text-white truncate">{team1?.name || 'Team 1'}</span>
+                      {teamScore(match.id, match.team1_id) && (
+                        <span className="ml-auto shrink-0 px-2 py-0.5 rounded-md bg-slate-900/60 text-slate-200 text-sm font-semibold tabular-nums">
+                          {teamScore(match.id, match.team1_id)}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-3">
                       <div 
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
                         style={{ backgroundColor: team2?.primary_color || '#374151' }}
                       >
                         {team2?.short_name?.charAt(0) || '?'}
                       </div>
-                      <span className="font-semibold text-white">{team2?.name || 'Team 2'}</span>
+                      <span className="font-semibold text-white truncate">{team2?.name || 'Team 2'}</span>
+                      {teamScore(match.id, match.team2_id) && (
+                        <span className="ml-auto shrink-0 px-2 py-0.5 rounded-md bg-slate-900/60 text-slate-200 text-sm font-semibold tabular-nums">
+                          {teamScore(match.id, match.team2_id)}
+                        </span>
+                      )}
                     </div>
                   </div>
                   
