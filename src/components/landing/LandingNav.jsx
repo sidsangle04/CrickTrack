@@ -16,9 +16,6 @@ export default function LandingNav() {
 
   return (
     <nav aria-label="Jump to a section" className="mt-8 flex flex-wrap items-center gap-2">
-      <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
-        Jump to
-      </span>
       {CHAPTERS.map(({ id, label }) => (
         <button
           key={id}
