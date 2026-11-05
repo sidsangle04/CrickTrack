@@ -44,6 +44,23 @@ export default function About() {
             analysed at club level. We build it alongside the people who use it every weekend, and
             most features start as a problem a scorer or coach brought to us after a match.
           </p>
+
+          <div className="mt-6 flex flex-col sm:flex-row items-center sm:items-start gap-5 rounded-2xl bg-slate-800/60 border border-slate-700/50 p-5">
+            <img
+              src="https://base44.app/api/apps/69cd6e7dda99287bd2ab65f2/files/mp/public/69cd6e7dda99287bd2ab65f2/39b660479_siddhesh-sangle.png"
+              alt="Siddhesh Sangle, founder of CrickTrack"
+              className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl object-cover shrink-0"
+            />
+            <div className="text-center sm:text-left">
+              <p className="text-lg font-semibold text-white">Siddhesh Sangle</p>
+              <p className="text-sm font-medium text-emerald-400 mb-2">Founder &amp; Developer</p>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Siddhesh leads CrickTrack's scoring engine and analytics, working with club scorers
+                and coaches to turn every delivery into something a team can learn from.
+              </p>
+            </div>
+          </div>
+
           <p className="mt-3">
             Have a question, a bug to report or an idea for the next release?{' '}
             <Link to="/Contact" className="text-emerald-400 hover:text-emerald-300 font-medium">

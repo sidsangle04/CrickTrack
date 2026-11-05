@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Send, CheckCircle2, AlertCircle, Loader2, Mail, Phone } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 
 const fieldClass =
@@ -52,6 +52,29 @@ export default function Contact() {
         Questions, bug reports, feature requests or feedback: send us a message and the CrickTrack
         team will get back to you.
       </p>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <a
+          href="mailto:cricktrack2026@gmail.com"
+          className="flex items-center gap-3 rounded-xl bg-slate-800/60 border border-slate-700/50 p-4 hover:border-emerald-500/40 transition-colors"
+        >
+          <Mail className="w-5 h-5 text-emerald-400 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-xs text-slate-400">Email</p>
+            <p className="text-sm font-medium text-white break-all">cricktrack2026@gmail.com</p>
+          </div>
+        </a>
+        <a
+          href="tel:+919021249502"
+          className="flex items-center gap-3 rounded-xl bg-slate-800/60 border border-slate-700/50 p-4 hover:border-emerald-500/40 transition-colors"
+        >
+          <Phone className="w-5 h-5 text-emerald-400 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-xs text-slate-400">Phone</p>
+            <p className="text-sm font-medium text-white">+91 90212 49502</p>
+          </div>
+        </a>
+      </div>
 
       {status === 'sent' ? (
         <div className="mt-8 flex items-start gap-3 bg-emerald-500/10 border border-emerald-500/40 rounded-xl p-5">
