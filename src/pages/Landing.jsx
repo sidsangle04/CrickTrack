@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import LandingHero from '@/components/landing/LandingHero';
 import LandingNav from '@/components/landing/LandingNav';
+import LandingScrollMenu from '@/components/landing/LandingScrollMenu';
 import PhotoRoll from '@/components/landing/PhotoRoll';
 import LandingGrassroots from '@/components/landing/LandingGrassroots';
 import LandingOverview from '@/components/landing/LandingOverview';
@@ -26,6 +27,7 @@ export default function Landing() {
       <LandingFeatures />
       <LandingInsights />
       <LandingCommunity />
+      <LandingScrollMenu />
     </div>
   );
 }
