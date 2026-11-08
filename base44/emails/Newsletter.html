@@ -7,61 +7,84 @@
       <mj-section background-color="#ffffff" padding="0 36px" />
       <mj-column padding="0" />
       <mj-text color="#000000" font-size="15px" line-height="1.6" padding="0" />
-      <mj-button background-color="#10b981" color="#000000" border-radius="8px" font-size="15px" font-weight="700" inner-padding="14px 28px" padding="0" align="left" />
+      <mj-button background-color="#000000" color="#10b981" border-radius="8px" font-size="15px" font-weight="700" inner-padding="15px 32px" padding="0" align="left" />
       <mj-image padding="0" />
       <mj-divider border-color="#e5e5e5" border-width="1px" padding="0" />
       <mj-class name="h" font-family="Arial, Helvetica, Arial, sans-serif" font-weight="700" />
-      <mj-class name="label" font-size="11px" letter-spacing="2px" text-transform="uppercase" font-weight="700" color="#10b981" />
+      <mj-class name="label" font-size="11px" letter-spacing="3px" text-transform="uppercase" font-weight="700" color="#10b981" />
       <mj-class name="muted" color="#737373" />
     </mj-attributes>
     <mj-style>
-      @media (max-width:480px) { .hero-h div { font-size:32px !important; line-height:1.12 !important; } .offer-h div { font-size:48px !important; } }
+      @media (max-width:480px) { .hero-h div { font-size:34px !important; line-height:1.1 !important; } .lead-h div { font-size:26px !important; } }
     </mj-style>
   </mj-head>
-  <mj-body background-color="#ffffff" width="600px">
-    <mj-wrapper padding="28px 12px" background-color="#ffffff">
-      <mj-section background-color="#10b981" padding="30px 36px 40px" border-radius="8px 8px 0 0">
+  <mj-body background-color="#f5f5f5" width="600px">
+    <mj-wrapper padding="28px 12px" background-color="#ffffff" border-radius="8px">
+
+      <mj-section background-color="#10b981" padding="26px 36px" border-radius="8px 8px 0 0">
+        <mj-group>
+          <mj-column vertical-align="middle" width="55%">
+            <mj-image src="https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/91aa093e5_CrickTracknewlogo.png" alt="CrickTrack" width="34px" align="left" padding="0 0 8px" />
+            <mj-text font-size="12px" letter-spacing="4px" text-transform="uppercase" font-weight="700" color="#000000" padding="0">CrickTrack</mj-text>
+          </mj-column>
+          <mj-column vertical-align="middle" width="45%">
+            <mj-text align="right" font-size="11px" letter-spacing="2px" text-transform="uppercase" font-weight="700" color="#065f46" padding="0">The Newsletter</mj-text>
+            <mj-text align="right" font-size="13px" font-weight="700" color="#000000" padding="4px 0 0">{{issue_date}}</mj-text>
+          </mj-column>
+        </mj-group>
+      </mj-section>
+
+      <mj-section padding="0">
         <mj-column>
-          <mj-image src="https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/91aa093e5_CrickTracknewlogo.png" alt="CrickTrack" width="36px" align="left" padding="0 0 16px" />
-          <mj-text font-size="11px" letter-spacing="3px" font-weight="700" text-transform="uppercase" color="#000000" padding="0 0 18px">CrickTrack &#183; {{issue_date}}</mj-text>
-          <mj-divider border-color="#000000" border-width="1px" padding="0 0 24px" />
-          <mj-text mj-class="h" css-class="hero-h" font-size="44px" line-height="1.06" color="#000000">Every ball, scored live</mj-text>
+          <mj-image src="https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/3871e1268_generated_image.png" alt="A batter playing a cover drive at golden hour" width="600px" />
         </mj-column>
       </mj-section>
-      <mj-section padding="0"><mj-column><mj-image src="https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/e02b45e1d_generated_0eb2764c.png" alt="" width="600px" /></mj-column></mj-section>
-      <mj-section padding="40px 36px 28px">
+
+      <mj-section padding="42px 36px 10px">
         <mj-column>
-          <mj-text mj-class="h" font-size="26px" line-height="1.25" padding="0 0 12px">Score ball by ball</mj-text>
-          <mj-text font-size="17px" line-height="1.65" color="#737373">Log every delivery as it happens and keep your match record complete from first ball to last.</mj-text>
+          <mj-text mj-class="label" padding="0 0 14px">The lead</mj-text>
+          <mj-text mj-class="h" css-class="lead-h" font-size="32px" line-height="1.14" padding="0 0 16px">Every ball, scored live</mj-text>
+          <mj-text mj-class="muted" font-size="17px" line-height="1.65">Log every delivery as it happens and keep your match record complete from first ball to last.</mj-text>
         </mj-column>
       </mj-section>
-      
-      <mj-section padding="36px 36px 16px"><mj-column><mj-text mj-class="label" align="left">CrickTrack &#183; {{issue_date}}</mj-text></mj-column></mj-section>
-      <mj-section padding="0 28px 20px">
-        <mj-column padding="0 8px 16px" inner-background-color="#ecf9f5" inner-border-radius="8px">
-          <mj-text mj-class="h" font-size="28px" line-height="1" color="#10b981" padding="22px 20px 14px">01</mj-text>
-          <mj-text mj-class="h" font-size="16px" line-height="1.35" padding="0 20px 6px">Compare players</mj-text>
-          <mj-text mj-class="muted" font-size="14px" padding="0 20px 22px">Put any two players side by side and settle the debate with real numbers.</mj-text>
-        </mj-column>
-        <mj-column padding="0 8px 16px" inner-background-color="#ecf9f5" inner-border-radius="8px">
-          <mj-text mj-class="h" font-size="28px" line-height="1" color="#10b981" padding="22px 20px 14px">02</mj-text>
-          <mj-text mj-class="h" font-size="16px" line-height="1.35" padding="0 20px 6px">Explore the records</mj-text>
-          <mj-text mj-class="muted" font-size="14px" padding="0 20px 22px">Explore match records across 15 pages, from recent fixtures to all-time performances.</mj-text>
-        </mj-column>
-      </mj-section>
-      
-      <mj-section background-color="#10b981" padding="40px 36px 42px">
+
+      <mj-section padding="24px 36px 0"><mj-column><mj-divider /></mj-column></mj-section>
+
+      <mj-section background-color="#000000" padding="36px 36px 40px">
         <mj-column>
-          <mj-text mj-class="h" font-size="22px" line-height="1.3" color="#000000" padding="0 0 20px">Every ball, scored live</mj-text>
-          <mj-button href="{{cta_url}}" align="left" background-color="#000000" color="#10b981" inner-padding="15px 32px">Start scoring</mj-button>
+          <mj-text mj-class="label" padding="0 0 8px">Also in this issue</mj-text>
         </mj-column>
       </mj-section>
-      <mj-section background-color="#10b981" padding="30px 36px 34px" border-radius="0 0 8px 8px">
+
+      <mj-section background-color="#000000" padding="0 26px 22px">
+        <mj-column padding="0 10px" vertical-align="top">
+          <mj-text mj-class="h" font-size="30px" line-height="1" color="#10b981" padding="0 0 12px">01</mj-text>
+          <mj-text mj-class="h" font-size="17px" line-height="1.35" color="#ffffff" padding="0 0 8px">Compare players</mj-text>
+          <mj-text font-size="14px" line-height="1.6" color="#bdbdbd" padding="0">Put any two players side by side and settle the debate with real numbers.</mj-text>
+        </mj-column>
+        <mj-column padding="0 10px" vertical-align="top">
+          <mj-text mj-class="h" font-size="30px" line-height="1" color="#10b981" padding="0 0 12px">02</mj-text>
+          <mj-text mj-class="h" font-size="17px" line-height="1.35" color="#ffffff" padding="0 0 8px">Explore the records</mj-text>
+          <mj-text font-size="14px" line-height="1.6" color="#bdbdbd" padding="0">Explore match records across 15 pages, from recent fixtures to all-time performances.</mj-text>
+        </mj-column>
+      </mj-section>
+
+      <mj-section background-color="#10b981" padding="40px 36px 44px">
         <mj-column>
-          <mj-text mj-class="h" align="center" font-size="18px" color="#000000" padding="0 0 8px">CrickTrack</mj-text>
-          <mj-text align="center" font-size="12px" color="#000000"><a href="{{unsubscribe_url}}" style="color:#000000;text-decoration:underline;">Unsubscribe</a></mj-text>
+          <mj-text mj-class="h" font-size="22px" line-height="1.3" color="#000000" padding="0 0 20px">Start scoring your next match today</mj-text>
+          <mj-button href="{{cta_url}}">Start scoring</mj-button>
         </mj-column>
       </mj-section>
+
+      <mj-section padding="32px 36px 34px">
+        <mj-column>
+          <mj-image src="https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/91aa093e5_CrickTracknewlogo.png" alt="CrickTrack" width="30px" align="center" padding="0 0 10px" />
+          <mj-text mj-class="h" align="center" font-size="15px" color="#000000" padding="0 0 6px">CrickTrack</mj-text>
+          <mj-text align="center" mj-class="muted" font-size="12px" padding="0">Tag | Analyse | Elevate</mj-text>
+          <mj-text align="center" font-size="12px" color="#737373" padding="14px 0 0"><a href="{{unsubscribe_url}}" style="color:#737373;text-decoration:underline;">Unsubscribe</a></mj-text>
+        </mj-column>
+      </mj-section>
+
     </mj-wrapper>
   </mj-body>
 </mjml>
