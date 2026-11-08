@@ -27,6 +27,7 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import FoundersNote from './pages/FoundersNote';
 import Unsubscribe from './pages/Unsubscribe';
+import SharedScorecard from './pages/SharedScorecard';
 import WebViewBackHandler from '@/components/WebViewBackHandler';
 import { GroundShapeProvider, useGroundShape } from '@/lib/GroundShapeContext';
 import { ThemeProvider } from 'next-themes';
@@ -40,7 +41,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   : <>{children}</>;
 
 // Pages any visitor can open without an account.
-const PUBLIC_PATHS = ['/', '/About', '/Contact', '/about', '/contact', '/FoundersNote', '/unsubscribe'];
+const PUBLIC_PATHS = ['/', '/About', '/Contact', '/about', '/contact', '/FoundersNote', '/unsubscribe', '/SharedScorecard'];
 
 // Sections a signed-out visitor can explore with clearly labelled sample data.
 const DEMO_PATHS = [
@@ -154,6 +155,7 @@ const AuthenticatedApp = () => {
       <Route path="/FoundersNote" element={withLayout('FoundersNote', FoundersNote)} />
       <Route path="/Dashboard" element={withLayout('Dashboard', Dashboard)} />
       <Route path="/unsubscribe" element={<Unsubscribe />} />
+      <Route path="/SharedScorecard" element={<SharedScorecard />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

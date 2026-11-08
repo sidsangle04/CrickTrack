@@ -25,6 +25,7 @@ import MatchReport from '../components/analytics/MatchReport';
 import WinProbabilityBar from '@/components/prediction/WinProbabilityBar';
 import WinProbabilityTimeline from '@/components/prediction/WinProbabilityTimeline';
 import PlayerOfMatch from '../components/analytics/PlayerOfMatch';
+import ShareScorecardButton from '../components/share/ShareScorecardButton';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -319,6 +320,7 @@ export default function Scorecard() {
             </h1>
           </div>
           <div className="flex gap-2">
+            <ShareScorecardButton matchId={matchId} />
             <Button variant="outline" size="sm" onClick={() => setShowReport(s => !s)} className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200">
               <FileText className="w-4 h-4 mr-2" />
               Report
