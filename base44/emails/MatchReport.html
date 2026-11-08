@@ -1,0 +1,110 @@
+<mjml>
+  <mj-head>
+    <mj-title>Match report: {{match_title}}</mj-title>
+    <mj-preview>{{result}}</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Arial, Helvetica, sans-serif" />
+      <mj-section background-color="#ffffff" padding="0 36px" />
+      <mj-column padding="0" />
+      <mj-text color="#000000" font-size="15px" line-height="1.6" padding="0" />
+      <mj-button background-color="#000000" color="#10b981" border-radius="8px" font-size="15px" font-weight="700" inner-padding="15px 32px" padding="0" align="left" />
+      <mj-image padding="0" />
+      <mj-divider border-color="#e5e5e5" border-width="1px" padding="0" />
+      <mj-class name="h" font-family="Arial, Helvetica, sans-serif" font-weight="700" />
+      <mj-class name="label" font-size="11px" letter-spacing="3px" text-transform="uppercase" font-weight="700" color="#10b981" />
+      <mj-class name="muted" color="#737373" />
+      <mj-class name="stat-label" font-size="11px" letter-spacing="2px" text-transform="uppercase" font-weight="700" color="#737373" padding="0 0 6px" />
+      <mj-class name="stat-value" font-size="14px" font-weight="700" color="#000000" padding="0" />
+    </mj-attributes>
+    <mj-style>
+      @media (max-width:480px) { .hero-h div { font-size:24px !important; line-height:1.2 !important; } .score-h div { font-size:24px !important; } }
+    </mj-style>
+  </mj-head>
+  <mj-body background-color="#f5f5f5" width="600px">
+    <mj-wrapper padding="28px 12px" background-color="#ffffff" border-radius="8px">
+
+      <mj-section background-color="#10b981" padding="24px 36px" border-radius="8px 8px 0 0">
+        <mj-group>
+          <mj-column vertical-align="middle" width="55%">
+            <mj-image src="https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/91aa093e5_CrickTracknewlogo.png" alt="CrickTrack" width="40px" align="left" padding="0 0 10px" />
+            <mj-text font-size="12px" letter-spacing="4px" text-transform="uppercase" font-weight="700" color="#000000" padding="0">CrickTrack</mj-text>
+          </mj-column>
+          <mj-column vertical-align="middle" width="45%">
+            <mj-text align="right" font-size="11px" letter-spacing="2px" text-transform="uppercase" font-weight="700" color="#065f46" padding="0">Match report</mj-text>
+          </mj-column>
+        </mj-group>
+      </mj-section>
+
+      <mj-section padding="34px 36px 0">
+        <mj-column>
+          <mj-text mj-class="label" padding="0 0 10px">{{match_date}}</mj-text>
+          <mj-text mj-class="h" css-class="hero-h" font-size="27px" line-height="1.2" padding="0 0 8px">{{match_title}}</mj-text>
+          <mj-text mj-class="muted" font-size="13px" padding="0">{{match_venue}} &middot; {{match_format}}</mj-text>
+        </mj-column>
+      </mj-section>
+
+      <mj-section padding="22px 36px 0">
+        <mj-column background-color="#000000" border-radius="8px" padding="18px 22px">
+          <mj-text font-size="11px" letter-spacing="2px" text-transform="uppercase" font-weight="700" color="#10b981" padding="0 0 6px">Result</mj-text>
+          <mj-text mj-class="h" font-size="16px" line-height="1.45" color="#ffffff" padding="0">{{result}}</mj-text>
+        </mj-column>
+      </mj-section>
+
+      <mj-section padding="22px 36px 0">
+        <mj-column>
+          <mj-text font-size="14px" padding="0">Hi {{first_name}}, here is the full summary of your match, with both innings, the standout batting and bowling, and a one-tap link to the complete scorecard.</mj-text>
+        </mj-column>
+      </mj-section>
+
+      <mj-section padding="22px 36px 0">
+        <mj-column background-color="#f5f5f5" border-radius="8px" padding="18px 22px">
+          <mj-text mj-class="label" padding="0 0 4px">Innings 1 &middot; {{innings_1_team}}</mj-text>
+          <mj-text mj-class="h" css-class="score-h" font-size="28px" line-height="1.1" padding="0 0 2px">{{innings_1_score}}</mj-text>
+          <mj-text mj-class="muted" font-size="12px" padding="0 0 16px">{{innings_1_overs}}</mj-text>
+          <mj-text mj-class="stat-label" padding="0 0 2px">Top scorer</mj-text>
+          <mj-text mj-class="stat-value" padding="0 0 12px">{{innings_1_top_batter}}</mj-text>
+          <mj-text mj-class="stat-label" padding="0 0 2px">Best bowling</mj-text>
+          <mj-text mj-class="stat-value" padding="0">{{innings_1_top_bowler}}</mj-text>
+        </mj-column>
+      </mj-section>
+
+      <mj-section padding="14px 36px 0">
+        <mj-column background-color="#f5f5f5" border-radius="8px" padding="18px 22px">
+          <mj-text mj-class="label" padding="0 0 4px">Innings 2 &middot; {{innings_2_team}}</mj-text>
+          <mj-text mj-class="h" css-class="score-h" font-size="28px" line-height="1.1" padding="0 0 2px">{{innings_2_score}}</mj-text>
+          <mj-text mj-class="muted" font-size="12px" padding="0 0 16px">{{innings_2_overs}}</mj-text>
+          <mj-text mj-class="stat-label" padding="0 0 2px">Top scorer</mj-text>
+          <mj-text mj-class="stat-value" padding="0 0 12px">{{innings_2_top_batter}}</mj-text>
+          <mj-text mj-class="stat-label" padding="0 0 2px">Best bowling</mj-text>
+          <mj-text mj-class="stat-value" padding="0">{{innings_2_top_bowler}}</mj-text>
+        </mj-column>
+      </mj-section>
+
+      <mj-section padding="26px 36px 0"><mj-column><mj-divider /></mj-column></mj-section>
+
+      <mj-section padding="22px 36px 0">
+        <mj-column>
+          <mj-text mj-class="h" font-size="18px" line-height="1.3" padding="0 0 14px">Ball by ball, wagon wheels, partnerships</mj-text>
+          <mj-button href="{{scorecard_url}}">Open the full scorecard</mj-button>
+        </mj-column>
+      </mj-section>
+
+      <mj-section background-color="#10b981" padding="30px 36px 32px">
+        <mj-column>
+          <mj-text mj-class="h" font-size="20px" line-height="1.3" color="#000000" padding="0 0 8px">Turn this match into your next plan</mj-text>
+          <mj-text font-size="14px" line-height="1.6" color="#065f46" padding="0">Player profiles and season analytics update automatically with every match you score.</mj-text>
+        </mj-column>
+      </mj-section>
+
+      <mj-section padding="32px 36px 34px">
+        <mj-column>
+          <mj-image src="https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/91aa093e5_CrickTracknewlogo.png" alt="CrickTrack" width="38px" align="center" padding="0 0 12px" />
+          <mj-text mj-class="h" align="center" font-size="15px" color="#000000" padding="0 0 6px">CrickTrack</mj-text>
+          <mj-text align="center" mj-class="muted" font-size="12px" padding="0">Tag | Analyse | Elevate</mj-text>
+          <mj-text align="center" font-size="12px" color="#737373" padding="14px 0 0">This report was sent automatically when your match was marked complete.</mj-text>
+        </mj-column>
+      </mj-section>
+
+    </mj-wrapper>
+  </mj-body>
+</mjml>
