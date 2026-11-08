@@ -1,0 +1,43 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "app_user_auth",
+      "events": [
+        "signup"
+      ]
+    }
+  },
+  "name": "New User Welcome Email",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "new_user_welcome_email",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "send_welcome": {
+          "call": "send_email",
+          "with": {
+            "template_name": "Welcome",
+            "to": "${ .trigger.email }",
+            "description": "Welcomes a new user and points them to start scoring",
+            "category": "marketing",
+            "variables": {
+              "first_name": "${ (.trigger.full_name // \"\") | split(\" \")[0] }",
+              "cta_url": "https://cricktrack.com"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Send welcome email",
+            "description": "New signup"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Sends the designed CrickTrack welcome email the first time a new user successfully signs in."
+}
