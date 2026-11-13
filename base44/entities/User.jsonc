@@ -1,0 +1,11 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "member_since": {
+      "type": "string",
+      "format": "date",
+      "description": "Optional override for the membership date shown on the dashboard profile"
+    }
+  }
+}

@@ -11,7 +11,8 @@ export default function ProfileCard({ user }) {
     .map((part) => part[0].toUpperCase())
     .join('');
   const role = user?.role === 'admin' ? 'Admin' : 'Member';
-  const joined = user?.created_date ? format(new Date(user.created_date), 'd MMM yyyy') : null;
+  const memberSince = user?.member_since || user?.created_date;
+  const joined = memberSince ? format(new Date(memberSince), 'd MMM yyyy') : null;
 
   return (
     <div className="rounded-2xl border border-slate-700/50 bg-slate-800/50 p-6">
