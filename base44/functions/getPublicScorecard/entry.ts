@@ -1,23 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
-
-const toList = (res) => (Array.isArray(res) ? res : (res?.items ?? []));
-
-// Drop the scoring account's identity from anything the public page receives.
-const strip = (rows) =>
-  rows.map(({ created_by, created_by_id, is_sample, ...rest }) => rest);
-
-const slimMatch = (m) => ({
-  id: m.id,
-  date: m.date,
-  venue: m.venue,
-  result: m.result,
-  status: m.status,
-  team1_id: m.team1_id,
-  team2_id: m.team2_id,
-  overs_per_innings: m.overs_per_innings,
-  format: m.format,
-  ball_type: m.ball_type,
-});
+import { toList, strip, slimMatch } from '../../shared/publicShare.ts';
 
 // Public, read-only scorecard for a completed match. No sign-in required:
 // anyone holding the match link may view the final result and stats.

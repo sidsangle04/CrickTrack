@@ -10,7 +10,9 @@ import {
   Loader2,
   Crown,
   Trash2,
-  XCircle
+  XCircle,
+  LayoutGrid,
+  BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CreateTournamentModal from '@/components/tournament/CreateTournamentModal';
@@ -18,6 +20,7 @@ import BracketView from '@/components/tournament/BracketView';
 import { deriveBracket, computeStandings, leagueComplete, seedKnockoutRound1, seedPlayoffs } from '@/lib/bracket';
 import { computeQualification } from '@/lib/qualification';
 import LeagueView from '@/components/tournament/LeagueView';
+import TournamentStats from '@/components/tournament/stats/TournamentStats';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 import PullToRefresh from '@/components/PullToRefresh';
 
@@ -28,6 +31,13 @@ export default function Tournaments() {
   const modeLabel = mode === 'circular' ? 'Standard' : 'TURF';
   const [selectedId, setSelectedId] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
+  // Inside a tournament: the bracket/league view or its statistics.
+  const [view, setView] = useState('tournament');
+
+  const openTournament = (id) => {
+    setSelectedId(id);
+    setView('tournament');
+  };
 
   const { data: tournaments = [], isLoading, refetch: refetchTournaments } = useQuery({
     queryKey: ['tournaments', mode],
@@ -199,7 +209,7 @@ export default function Tournaments() {
       : 'Knockout';
     return (
       <div className="pb-24 md:pb-6">
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 mb-4">
           <button onClick={() => setSelectedId(null)} className="text-slate-400 hover:text-white">
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -222,7 +232,41 @@ export default function Tournaments() {
           </button>
         </div>
 
-        {!derived ? (
+        {/* Bracket / Statistics */}
+        <div className="flex items-center gap-1.5 mb-5">
+          <button
+            onClick={() => setView('tournament')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              view === 'tournament'
+                ? 'bg-emerald-500/20 text-emerald-400'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            {isLeagueStage ? 'League & Bracket' : 'Bracket'}
+          </button>
+          <button
+            onClick={() => setView('stats')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              view === 'stats'
+                ? 'bg-emerald-500/20 text-emerald-400'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            Statistics
+          </button>
+        </div>
+
+        {view === 'stats' ? (
+          <TournamentStats
+            tournament={selected}
+            tournamentMatches={tmMatches}
+            matches={allMatches}
+            teams={modeTeams}
+            onOpenMatch={(matchId) => handleOpenMatch(matchId, matchesMap[matchId]?.status)}
+          />
+        ) : !derived ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
           </div>
@@ -355,7 +399,7 @@ export default function Tournaments() {
             return (
               <button
                 key={t.id}
-                onClick={() => setSelectedId(t.id)}
+                onClick={() => openTournament(t.id)}
                 className="text-left p-5 rounded-2xl bg-slate-800/50 border border-slate-700/50 hover:border-emerald-500/50 transition-all"
               >
                 <div className="flex items-center justify-between mb-3">
@@ -402,7 +446,7 @@ export default function Tournaments() {
           onClose={() => setShowCreate(false)}
           onCreated={(id) => {
             setShowCreate(false);
-            setSelectedId(id);
+            openTournament(id);
           }}
         />
       )}
