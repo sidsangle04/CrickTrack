@@ -31,26 +31,47 @@ export default function TournamentStats({ tournament, tournamentMatches = [], ma
   const [teamId, setTeamId] = useState(null);
   const [shareOpen, setShareOpen] = useState(false);
 
-  // Every statistic is rebuilt from the stored scoring records, so the match
-  // ids are part of the query key: linking, correcting or deleting a match
-  // re-reads the affected data instead of showing a stale total.
-  const linkedIds = useMemo(
-    () => resolveTournamentMatches(tournamentMatches, matches).map((m) => m.id).sort(),
-    [tournamentMatches, matches]
+  // Every statistic is rebuilt from the stored scoring records. The fixture and
+  // match ids are part of the query key, so linking, correcting or deleting a
+  // match re-reads the affected data instead of showing a stale total.
+  const fixtureIds = useMemo(() => tournamentMatches.map((tm) => tm.id), [tournamentMatches]);
+  const linkedFixtureKey = useMemo(
+    () => tournamentMatches.map((tm) => tm.match_id || '').join(','),
+    [tournamentMatches]
   );
-  const idsKey = linkedIds.join(',');
 
   const { data: records = {}, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ['tournament-stats', tournament.id, idsKey],
+    queryKey: ['tournament-stats', tournament.id, fixtureIds.join(','), linkedFixtureKey],
     queryFn: async () => {
-      if (!linkedIds.length) return { innings: [], batters: [], bowlers: [], partnerships: [] };
-      const [innings, batters, bowlers, partnerships] = await Promise.all([
-        base44.entities.Innings.filter({ match_id: { $in: linkedIds } }, { limit: 400 }),
-        base44.entities.BatterInnings.filter({ match_id: { $in: linkedIds } }, { limit: 1000 }),
-        base44.entities.BowlerInnings.filter({ match_id: { $in: linkedIds } }, { limit: 1000 }),
-        base44.entities.Partnership.filter({ match_id: { $in: linkedIds } }, { limit: 400 }),
+      const directIds = linkedFixtureKey.split(',').filter(Boolean);
+      const [byFixture, byId] = await Promise.all([
+        fixtureIds.length
+          ? base44.entities.Match.filter({ tournament_match_id: { $in: fixtureIds } }, { limit: 200 })
+          : [],
+        directIds.length
+          ? base44.entities.Match.filter({ id: { $in: directIds } }, { limit: 200 })
+          : [],
       ]);
+
+      const matchMap = new Map();
+      [...matches, ...asArray(byFixture), ...asArray(byId)].forEach((m) => matchMap.set(m.id, m));
+      const allMatches = [...matchMap.values()];
+      const ids = resolveTournamentMatches(tournamentMatches, allMatches).map((m) => m.id);
+
+      if (!ids.length) {
+        return { matches: allMatches, linkedIds: [], innings: [], batters: [], bowlers: [], partnerships: [] };
+      }
+
+      const [innings, batters, bowlers, partnerships] = await Promise.all([
+        base44.entities.Innings.filter({ match_id: { $in: ids } }, { limit: 400 }),
+        base44.entities.BatterInnings.filter({ match_id: { $in: ids } }, { limit: 1000 }),
+        base44.entities.BowlerInnings.filter({ match_id: { $in: ids } }, { limit: 1000 }),
+        base44.entities.Partnership.filter({ match_id: { $in: ids } }, { limit: 400 }),
+      ]);
+
       return {
+        matches: allMatches,
+        linkedIds: ids,
         innings: asArray(innings),
         batters: asArray(batters),
         bowlers: asArray(bowlers),
@@ -72,7 +93,7 @@ export default function TournamentStats({ tournament, tournamentMatches = [], ma
       buildTournamentStats({
         tournament,
         tournamentMatches,
-        matches,
+        matches: records.matches || matches,
         innings: records.innings || [],
         batterInnings: records.batters || [],
         bowlerInnings: records.bowlers || [],
@@ -91,7 +112,7 @@ export default function TournamentStats({ tournament, tournamentMatches = [], ma
     );
   }
 
-  if (!linkedIds.length) {
+  if (!records.linkedIds?.length) {
     return (
       <div className="rounded-2xl border border-slate-700/50 bg-slate-800/50 py-14 text-center px-6">
         <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-slate-900 flex items-center justify-center">

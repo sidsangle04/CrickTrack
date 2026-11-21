@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
-import { toList, strip, slimMatch } from '../../shared/publicShare.ts';
+import { toList, slimMatch } from '../../shared/publicShare.ts';
 
 // Public, read-only tournament statistics. No sign-in required: anyone holding
 // the tournament link gets the same figures the owner sees, calculated from the
@@ -48,8 +48,32 @@ export default async function (req) {
         ])
       : [[], [], [], []];
 
-    const batterInnings = toList(batterRaw);
-    const bowlerInnings = toList(bowlerRaw);
+    // Only the fields the statistics need travel to the public page.
+    const batterInnings = toList(batterRaw).map((b) => ({
+      match_id: b.match_id,
+      innings_id: b.innings_id,
+      player_id: b.player_id,
+      runs: b.runs,
+      balls_faced: b.balls_faced,
+      fours: b.fours,
+      sixes: b.sixes,
+      dots: b.dots,
+      is_out: b.is_out,
+      dismissal_type: b.dismissal_type,
+      dismissed_by_fielder_id: b.dismissed_by_fielder_id,
+      status: b.status,
+    }));
+    const bowlerInnings = toList(bowlerRaw).map((w) => ({
+      match_id: w.match_id,
+      innings_id: w.innings_id,
+      player_id: w.player_id,
+      balls: w.balls,
+      overs: w.overs,
+      runs_conceded: w.runs_conceded,
+      wickets: w.wickets,
+      maidens: w.maidens,
+      dots: w.dots,
+    }));
 
     const teamIds = [
       ...new Set([
@@ -89,10 +113,29 @@ export default async function (req) {
         match_id: tm.match_id || '',
       })),
       matches: matches.map(slimMatch),
-      innings: strip(toList(inningsRaw)),
-      batterInnings: strip(batterInnings),
-      bowlerInnings: strip(bowlerInnings),
-      partnerships: strip(toList(partnershipRaw)),
+      innings: toList(inningsRaw).map((i) => ({
+        id: i.id,
+        match_id: i.match_id,
+        innings_number: i.innings_number,
+        batting_team_id: i.batting_team_id,
+        bowling_team_id: i.bowling_team_id,
+        is_super_over: i.is_super_over,
+        total_runs: i.total_runs,
+        total_wickets: i.total_wickets,
+        total_balls: i.total_balls,
+        end_reason: i.end_reason,
+      })),
+      batterInnings,
+      bowlerInnings,
+      partnerships: toList(partnershipRaw).map((p) => ({
+        match_id: p.match_id,
+        innings_id: p.innings_id,
+        wicket_number: p.wicket_number,
+        batter1_id: p.batter1_id,
+        batter2_id: p.batter2_id,
+        runs: p.runs,
+        balls: p.balls,
+      })),
       teams: toList(teamsRaw).map((t) => ({
         id: t.id,
         name: t.name,
