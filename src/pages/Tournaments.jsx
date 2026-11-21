@@ -14,7 +14,8 @@ import {
   XCircle,
   LayoutGrid,
   BarChart3,
-  FileDown
+  FileDown,
+  Gavel
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CreateTournamentModal from '@/components/tournament/CreateTournamentModal';
@@ -255,6 +256,16 @@ export default function Tournaments() {
               {teamsMap[selected.champion_team_id]?.name || 'Champion'}
             </span>
           )}
+          <button
+            onClick={() =>
+              navigate(createPageUrl('Auction') + `?tournamentId=${selected.id}`)
+            }
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 text-xs font-semibold shrink-0"
+            title="Run the player auction for this tournament"
+          >
+            <Gavel className="w-4 h-4" />
+            <span className="hidden sm:inline">Auction</span>
+          </button>
           <button
             onClick={handleFixturePdf}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 text-xs font-semibold shrink-0"

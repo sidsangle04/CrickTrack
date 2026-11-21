@@ -1,0 +1,155 @@
+{
+  "name": "AuctionPlayer",
+  "type": "object",
+  "properties": {
+    "tournament_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "description": "Only required field"
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "Optional player photograph"
+    },
+    "signature_url": {
+      "type": "string",
+      "description": "Optional player signature image"
+    },
+    "age": {
+      "type": "number"
+    },
+    "batting_style": {
+      "type": "string",
+      "enum": [
+        "right_hand",
+        "left_hand"
+      ]
+    },
+    "bowling_style": {
+      "type": "string",
+      "enum": [
+        "right_arm_fast",
+        "right_arm_medium",
+        "right_arm_off_spin",
+        "right_arm_leg_spin",
+        "left_arm_fast",
+        "left_arm_medium",
+        "left_arm_orthodox",
+        "left_arm_chinaman",
+        "none"
+      ]
+    },
+    "primary_role": {
+      "type": "string",
+      "enum": [
+        "batsman",
+        "bowler",
+        "all_rounder",
+        "wicket_keeper"
+      ]
+    },
+    "experience": {
+      "type": "string",
+      "description": "Free text playing experience"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "icon",
+        "platinum",
+        "gold",
+        "silver",
+        "bronze"
+      ],
+      "enumColors": [
+        "purple",
+        "blue",
+        "yellow",
+        "gray",
+        "pink"
+      ],
+      "default": "gold"
+    },
+    "bowl": {
+      "type": "string",
+      "enum": [
+        "none",
+        "bowl1",
+        "bowl2"
+      ],
+      "enumColors": [
+        "gray",
+        "blue",
+        "pink"
+      ],
+      "default": "none",
+      "description": "Icon player bowl allocation"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "available",
+        "sold",
+        "unsold"
+      ],
+      "enumColors": [
+        "gray",
+        "green",
+        "red"
+      ],
+      "default": "available"
+    },
+    "sold_to_team_id": {
+      "type": "string",
+      "default": ""
+    },
+    "sold_price": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "tournament_id",
+    "name"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,121 @@
+{
+  "name": "Auction",
+  "type": "object",
+  "properties": {
+    "tournament_id": {
+      "type": "string",
+      "description": "Tournament this auction belongs to"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "setup",
+        "draft",
+        "auction",
+        "paused",
+        "completed"
+      ],
+      "enumColors": [
+        "gray",
+        "purple",
+        "green",
+        "yellow",
+        "blue"
+      ],
+      "default": "setup",
+      "description": "setup = configure, draft = icon player draw, auction = live bidding, paused, completed"
+    },
+    "required_squad_size": {
+      "type": "number",
+      "default": 8,
+      "description": "Total players per team including icon players"
+    },
+    "purse": {
+      "type": "number",
+      "default": 2000,
+      "description": "Coins available to every team"
+    },
+    "starting_bid": {
+      "type": "number",
+      "default": 50
+    },
+    "tiers": {
+      "type": "array",
+      "description": "Bid increments: from this amount onwards, raise by this much",
+      "items": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "number"
+          },
+          "increment": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "current_player_id": {
+      "type": "string",
+      "default": ""
+    },
+    "current_bid": {
+      "type": "number",
+      "default": 0
+    },
+    "current_bidder_team_id": {
+      "type": "string",
+      "default": ""
+    },
+    "draw_round": {
+      "type": "number",
+      "default": 1,
+      "description": "Icon draw round: 1 = bowl 1, 2 = bowl 2"
+    },
+    "draw_index": {
+      "type": "number",
+      "default": 0,
+      "description": "Which team is drawing in the current round"
+    }
+  },
+  "required": [
+    "tournament_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

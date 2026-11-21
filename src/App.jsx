@@ -12,6 +12,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import SplashVideo from '@/components/SplashVideo';
 import Landing from './pages/Landing';
 import Tournaments from '@/pages/Tournaments';
+import Auction from '@/pages/Auction';
 import Venues from '@/pages/Venues';
 import DemoMatches from '@/pages/demo/DemoMatches';
 import DemoAnalytics from '@/pages/demo/DemoAnalytics';
@@ -58,6 +59,7 @@ const DEMO_PATHS = [
 // Sections that read or write the account's own data — these always need a login.
 const PRIVATE_PATHS = [
   '/Dashboard',
+  '/Auction',
   '/Settings',
   '/MatchSetup',
   '/LiveScoring',
@@ -147,6 +149,7 @@ const AuthenticatedApp = () => {
       <Route path="/Players" element={withLayout('Players', Players)} />
       <Route path="/PlayerProfile" element={withLayout('PlayerProfile', PlayerProfile)} />
       <Route path="/Tournaments" element={withLayout('Tournaments', Tournaments)} />
+      <Route path="/Auction" element={withLayout('Auction', Auction)} />
       <Route path="/Venues" element={withLayout('Venues', Venues)} />
       <Route path="/Settings" element={withLayout('Settings', Settings)} />
       <Route path="/About" element={withLayout('About', About)} />

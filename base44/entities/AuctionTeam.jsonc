@@ -1,0 +1,73 @@
+{
+  "name": "AuctionTeam",
+  "type": "object",
+  "properties": {
+    "tournament_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "description": "Team name"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "Optional team logo"
+    },
+    "color": {
+      "type": "string",
+      "description": "Team colour hex, used across the auction"
+    },
+    "owner_name": {
+      "type": "string",
+      "description": "Optional owner or representative"
+    },
+    "order_index": {
+      "type": "number",
+      "default": 0,
+      "description": "Display and draw order"
+    }
+  },
+  "required": [
+    "tournament_id",
+    "name",
+    "color"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

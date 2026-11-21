@@ -1,0 +1,73 @@
+// Icon player draw helpers: bowls, random picks and draw order.
+
+export const BOWLS = ['bowl1', 'bowl2'];
+
+export function iconPlayers(players) {
+  return players.filter((p) => p.category === 'icon');
+}
+
+export function inBowl(players, bowl) {
+  return iconPlayers(players).filter((p) => p.bowl === bowl);
+}
+
+// Icon players still waiting to be drawn from a bowl.
+export function remainingInBowl(players, bowl) {
+  return inBowl(players, bowl).filter((p) => !p.sold_to_team_id);
+}
+
+export function unassignedIcons(players) {
+  return iconPlayers(players).filter((p) => p.bowl === 'none');
+}
+
+export function pickRandom(list) {
+  if (!list.length) return null;
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+export function orderedTeams(teams) {
+  return [...teams].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+}
+
+// Which team draws next, and from which bowl.
+export function nextDrawTurn({ auction, teams }) {
+  const order = orderedTeams(teams);
+  const round = auction?.draw_round || 1;
+  const index = auction?.draw_index || 0;
+  if (round > 2) return { done: true, round: 2, index, team: null, bowl: null };
+  return {
+    done: false,
+    round,
+    index,
+    team: order[index] || null,
+    bowl: round === 1 ? 'bowl1' : 'bowl2'
+  };
+}
+
+export function bowlsReady({ players, teams }) {
+  const order = orderedTeams(teams);
+  const icons = iconPlayers(players);
+  const b1 = inBowl(players, 'bowl1').length;
+  const b2 = inBowl(players, 'bowl2').length;
+  const pool = unassignedIcons(players).length;
+  const errors = [];
+  if (!order.length) errors.push('Add the teams taking part first.');
+  if (b1 !== order.length)
+    errors.push(`Bowl 1 needs exactly ${order.length} player${order.length === 1 ? '' : 's'} (has ${b1}).`);
+  if (b2 !== order.length)
+    errors.push(`Bowl 2 needs exactly ${order.length} player${order.length === 1 ? '' : 's'} (has ${b2}).`);
+  if (pool > 0) errors.push(`${pool} icon player${pool === 1 ? '' : 's'} still unassigned.`);
+  if (icons.length !== order.length * 2)
+    errors.push(
+      `Select exactly ${order.length * 2} icon players for ${order.length} teams (selected ${icons.length}).`
+    );
+  return { ready: errors.length === 0, errors, b1, b2, pool };
+}
+
+export function assignmentsFor({ players, teams }) {
+  const order = orderedTeams(teams);
+  return order.map((team) => ({
+    team,
+    bowl1: players.find((p) => p.category === 'icon' && p.bowl === 'bowl1' && p.sold_to_team_id === team.id),
+    bowl2: players.find((p) => p.category === 'icon' && p.bowl === 'bowl2' && p.sold_to_team_id === team.id)
+  }));
+}
