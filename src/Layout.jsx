@@ -9,6 +9,7 @@ import TrustFooter from '@/components/TrustFooter';
 import AuthButtons from '@/components/AuthButtons';
 import HeaderMenu from '@/components/HeaderMenu';
 import { useTabStack } from '@/hooks/useTabStack';
+import PagePdfButton from '@/components/PagePdfButton';
 
 export default function Layout({ children, currentPageName }) {
   const isScoring = currentPageName === 'LiveScoring';
@@ -28,7 +29,10 @@ export default function Layout({ children, currentPageName }) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         <div className="max-w-3xl mx-auto px-4 py-6">
-          {children}
+          <div className="flex justify-end mb-2">
+            <PagePdfButton selector="#scoring-pdf-root" filename="live-scoring" />
+          </div>
+          <div id="scoring-pdf-root">{children}</div>
         </div>
       </div>);
 
@@ -133,6 +137,7 @@ export default function Layout({ children, currentPageName }) {
             </nav>
             
             <div className="flex items-center gap-2 shrink-0">
+              <PagePdfButton filename={currentPageName || 'page'} />
               <HeaderMenu
                 currentPageName={currentPageName}
                 modeLabel={isCircular ? 'Standard' : 'TURF'}

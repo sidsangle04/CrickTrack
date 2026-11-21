@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Loader2, Trophy, CalendarDays, MapPin, Lock } from 'lucide-react';
 import InningsBlock from '@/components/share/InningsBlock';
+import PagePdfButton from '@/components/PagePdfButton';
 
 const LOGO = 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/c49e9414c_CrickTrackLogo.png';
 
@@ -14,9 +15,12 @@ const Shell = ({ children }) => (
           <img src={LOGO} alt="CrickTrack" className="h-9 w-auto rounded-lg bg-white p-1 shrink-0" />
           <span className="text-base font-bold text-white tracking-tight truncate">CrickTrack</span>
         </a>
-        <span className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold shrink-0">
-          Shared scorecard
-        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="hidden sm:inline text-[10px] uppercase tracking-widest text-slate-400 font-semibold">
+            Shared scorecard
+          </span>
+          <PagePdfButton filename="match-scorecard" />
+        </div>
       </div>
     </header>
     <main className="max-w-3xl mx-auto px-4 py-6">{children}</main>

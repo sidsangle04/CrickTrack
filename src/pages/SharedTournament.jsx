@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Loader2, Trophy, Lock } from 'lucide-react';
 import { buildTournamentStats } from '@/lib/tournamentStats';
 import StatTile from '@/components/tournament/stats/StatTile';
+import PagePdfButton from '@/components/PagePdfButton';
 import { Flag, TrendingUp, Target, Timer, Flame, Zap, Award, Crosshair } from 'lucide-react';
 
 const LOGO = 'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/c49e9414c_CrickTrackLogo.png';
@@ -16,9 +17,12 @@ const Shell = ({ children }) => (
           <img src={LOGO} alt="CrickTrack" className="h-9 w-auto rounded-lg bg-white p-1 shrink-0" />
           <span className="text-base font-bold text-white tracking-tight truncate">CrickTrack</span>
         </a>
-        <span className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold shrink-0">
-          Tournament statistics
-        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="hidden sm:inline text-[10px] uppercase tracking-widest text-slate-400 font-semibold">
+            Tournament statistics
+          </span>
+          <PagePdfButton filename="tournament-statistics" />
+        </div>
       </div>
     </header>
     <main className="max-w-5xl mx-auto px-4 py-6">{children}</main>

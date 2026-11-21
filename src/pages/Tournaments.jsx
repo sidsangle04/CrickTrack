@@ -12,7 +12,8 @@ import {
   Trash2,
   XCircle,
   LayoutGrid,
-  BarChart3
+  BarChart3,
+  FileDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CreateTournamentModal from '@/components/tournament/CreateTournamentModal';
@@ -23,6 +24,7 @@ import LeagueView from '@/components/tournament/LeagueView';
 import TournamentStats from '@/components/tournament/stats/TournamentStats';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 import PullToRefresh from '@/components/PullToRefresh';
+import { downloadFixtureSheet } from '@/lib/fixtureSheet';
 
 export default function Tournaments() {
   const navigate = useNavigate();
@@ -198,6 +200,12 @@ export default function Tournaments() {
     setSelectedId(null);
   };
 
+  // Fixture sheet to send to teams: who plays whom, and when.
+  const handleFixturePdf = () => {
+    if (!selected) return;
+    downloadFixtureSheet({ tournament: selected, tournamentMatches: tmMatches, teamsMap, matchesMap });
+  };
+
   if (selected) {
     const isPlayoffs = selected.format === 'league_playoffs';
     const isLeagueKO = selected.format === 'league_knockout';
@@ -223,6 +231,14 @@ export default function Tournaments() {
               {teamsMap[selected.champion_team_id]?.name || 'Champion'}
             </span>
           )}
+          <button
+            onClick={handleFixturePdf}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 text-xs font-semibold shrink-0"
+            title="Download the fixture list as a PDF to share with teams"
+          >
+            <FileDown className="w-4 h-4" />
+            <span className="hidden sm:inline">Fixtures PDF</span>
+          </button>
           <button
             onClick={() => handleDeleteTournament(selected.id)}
             className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-400/10"
