@@ -6,6 +6,7 @@ import { createPageUrl } from '../utils';
 import {
   Trophy,
   Plus,
+  CalendarPlus,
   ArrowLeft,
   Loader2,
   Crown,
@@ -18,7 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import CreateTournamentModal from '@/components/tournament/CreateTournamentModal';
 import BracketView from '@/components/tournament/BracketView';
-import { deriveBracket, computeStandings, leagueComplete, seedKnockoutRound1, seedPlayoffs } from '@/lib/bracket';
+import { deriveBracket, computeStandings, leagueComplete, seedKnockoutRound1, seedPlayoffs, generateTournamentFixtures } from '@/lib/bracket';
 import { computeQualification } from '@/lib/qualification';
 import LeagueView from '@/components/tournament/LeagueView';
 import TournamentStats from '@/components/tournament/stats/TournamentStats';
@@ -35,6 +36,7 @@ export default function Tournaments() {
   const [showCreate, setShowCreate] = useState(false);
   // Inside a tournament: the bracket/league view or its statistics.
   const [view, setView] = useState('tournament');
+  const [creatingFixtures, setCreatingFixtures] = useState(false);
 
   const openTournament = (id) => {
     setSelectedId(id);
@@ -74,7 +76,7 @@ export default function Tournaments() {
 
   const selected = modeTournaments.find((t) => t.id === selectedId);
 
-  const { data: tmMatches = [] } = useQuery({
+  const { data: tmMatches = [], isLoading: tmLoading } = useQuery({
     queryKey: ['tournament-matches', selectedId],
     queryFn: () =>
       selectedId
@@ -136,7 +138,13 @@ export default function Tournaments() {
       const knockoutMatches = tmMatches.filter((m) => m.stage !== 'league');
       const standings = computeStandings(leagueMatches, matchesMap, inningsByMatch);
       const done = leagueComplete(leagueMatches, matchesMap);
-      const round1Teams = done ? seedKnockoutRound1(standings, selected.knockout_teams || 4) : null;
+      const round1Teams = done
+        ? seedKnockoutRound1(
+            standings,
+            selected.knockout_teams || 4,
+            selected.knockout_pairing || 'standard'
+          )
+        : null;
       const knockout = knockoutMatches.length
         ? deriveBracket(knockoutMatches, matchesMap, { round1Teams })
         : null;
@@ -198,6 +206,22 @@ export default function Tournaments() {
     await base44.entities.Tournament.delete(id);
     queryClient.invalidateQueries(['tournaments']);
     setSelectedId(null);
+  };
+
+  // Build the fixture list for a tournament that doesn't have one yet.
+  const handleCreateFixtures = async () => {
+    if (!selected || creatingFixtures) return;
+    setCreatingFixtures(true);
+    try {
+      const fixtures = generateTournamentFixtures(selected);
+      if (!fixtures.length) return;
+      await base44.entities.TournamentMatch.bulkCreate(fixtures);
+      await base44.entities.Tournament.update(selected.id, { status: 'in_progress' });
+      queryClient.invalidateQueries(['tournament-matches', selectedId]);
+      queryClient.invalidateQueries(['tournaments']);
+    } finally {
+      setCreatingFixtures(false);
+    }
   };
 
   // Fixture sheet to send to teams: who plays whom, and when.
@@ -283,9 +307,33 @@ export default function Tournaments() {
             onOpenMatch={(matchId) => handleOpenMatch(matchId, matchesMap[matchId]?.status)}
           />
         ) : !derived ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
-          </div>
+          tmLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+            </div>
+          ) : (
+            <div className="text-center py-12 px-4 rounded-2xl bg-slate-800/40 border border-slate-700/60">
+              <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-slate-800 flex items-center justify-center">
+                <CalendarPlus className="w-7 h-7 text-slate-500" />
+              </div>
+              <h3 className="text-base font-semibold text-white mb-1">No fixtures yet</h3>
+              <p className="text-sm text-slate-400 mb-4 max-w-md mx-auto">
+                Create the fixture list for this tournament — every match in the format you chose.
+              </p>
+              <Button
+                onClick={handleCreateFixtures}
+                disabled={creatingFixtures}
+                className="bg-emerald-500 hover:bg-emerald-600"
+              >
+                {creatingFixtures ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <CalendarPlus className="w-4 h-4 mr-2" />
+                )}
+                Create fixtures
+              </Button>
+            </div>
+          )
         ) : isLeagueStage ? (
           <>
             <LeagueView

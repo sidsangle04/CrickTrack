@@ -42,6 +42,16 @@
       "default": 4,
       "description": "How many teams qualify from the league stage to the knockout (power of two)"
     },
+    "knockout_pairing": {
+      "type": "string",
+      "enum": [
+        "standard",
+        "adjacent",
+        "cross"
+      ],
+      "default": "standard",
+      "description": "How the knockout pairs teams: standard = 1st vs 4th (seeds kept apart), adjacent = 1st vs 2nd as listed, cross = 1st vs 3rd"
+    },
     "status": {
       "type": "string",
       "enum": [

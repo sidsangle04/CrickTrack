@@ -36,16 +36,68 @@ export function seedOrder(slots) {
 }
 
 /**
+ * How the knockout pairs teams, as pairs of seed numbers:
+ *   standard -> 1v4, 2v3 (top seeds kept apart)
+ *   adjacent -> 1v2, 3v4 (as listed)
+ *   cross    -> 1v3, 2v4
+ */
+export function knockoutPairs(count, pairing = 'standard') {
+  const slots = nextPowerOfTwo(Math.max(2, count || 2));
+  const half = slots / 2;
+  let order;
+  if (pairing === 'adjacent') {
+    order = Array.from({ length: slots }, (_, i) => i + 1);
+  } else if (pairing === 'cross') {
+    order = [];
+    for (let i = 0; i < half; i++) order.push(i + 1, i + 1 + half);
+  } else {
+    order = seedOrder(slots);
+  }
+  const pairs = [];
+  for (let i = 0; i < half; i++) pairs.push([order[i * 2], order[i * 2 + 1]]);
+  return pairs;
+}
+
+/**
+ * Place team ids into bracket slots for the chosen pairing. Seeds beyond the
+ * number of teams stay empty, which reads as a bye.
+ */
+export function bracketSlots(teamIds, pairing = 'standard') {
+  const ids = teamIds || [];
+  const n = ids.length;
+  const slots = nextPowerOfTwo(Math.max(2, n));
+  const seeded = new Array(slots).fill('');
+
+  if (pairing === 'adjacent') {
+    for (let i = 0; i < n; i++) seeded[i] = ids[i];
+    return seeded;
+  }
+  if (pairing === 'cross') {
+    const half = slots / 2;
+    for (let i = 0; i < n; i++) {
+      seeded[i < half ? i * 2 : (i - half) * 2 + 1] = ids[i];
+    }
+    return seeded;
+  }
+
+  const order = seedOrder(slots);
+  for (let i = 0; i < slots; i++) {
+    const seed = order[i];
+    if (seed <= n) seeded[i] = ids[seed - 1];
+  }
+  return seeded;
+}
+
+/**
  * Generate the full set of TournamentMatch records for a knockout bracket.
  */
-export function generateBracket(tournamentId, teamIds) {
+export function generateBracket(tournamentId, teamIds, pairing = 'standard') {
   const n = (teamIds || []).length;
   if (n < 2) return [];
   const slots = nextPowerOfTwo(n);
   const totalRounds = Math.round(Math.log2(slots));
 
-  const seeded = [];
-  for (let i = 0; i < slots; i++) seeded.push(i < n ? teamIds[i] : '');
+  const seeded = bracketSlots(teamIds, pairing);
 
   const matches = [];
 
@@ -372,21 +424,35 @@ export function leagueComplete(leagueMatches, matchesMap) {
  * Build the round-1 knockout team pairs seeded from the final league
  * standings, using standard bracket seeding order.
  */
-export function seedKnockoutRound1(standings, knockoutTeams) {
+export function seedKnockoutRound1(standings, knockoutTeams, pairing = 'standard') {
   const k = Math.max(2, knockoutTeams || 4);
-  const slots = nextPowerOfTwo(k);
-  const order = seedOrder(slots);
-  const count = slots / 2;
-  const res = [];
-  for (let i = 0; i < count; i++) {
-    const s1 = order[2 * i];
-    const s2 = order[2 * i + 1];
-    res.push({
-      team1: (standings[s1 - 1] && standings[s1 - 1].id) || '',
-      team2: (standings[s2 - 1] && standings[s2 - 1].id) || ''
-    });
+  return knockoutPairs(k, pairing).map(([s1, s2]) => ({
+    team1: (standings[s1 - 1] && standings[s1 - 1].id) || '',
+    team2: (standings[s2 - 1] && standings[s2 - 1].id) || ''
+  }));
+}
+
+/**
+ * Build the whole fixture list for a tournament record, honouring its format,
+ * how many teams reach the knockout and how the knockout is paired.
+ */
+export function generateTournamentFixtures(tournament) {
+  const {
+    id,
+    team_ids: teamIds = [],
+    format,
+    knockout_teams: knockoutTeams,
+    knockout_pairing: pairing = 'standard'
+  } = tournament || {};
+
+  if (format === 'league_playoffs') return generateLeaguePlayoffs(id, teamIds);
+  if (format === 'league_knockout') {
+    return [
+      ...generateLeague(id, teamIds),
+      ...generateLeagueKnockoutBracket(id, knockoutTeams || 4)
+    ];
   }
-  return res;
+  return generateBracket(id, teamIds, pairing);
 }
 
 /**
