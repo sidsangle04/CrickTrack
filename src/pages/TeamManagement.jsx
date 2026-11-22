@@ -60,8 +60,9 @@ export default function TeamManagement() {
 
   const { data: players = [], isLoading: playersLoading } = useQuery({
     queryKey: ['players', selectedTeam?.id],
-    queryFn: () => selectedTeam 
-      ? base44.entities.Player.filter({ team_id: selectedTeam.id })
+    // Auction squads belong to their tournament only, so they stay out of the club roster.
+    queryFn: async () => selectedTeam
+      ? (await base44.entities.Player.filter({ team_id: selectedTeam.id })).filter((p) => !p.tournament_id)
       : [],
     enabled: !!selectedTeam
   });

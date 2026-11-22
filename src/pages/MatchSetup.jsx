@@ -133,10 +133,16 @@ export default function MatchSetup() {
   const modeVenues = venues?.items || [];
   const modePlayers = allPlayers.filter((p) => (p.ground_mode || 'turf') === mode);
 
-  const team1Players = modePlayers.filter((p) => p.team_id === formData.team1_id);
-  const team2Players = modePlayers.filter((p) => p.team_id === formData.team2_id);
-
   const teamsMap = modeTeams.reduce((acc, t) => ({ ...acc, [t.id]: t }), {});
+
+  // Auction squads are only selectable for the tournament they were bought in.
+  const squadOf = (teamId) =>
+    modePlayers.filter(
+      (p) => p.team_id === teamId && (!p.tournament_id || p.tournament_id === teamsMap[teamId]?.tournament_id)
+    );
+
+  const team1Players = squadOf(formData.team1_id);
+  const team2Players = squadOf(formData.team2_id);
 
   // Pre-match win chances from player ratings, head-to-head and recent form.
   const { prediction: preMatchPrediction, isLoading: predictionLoading } = usePreMatchPrediction({

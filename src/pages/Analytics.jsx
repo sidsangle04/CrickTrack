@@ -209,6 +209,8 @@ function PlayerAnalysisTab({ allPlayers, teams, playersMap, teamsMap, scopeMatch
     const map = {};
     teams.forEach(t => { map[t.id] = []; });
     allPlayers.forEach(p => {
+      // Auction squads stay inside their own tournament.
+      if (p.tournament_id) return;
       if (map[p.team_id]) map[p.team_id].push(p);
     });
     return map;

@@ -251,7 +251,7 @@ export default function PlayerComparison() {
           <PlayerSearchSelect
             value={playerAId}
             onChange={setPlayerAId}
-            players={modePlayers.filter(p => p.id !== playerBId)}
+            players={modePlayers.filter(p => p.id !== playerBId && !p.tournament_id)}
             teamsMap={teamsMap}
             placeholder="Search a player..."
             accentClass="border-emerald-500/40 hover:border-emerald-500/70"
