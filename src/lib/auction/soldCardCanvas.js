@@ -217,7 +217,8 @@ export async function buildSoldCardCanvas({ player, team, price }) {
   // ---- vertical rhythm -----------------------------------------------------
   const avatarOuter = 264;
   let y = PAD;
-  const pillTop = y;
+  // The SOLD pill sits centred between the card's top edge and the photo.
+  const pillTop = y + 10;
   y += 32;
   y += 20;
   const avatarTop = y;
