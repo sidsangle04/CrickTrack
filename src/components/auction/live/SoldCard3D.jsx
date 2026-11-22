@@ -96,10 +96,6 @@ export default function SoldCard3D({ sale, onDone }) {
                   <span className="text-sm font-bold text-slate-400 ml-1.5">coins</span>
                 </p>
               </div>
-
-              <p className="mt-3 text-[10px] uppercase tracking-[0.25em] text-slate-500">
-                Tap anywhere to continue
-              </p>
             </div>
           </div>
         </motion.div>
