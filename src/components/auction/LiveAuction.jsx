@@ -77,9 +77,22 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
 
   const placeBid = (teamId) =>
     run(async () => {
-      if (!currentPlayer) return;
+      // Read the saved auction first, so a slow screen can never bid the same
+      // amount twice or bid against a team that is already on top.
+      const fresh = await base44.entities.Auction.get(auction.id);
+      const player = players.find((p) => p.id === fresh.current_player_id);
+      if (!player) {
+        setError('Nominate a player before taking bids.');
+        return;
+      }
+      if (fresh.current_bidder_team_id === teamId) {
+        const name = teams.find((t) => t.id === teamId)?.name || 'That team';
+        setError(`${name} already has the highest bid.`);
+        return;
+      }
+      const amount = nextBidAmount(fresh.current_bid, fresh);
       const finance = teamFinance({ teamId, players, settings: auction });
-      const problem = bidProblem({ amount: nextAmount, finance });
+      const problem = bidProblem({ amount, finance });
       if (problem) {
         setError(problem);
         return;
@@ -87,13 +100,17 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
       const team = teams.find((t) => t.id === teamId);
       await base44.entities.AuctionBid.create({
         tournament_id: auction.tournament_id,
-        player_id: currentPlayer.id,
-        player_name: currentPlayer.name,
+        player_id: player.id,
+        player_name: player.name,
         team_id: teamId,
         team_name: team?.name || '',
-        amount: nextAmount
+        amount
       });
-      await updateAuction({ current_bid: nextAmount, current_bidder_team_id: teamId });
+      await updateAuction({
+        current_player_id: player.id,
+        current_bid: amount,
+        current_bidder_team_id: teamId
+      });
     });
 
   const nominate = (player) =>
@@ -274,6 +291,10 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
                 ? 'No player'
                 : actingTeamId && actingTeamId !== team.id
                 ? 'Not bidding'
+                : busy
+                ? 'Saving…'
+                : auction.current_bidder_team_id === team.id
+                ? 'Highest bid'
                 : bidProblem({ amount: nextAmount, finance });
               return (
                 <TeamBidCard
@@ -358,7 +379,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         </div>
 
         <div className="lg:col-span-3 order-3 space-y-3">
-          <BidHistory bids={bids} teams={teams} playerId={currentPlayer?.id} />
+          <BidHistory bids={bids} teams={teams} />
           <SquadBoard teams={teams} players={players} settings={auction} />
         </div>
       </div>
