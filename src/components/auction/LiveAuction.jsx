@@ -163,6 +163,11 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         sold_to_team_id: liveAuction.current_bidder_team_id,
         sold_price: liveAuction.current_bid
       });
+      await updateAuction({
+        current_player_id: '',
+        current_bid: 0,
+        current_bidder_team_id: ''
+      });
       showFlash({
         type: 'sold',
         player: currentPlayer,
@@ -178,6 +183,11 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         status: 'unsold',
         sold_to_team_id: '',
         sold_price: 0
+      });
+      await updateAuction({
+        current_player_id: '',
+        current_bid: 0,
+        current_bidder_team_id: ''
       });
       showFlash({ type: 'unsold', player: currentPlayer });
     }, ['state', 'players']);
