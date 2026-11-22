@@ -45,6 +45,9 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirmFinal, setConfirmFinal] = useState(false);
+  // True from the moment a player is sold until the next player is brought in,
+  // so the music can switch to the celebration track and back.
+  const [celebrating, setCelebrating] = useState(false);
 
   const completed = auction.status === 'completed';
   const paused = auction.status === 'paused';
@@ -154,6 +157,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         return;
       }
       await bringInNextPlayer(auction.current_player_id);
+      setCelebrating(false);
     }, ['state']);
 
   const markSold = () =>
@@ -176,6 +180,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         price: liveAuction.current_bid
       });
       celebrateSale(liveAuction.current_bid, bidderTeam?.color);
+      setCelebrating(true);
     }, ['state', 'players']);
 
   const markUnsold = () =>
@@ -279,7 +284,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
           {paused ? <Play className="w-4 h-4 mr-1.5" /> : <Pause className="w-4 h-4 mr-1.5" />}
           {paused ? 'Resume' : 'Pause'}
         </Button>
-        <AuctionMusicToggle />
+        <AuctionMusicToggle celebrating={celebrating} />
         <Button
           variant="outline"
           size="sm"
