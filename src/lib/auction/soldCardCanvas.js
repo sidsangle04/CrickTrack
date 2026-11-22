@@ -485,15 +485,16 @@ export async function buildSoldCardCanvas({ player, team, price }) {
     const iconAsc = ascentOf(ctx, priceValue, ICON_SIZE);
     drawSpaced(ctx, priceValue, centreX, priceTop + (priceH + iconAsc) / 2, ICON_TRACKING, 'center');
   } else {
-    // The figure sits in the lower part of the panel and the label is centred
-    // in the space above it, so the two never crowd each other.
+    // Label, figure and "coins" are one block, centred in the panel with a
+    // clear gap so the label never crowds the figure.
     ctx.font = font(600, 10);
     const labelAsc = ascentOf(ctx, 'PRICE', 10);
     ctx.font = font(900, 36);
     const valueAsc = ascentOf(ctx, priceValue, 36);
-    const valueBaseline = priceTop + priceH - 16;
-    const valueTop = valueBaseline - valueAsc;
-    const labelBaseline = priceTop + (valueTop - priceTop) / 2 + labelAsc / 2;
+    const gap = 10;
+    const blockTop = priceTop + (priceH - (labelAsc + gap + valueAsc)) / 2;
+    const labelBaseline = blockTop + labelAsc;
+    const valueBaseline = labelBaseline + gap + valueAsc;
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = font(600, 10);
