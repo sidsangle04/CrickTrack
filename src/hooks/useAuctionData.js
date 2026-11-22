@@ -33,7 +33,7 @@ export default function useAuctionData(tournamentId) {
       status: 'setup',
       ...DEFAULT_SETTINGS
     })
-      .then(() => queryClient.invalidateQueries([...key]))
+      .then(() => queryClient.invalidateQueries({ queryKey: key }))
       .finally(() => {
         creating.current = false;
       });
@@ -75,7 +75,7 @@ export default function useAuctionData(tournamentId) {
   useEffect(() => {
     if (!tournamentId) return undefined;
     const unsubs = ['Auction', 'AuctionTeam', 'AuctionPlayer', 'AuctionBid', 'AuctionIconDraw'].map(
-      (name) => base44.entities[name].subscribe(() => queryClient.invalidateQueries([...key]))
+      (name) => base44.entities[name].subscribe(() => queryClient.invalidateQueries({ queryKey: key }))
     );
     return () => unsubs.forEach((u) => u && u());
   }, [tournamentId]);
@@ -96,6 +96,6 @@ export default function useAuctionData(tournamentId) {
       teamsQuery.isLoading ||
       playersQuery.isLoading ||
       tournamentQuery.isLoading,
-    refresh: () => queryClient.invalidateQueries([...key])
+    refresh: () => queryClient.invalidateQueries({ queryKey: key })
   };
 }

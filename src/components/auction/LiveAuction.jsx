@@ -28,6 +28,7 @@ import {
 import { Panel } from './Shared';
 import { auctionTotals, bidProblem, teamFinance } from '@/lib/auction/squad';
 import { nextBidAmount } from '@/lib/auction/bidding';
+import { liveLotState } from '@/lib/auction/liveState';
 import CurrentPlayerCard from './live/CurrentPlayerCard';
 import TeamBidCard from './live/TeamBidCard';
 import BidHistory from './live/BidHistory';
@@ -49,8 +50,18 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
   const completed = auction.status === 'completed';
   const paused = auction.status === 'paused';
   const currentPlayer = players.find((p) => p.id === auction.current_player_id) || null;
-  const bidderTeam = teams.find((t) => t.id === auction.current_bidder_team_id) || null;
-  const nextAmount = nextBidAmount(auction.current_bid, auction);
+
+  // The saved auction can lag the newest bid by a moment, so the live lot is read
+  // from the bids as well — the highest bidder always matches the bid history.
+  const lot = liveLotState({ auction, bids });
+  const liveAuction = {
+    ...auction,
+    current_bid: lot.currentBid,
+    current_bidder_team_id: lot.bidderTeamId
+  };
+
+  const bidderTeam = teams.find((t) => t.id === liveAuction.current_bidder_team_id) || null;
+  const nextAmount = nextBidAmount(liveAuction.current_bid, auction);
   const totals = auctionTotals({ teams, players, settings: auction });
   const unsoldCount = players.filter((p) => p.status === 'unsold').length;
 
@@ -85,12 +96,18 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         setError('Nominate a player before taking bids.');
         return;
       }
-      if (fresh.current_bidder_team_id === teamId) {
+      const freshBids = await base44.entities.AuctionBid.filter(
+        { tournament_id: auction.tournament_id, player_id: player.id },
+        '-created_date',
+        5
+      );
+      const state = liveLotState({ auction: fresh, bids: freshBids });
+      if (state.bidderTeamId === teamId) {
         const name = teams.find((t) => t.id === teamId)?.name || 'That team';
         setError(`${name} already has the highest bid.`);
         return;
       }
-      const amount = nextBidAmount(fresh.current_bid, fresh);
+      const amount = nextBidAmount(state.currentBid, fresh);
       const finance = teamFinance({ teamId, players, settings: auction });
       const problem = bidProblem({ amount, finance });
       if (problem) {
@@ -125,11 +142,11 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
 
   const markSold = () =>
     run(async () => {
-      if (!currentPlayer || !auction.current_bidder_team_id) return;
+      if (!currentPlayer || !liveAuction.current_bidder_team_id) return;
       await base44.entities.AuctionPlayer.update(currentPlayer.id, {
         status: 'sold',
-        sold_to_team_id: auction.current_bidder_team_id,
-        sold_price: auction.current_bid
+        sold_to_team_id: liveAuction.current_bidder_team_id,
+        sold_price: liveAuction.current_bid
       });
       await updateAuction({
         current_player_id: '',
@@ -140,7 +157,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         type: 'sold',
         player: currentPlayer,
         team: bidderTeam,
-        price: auction.current_bid
+        price: liveAuction.current_bid
       });
     });
 
@@ -293,7 +310,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
                 ? 'Not bidding'
                 : busy
                 ? 'Saving…'
-                : auction.current_bidder_team_id === team.id
+                : liveAuction.current_bidder_team_id === team.id
                 ? 'Highest bid'
                 : bidProblem({ amount: nextAmount, finance });
               return (
@@ -302,7 +319,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
                   team={team}
                   finance={finance}
                   nextAmount={nextAmount}
-                  isHighest={auction.current_bidder_team_id === team.id}
+                  isHighest={liveAuction.current_bidder_team_id === team.id}
                   blocked={blocked}
                   onBid={placeBid}
                 />
@@ -314,7 +331,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         <div className="lg:col-span-6 order-1 lg:order-2 space-y-3">
           <CurrentPlayerCard
             player={currentPlayer}
-            bid={auction.current_bid}
+            bid={liveAuction.current_bid}
             bidderTeam={bidderTeam}
             nextAmount={nextAmount}
             onNominate={() => setNominateOpen(true)}
@@ -393,7 +410,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
 
       {bigScreen && (
         <BigScreen
-          auction={auction}
+          auction={liveAuction}
           players={players}
           teams={teams}
           flash={flash}
