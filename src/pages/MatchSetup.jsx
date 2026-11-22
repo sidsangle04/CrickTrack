@@ -79,6 +79,11 @@ export default function MatchSetup() {
     queryFn: () => base44.entities.Player.list()
   });
 
+  const { data: tournaments = [] } = useQuery({
+    queryKey: ['tournaments', mode],
+    queryFn: () => base44.entities.Tournament.list()
+  });
+
   const { data: existingMatch } = useQuery({
     queryKey: ['match', matchId],
     queryFn: () => matchId ? base44.entities.Match.filter({ id: matchId }) : null,
@@ -142,22 +147,44 @@ export default function MatchSetup() {
 
   const teamsMap = modeTeams.reduce((acc, t) => ({ ...acc, [t.id]: t }), {});
 
-  // The tournament this match belongs to (a fixture link, or a team that only exists inside one).
+  // The tournament this match belongs to: the fixture it was started from, or — when both
+  // chosen teams play in a tournament that holds auction squads for them — that tournament.
   const matchTournament = Array.isArray(tournamentMatch) ? tournamentMatch[0] : null;
   const tournamentId = matchTournament?.tournament_id || '';
+
+  const tournamentList = Array.isArray(tournaments) ? tournaments : [];
+
+  const auctionTournamentId = (() => {
+    if (tournamentId) return tournamentId;
+    const { team1_id, team2_id } = formData;
+    if (!team1_id || !team2_id) return '';
+    const hasSquad = (teamId, tid) =>
+    modePlayers.some((p) => p.team_id === teamId && p.tournament_id === tid);
+    const found = tournamentList.find((t) => {
+      const ids = t.team_ids || [];
+      return (
+        ids.includes(team1_id) && ids.includes(team2_id) &&
+        hasSquad(team1_id, t.id) && hasSquad(team2_id, t.id));
+
+    });
+    return found?.id || '';
+  })();
+
+  const auctionTournamentName =
+  tournamentList.find((t) => t.id === auctionTournamentId)?.name || '';
 
   // A tournament match is played by the squad bought at that tournament's auction.
   // Club matches keep the club squad.
   const squadOf = (teamId) => {
     const clubSquad = modePlayers.filter((p) => p.team_id === teamId && !p.tournament_id);
-    const scopeId = tournamentId || teamsMap[teamId]?.tournament_id || '';
+    const scopeId = auctionTournamentId || teamsMap[teamId]?.tournament_id || '';
     if (!scopeId) return clubSquad;
     const auctionSquad = modePlayers.filter((p) => p.team_id === teamId && p.tournament_id === scopeId);
     return auctionSquad.length ? auctionSquad : clubSquad;
   };
 
   // Team pickers offer the club's own teams, plus the teams of the tournament in play.
-  const selectableTeams = modeTeams.filter((t) => !t.tournament_id || t.tournament_id === tournamentId);
+  const selectableTeams = modeTeams.filter((t) => !t.tournament_id || t.tournament_id === auctionTournamentId);
 
   const team1Players = squadOf(formData.team1_id);
   const team2Players = squadOf(formData.team2_id);
@@ -406,6 +433,11 @@ export default function MatchSetup() {
             <div className="flex items-center gap-3 mb-4">
               <Users className="w-5 h-5 text-emerald-400" />
               <h2 className="text-lg font-semibold text-white">Select Playing XI</h2>
+              {auctionTournamentName &&
+              <span className="ml-auto text-[11px] px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/40">
+                  {auctionTournamentName} auction squads
+                </span>
+              }
             </div>
             
             <div className="grid md:grid-cols-2 gap-6">
