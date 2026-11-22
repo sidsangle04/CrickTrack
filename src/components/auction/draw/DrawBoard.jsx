@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeftRight, Check, Loader2, PlayCircle, RefreshCw, Shuffle, Trophy } from 'lucide-react';
+import { ArrowLeftRight, Check, Loader2, PlayCircle, RefreshCw, Trophy } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,6 +11,7 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import { Panel, PlayerAvatar, TeamBadge } from '../Shared';
+import SpinWheel from './SpinWheel';
 import {
   BOWLS,
   assignmentsFor,
@@ -51,7 +52,7 @@ export default function DrawBoard({
       teamsMissingBowl({ players, teams, bowl }).length > 0 && remainingInBowl(players, bowl).length === 0
   );
 
-  const draw = async () => {
+  const draw = async (preferredId) => {
     if (busy) return;
     setBusy(true);
     setError('');
@@ -67,7 +68,8 @@ export default function DrawBoard({
         refresh && refresh();
         return;
       }
-      const player = pickRandom(remainingInBowl(livePlayers, liveTurn.bowl));
+      const bowlPlayers = remainingInBowl(livePlayers, liveTurn.bowl);
+      const player = bowlPlayers.find((p) => p.id === preferredId) || pickRandom(bowlPlayers);
       if (!player) {
         setError(`No players left in ${BOWL_LABEL[liveTurn.bowl]}.`);
         refresh && refresh();
@@ -252,27 +254,24 @@ export default function DrawBoard({
           <p className="text-[11px] uppercase tracking-widest text-slate-400 mb-3 text-center">
             {BOWL_LABEL[turn.bowl]} · draw {drawn(turn.bowl) + 1} of {order.length}
           </p>
-          <div className="flex flex-col items-center gap-3">
-            <TeamBadge team={turn.team} size="xl" />
-            <div className="text-center">
-              <p className="text-lg font-bold text-white">{turn.team?.name}</p>
-              <p className="text-xs text-slate-400">
-                {turn.team?.owner_name || 'Team'} draws one icon player
-              </p>
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex items-center gap-3">
+              <TeamBadge team={turn.team} size="lg" />
+              <div>
+                <p className="text-lg font-bold text-white">{turn.team?.name}</p>
+                <p className="text-xs text-slate-400">
+                  {turn.team?.owner_name || 'Team'} spins for one icon player
+                </p>
+              </div>
             </div>
-            <Button
-              onClick={draw}
+            <SpinWheel
+              options={remainingInBowl(players, turn.bowl)}
               disabled={busy}
-              size="lg"
-              className="bg-emerald-500 hover:bg-emerald-600 text-base font-bold px-8"
-            >
-              {busy ? (
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              ) : (
-                <Shuffle className="w-5 h-5 mr-2" />
-              )}
-              Draw from {BOWL_LABEL[turn.bowl]}
-            </Button>
+              onResult={(player) => draw(player.id)}
+            />
+            <p className="text-xs text-slate-400 h-4">
+              {busy ? 'Saving the pick…' : 'Tap SPIN — the name under the arrow joins this team.'}
+            </p>
           </div>
         </div>
       )}
