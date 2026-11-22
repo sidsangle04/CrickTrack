@@ -23,6 +23,7 @@ import { Link } from 'react-router-dom';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 import usePreMatchPrediction from '@/hooks/usePreMatchPrediction';
 import PreMatchPredictionCard from '@/components/prediction/PreMatchPredictionCard';
+import PlayingXIStep from '@/components/match-setup/PlayingXIStep';
 import { preMatchSummary } from '@/lib/predictionEngine';
 
 const STEPS = ['basics', 'teams', 'playing_xi', 'format', 'toss'];
@@ -89,7 +90,6 @@ export default function MatchSetup() {
     queryFn: () => matchId ? base44.entities.Match.filter({ id: matchId }) : null,
     enabled: !!matchId
   });
-
   const { data: tournamentMatch } = useQuery({
     queryKey: ['tournament-match', formData.tournament_match_id],
     queryFn: () => base44.entities.TournamentMatch.filter({ id: formData.tournament_match_id }),
@@ -172,6 +172,18 @@ export default function MatchSetup() {
 
   const auctionTournamentName =
   tournamentList.find((t) => t.id === auctionTournamentId)?.name || '';
+
+  // A tournament match is played by the squad built at that tournament's auction, so the
+  // selection limit is that auction's squad size (e.g. 6) instead of a flat 11.
+  const { data: tournamentAuctions = [] } = useQuery({
+    queryKey: ['tournament-auction', auctionTournamentId],
+    queryFn: () => base44.entities.Auction.filter({ tournament_id: auctionTournamentId }),
+    enabled: !!auctionTournamentId
+  });
+
+  const auctionSquadSize = (Array.isArray(tournamentAuctions) ? tournamentAuctions[0] : null)?.required_squad_size || 0;
+
+  const squadLimit = auctionSquadSize || (formData.format === 'test' ? formData.players_per_team : 11);
 
   // A tournament match is played by the squad bought at that tournament's auction.
   // Club matches keep the club squad.
@@ -272,9 +284,13 @@ export default function MatchSetup() {
     const current = formData[key];
     if (current.includes(playerId)) {
       setFormData({ ...formData, [key]: current.filter((id) => id !== playerId) });
-    } else if (current.length < (formData.format === 'test' ? formData.players_per_team : 11) || formData.unlimited_batters) {
+    } else if (current.length < squadLimit || formData.unlimited_batters) {
       setFormData({ ...formData, [key]: [...current, playerId] });
     }
+  };
+
+  const setTeamXI = (teamNum, ids) => {
+    setFormData({ ...formData, [`team${teamNum}_playing_xi`]: ids });
   };
 
   const canProceed = () => {
@@ -282,7 +298,8 @@ export default function MatchSetup() {
       case 'basics':return formData.venue && formData.date;
       case 'teams':return formData.team1_id && formData.team2_id && formData.team1_id !== formData.team2_id;
       case 'playing_xi':return formData.format === 'test'
-        ? formData.team1_playing_xi.length >= formData.players_per_team && formData.team2_playing_xi.length >= formData.players_per_team
+        ? formData.team1_playing_xi.length >= Math.min(formData.players_per_team, squadLimit) &&
+          formData.team2_playing_xi.length >= Math.min(formData.players_per_team, squadLimit)
         : formData.team1_playing_xi.length >= 2 && formData.team2_playing_xi.length >= 2;
       case 'format':return formData.format === 'test'
         ? formData.players_per_team >= 2 && (!formData.is_over_limited || formData.total_match_overs > 0)
@@ -429,129 +446,19 @@ export default function MatchSetup() {
         }
 
         {STEPS[step] === 'playing_xi' &&
-        <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Users className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-lg font-semibold text-white">Select Playing XI</h2>
-              {auctionTournamentName &&
-              <span className="ml-auto text-[11px] px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/40">
-                  {auctionTournamentName} auction squads
-                </span>
-              }
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Team 1 */}
-              <div>
-                <h3 className="font-medium text-white mb-3 flex items-center justify-between">
-                  {teamsMap[formData.team1_id]?.name || 'Team 1'}
-                  <span className="text-sm text-slate-400">{formData.team1_playing_xi.length}/{formData.format === 'test' ? formData.players_per_team : 11}</span>
-                </h3>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {team1Players.length === 0 ?
-                <p className="text-sm text-slate-400">No players in this team</p> :
-
-                team1Players.map((p) =>
-                <button
-                  key={p.id}
-                  onClick={() => togglePlayer(1, p.id)}
-                  className={`w-full p-3 rounded-lg flex items-center gap-3 transition-colors ${
-                  formData.team1_playing_xi.includes(p.id) ?
-                  'bg-emerald-500/20 border border-emerald-500/50' :
-                  'bg-slate-900 border border-slate-700 hover:border-slate-600'}`
-                  }>
-
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                  formData.team1_playing_xi.includes(p.id) ?
-                  'border-emerald-500 bg-emerald-500' :
-                  'border-slate-600'}`
-                  }>
-                          {formData.team1_playing_xi.includes(p.id) &&
-                    <CheckCircle2 className="w-3 h-3 text-white" />
-                    }
-                        </div>
-                        <span className="text-sm font-medium text-white">{p.name}</span>
-                      </button>
-                )
-                }
-                </div>
-                {team1Players.length > 0 &&
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (formData.team1_playing_xi.length === team1Players.length) {
-                    setFormData({ ...formData, team1_playing_xi: [] });
-                  } else {
-                    setFormData({ ...formData, team1_playing_xi: team1Players.map((p) => p.id) });
-                  }
-                }}
-                className="mt-3 w-full border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-300">
-
-                    {formData.team1_playing_xi.length === team1Players.length ? 'Deselect All' : 'Select All'}
-                  </Button>
-              }
-              </div>
-
-              {/* Team 2 */}
-              <div>
-                <h3 className="font-medium text-white mb-3 flex items-center justify-between">
-                  {teamsMap[formData.team2_id]?.name || 'Team 2'}
-                  <span className="text-sm text-slate-400">{formData.team2_playing_xi.length}/{formData.format === 'test' ? formData.players_per_team : 11}</span>
-                </h3>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {team2Players.length === 0 ?
-                <p className="text-sm text-slate-400">No players in this team</p> :
-
-                team2Players.map((p) =>
-                <button
-                  key={p.id}
-                  onClick={() => togglePlayer(2, p.id)}
-                  className={`w-full p-3 rounded-lg flex items-center gap-3 transition-colors ${
-                  formData.team2_playing_xi.includes(p.id) ?
-                  'bg-emerald-500/20 border border-emerald-500/50' :
-                  'bg-slate-900 border border-slate-700 hover:border-slate-600'}`
-                  }>
-
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                  formData.team2_playing_xi.includes(p.id) ?
-                  'border-emerald-500 bg-emerald-500' :
-                  'border-slate-600'}`
-                  }>
-                          {formData.team2_playing_xi.includes(p.id) &&
-                    <CheckCircle2 className="w-3 h-3 text-white" />
-                    }
-                        </div>
-                        <span className="text-sm font-medium text-white">{p.name}</span>
-                      </button>
-                )
-                }
-                </div>
-                {team2Players.length > 0 &&
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (formData.team2_playing_xi.length === team2Players.length) {
-                    setFormData({ ...formData, team2_playing_xi: [] });
-                  } else {
-                    setFormData({ ...formData, team2_playing_xi: team2Players.map((p) => p.id) });
-                  }
-                }}
-                className="mt-3 w-full border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-300">
-
-                    {formData.team2_playing_xi.length === team2Players.length ? 'Deselect All' : 'Select All'}
-                  </Button>
-              }
-              </div>
-            </div>
-
-            <PreMatchPredictionCard
-              prediction={preMatchPrediction}
-              team1Name={teamsMap[formData.team1_id]?.name || 'Team 1'}
-              team2Name={teamsMap[formData.team2_id]?.name || 'Team 2'}
-              loading={predictionLoading} />
-          </div>
+        <PlayingXIStep
+          team1Name={teamsMap[formData.team1_id]?.name || 'Team 1'}
+          team2Name={teamsMap[formData.team2_id]?.name || 'Team 2'}
+          team1Players={team1Players}
+          team2Players={team2Players}
+          team1XI={formData.team1_playing_xi}
+          team2XI={formData.team2_playing_xi}
+          squadLimit={squadLimit}
+          auctionTournamentName={auctionTournamentName}
+          onToggle={togglePlayer}
+          onChange={setTeamXI}
+          prediction={preMatchPrediction}
+          predictionLoading={predictionLoading} />
         }
 
         {STEPS[step] === 'format' &&
