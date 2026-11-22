@@ -1,8 +1,14 @@
 import React from 'react';
 import { Compass, Radio } from 'lucide-react';
 import Reveal from '@/components/landing/Reveal';
-import CricketFieldBackdrop from '@/components/landing/CricketFieldBackdrop';
+import HeroMedia from '@/components/landing/HeroMedia';
 import AuthButtons from '@/components/AuthButtons';
+
+const HERO_VIDEO =
+  'https://media.base44.com/videos/public/69cd6e7dda99287bd2ab65f2/4eff0fc5b_6877250-hd_1920_1080_30fps.mp4';
+
+const HERO_POSTER =
+  'https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/fdf707174_generated_image.png';
 
 const PHOTOS = [
   {
@@ -31,7 +37,7 @@ const STATS = [
 export default function LandingHero({ onExplore }) {
   return (
     <section className="relative overflow-hidden rounded-3xl border border-slate-700/50 bg-slate-900">
-      <CricketFieldBackdrop />
+      <HeroMedia videoUrl={HERO_VIDEO} posterUrl={HERO_POSTER} />
 
       <div className="relative px-6 py-14 md:px-14 md:py-20">
         <div className="max-w-2xl">
