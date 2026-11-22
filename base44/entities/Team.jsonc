@@ -30,6 +30,11 @@
     "primary_color": {
       "type": "string",
       "description": "Team primary color hex"
+    },
+    "tournament_id": {
+      "type": "string",
+      "default": "",
+      "description": "Set when the team was created for one tournament's auction \u2014 it stays inside that tournament only"
     }
   },
   "required": [

@@ -63,6 +63,11 @@
     "is_wicket_keeper": {
       "type": "boolean",
       "default": false
+    },
+    "tournament_id": {
+      "type": "string",
+      "default": "",
+      "description": "Set when the player joined through one tournament's auction \u2014 the record still counts in the main stats"
     }
   },
   "required": [

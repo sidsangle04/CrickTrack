@@ -49,8 +49,15 @@ export default function Players() {
     () => new Set(matches.filter(m => (m.ground_mode || 'turf') === mode).map(m => m.id)),
     [matches, mode]
   );
-  const modeTeams = useMemo(() => teams.filter(t => (t.ground_mode || 'turf') === mode), [teams, mode]);
-  const modePlayers = useMemo(() => allPlayers.filter(p => (p.ground_mode || 'turf') === mode), [allPlayers, mode]);
+  const modeTeams = useMemo(
+    () => teams.filter(t => (t.ground_mode || 'turf') === mode && !t.tournament_id),
+    [teams, mode]
+  );
+  // Auction players stay with their tournament; their records still feed the stats.
+  const modePlayers = useMemo(
+    () => allPlayers.filter(p => (p.ground_mode || 'turf') === mode && !p.tournament_id),
+    [allPlayers, mode]
+  );
   const teamsMap = useMemo(() => teams.reduce((a, t) => ({ ...a, [t.id]: t }), {}), [teams]);
 
   // Quick career chips per player (mode-scoped)

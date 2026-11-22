@@ -204,8 +204,12 @@ export default function Tournaments() {
   const handleDeleteTournament = async (id) => {
     if (!window.confirm('Delete this tournament and all its bracket matches?')) return;
     await base44.entities.TournamentMatch.deleteMany({ tournament_id: id });
+    // Auction-made tournaments own their teams and players.
+    await base44.entities.Player.deleteMany({ tournament_id: id });
+    await base44.entities.Team.deleteMany({ tournament_id: id });
     await base44.entities.Tournament.delete(id);
     queryClient.invalidateQueries(['tournaments']);
+    queryClient.invalidateQueries(['teams', mode]);
     setSelectedId(null);
   };
 
@@ -505,6 +509,7 @@ export default function Tournaments() {
                     : t.format === 'league_knockout'
                     ? 'League + KO'
                     : 'Knockout'}
+                  {t.creation_mode === 'auction' && ' · Auction'}
                 </p>
                 {champ && (
                   <p className="text-sm text-amber-400 mt-2">🏆 {champ.name}</p>
@@ -517,10 +522,14 @@ export default function Tournaments() {
 
       {showCreate && (
         <CreateTournamentModal
-          teams={modeTeams}
+          teams={modeTeams.filter((t) => !t.tournament_id)}
           onClose={() => setShowCreate(false)}
-          onCreated={(id) => {
+          onCreated={(id, creationMode) => {
             setShowCreate(false);
+            if (creationMode === 'auction') {
+              navigate(createPageUrl('Auction') + `?tournamentId=${id}`);
+              return;
+            }
             openTournament(id);
           }}
         />

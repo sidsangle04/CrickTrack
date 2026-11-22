@@ -53,7 +53,10 @@ export default function TeamManagement() {
     queryFn: () => base44.entities.Team.list()
   });
 
-  const modeTeams = teams.filter((t) => (t.ground_mode || 'turf') === mode);
+  // Tournament teams live inside their tournament, not in the Teams section.
+  const modeTeams = teams.filter(
+    (t) => (t.ground_mode || 'turf') === mode && !t.tournament_id
+  );
 
   const { data: players = [], isLoading: playersLoading } = useQuery({
     queryKey: ['players', selectedTeam?.id],

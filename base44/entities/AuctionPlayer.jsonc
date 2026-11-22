@@ -5,6 +5,11 @@
     "tournament_id": {
       "type": "string"
     },
+    "player_id": {
+      "type": "string",
+      "default": "",
+      "description": "The Player record created for this auction player once the auction closes"
+    },
     "name": {
       "type": "string",
       "description": "Only required field"

@@ -38,6 +38,7 @@ import AuctionMusicToggle from './live/AuctionMusicToggle';
 import AuctionResults from './live/AuctionResults';
 import SoldCard3D from './live/SoldCard3D';
 import JumpBidDialog from './live/JumpBidDialog';
+import promoteAuctionSquads from '@/lib/auction/promote';
 import SettingsPanel from './setup/SettingsPanel';
 
 export default function LiveAuction({ auction, teams, players, bids, refresh }) {
@@ -233,6 +234,15 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
   const togglePause = () =>
     run(() => updateAuction({ status: paused ? 'auction' : 'paused' }), ['state']);
 
+  // Closing the auction hands the squads to the tournament: sold players become
+  // that team's players for this tournament.
+  const saveSquads = () =>
+    promoteAuctionSquads({
+      tournamentId: auction.tournament_id,
+      auctionTeams: teams,
+      auctionPlayers: players
+    });
+
   const finalise = () =>
     run(async () => {
       if (!totals.allComplete) {
@@ -240,18 +250,24 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         return;
       }
       await updateAuction({ status: 'completed' });
+      await saveSquads();
     }, ['state']);
 
   const overrideFinalise = () =>
     run(async () => {
       setConfirmFinal(false);
       await updateAuction({ status: 'completed' });
+      await saveSquads();
     }, ['state']);
 
   if (completed) {
     return (
       <div className="space-y-4">
         <AuctionResults teams={teams} players={players} settings={auction} />
+        <p className="text-center text-xs text-slate-500">
+          Squads are saved to the tournament — every sold player now belongs to their team and counts
+          in your player records.
+        </p>
         <div className="flex justify-center">
           <Button
             variant="outline"

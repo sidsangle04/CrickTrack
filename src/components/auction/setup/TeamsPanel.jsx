@@ -27,6 +27,7 @@ export default function TeamsPanel({ auction, teams, players, tournament, refres
       await base44.entities.AuctionTeam.bulkCreate(
         missing.map((t, i) => ({
           tournament_id: auction.tournament_id,
+          team_id: t.id,
           name: t.name,
           logo_url: t.logo_url || '',
           color: t.primary_color || '#10b981',
