@@ -62,7 +62,7 @@ export default function Auction() {
       current_bidder_team_id: ''
     });
     setView(null);
-    refresh();
+    refresh(['state']);
   };
 
   return (

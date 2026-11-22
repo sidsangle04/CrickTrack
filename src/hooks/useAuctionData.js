@@ -3,6 +3,18 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { DEFAULT_SETTINGS } from '@/lib/auction/bidding';
 
+// Which slice of the auction screen each entity touches, so a single bid only
+// reloads what it changed instead of the whole screen.
+const PARTS = ['state', 'teams', 'players', 'bids', 'draws'];
+
+const TOUCHED_BY = {
+  Auction: ['state'],
+  AuctionTeam: ['teams'],
+  AuctionPlayer: ['players'],
+  AuctionBid: ['bids'],
+  AuctionIconDraw: ['draws']
+};
+
 // Everything the auction screens need, kept in one place and refreshed live.
 export default function useAuctionData(tournamentId) {
   const queryClient = useQueryClient();
@@ -72,12 +84,29 @@ export default function useAuctionData(tournamentId) {
   });
 
   // Live updates for every auction screen (organiser, owners, big display).
+  // Events arrive in bursts (a bid writes the bid row and then the auction), so
+  // they are gathered for a moment and reloaded once per slice.
   useEffect(() => {
     if (!tournamentId) return undefined;
-    const unsubs = ['Auction', 'AuctionTeam', 'AuctionPlayer', 'AuctionBid', 'AuctionIconDraw'].map(
-      (name) => base44.entities[name].subscribe(() => queryClient.invalidateQueries({ queryKey: key }))
+    const pending = new Set();
+    let timer = null;
+    const flush = () => {
+      timer = null;
+      const parts = [...pending];
+      pending.clear();
+      parts.forEach((part) => queryClient.invalidateQueries({ queryKey: [...key, part] }));
+    };
+    const queue = (parts) => {
+      parts.forEach((part) => pending.add(part));
+      if (!timer) timer = setTimeout(flush, 600);
+    };
+    const unsubs = Object.entries(TOUCHED_BY).map(([name, parts]) =>
+      base44.entities[name].subscribe(() => queue(parts))
     );
-    return () => unsubs.forEach((u) => u && u());
+    return () => {
+      if (timer) clearTimeout(timer);
+      unsubs.forEach((u) => u && u());
+    };
   }, [tournamentId]);
 
   const teams = [...(teamsQuery.data || [])].sort(
@@ -96,6 +125,9 @@ export default function useAuctionData(tournamentId) {
       teamsQuery.isLoading ||
       playersQuery.isLoading ||
       tournamentQuery.isLoading,
-    refresh: () => queryClient.invalidateQueries({ queryKey: key })
+    refresh: (parts) => {
+      const targets = Array.isArray(parts) && parts.length ? parts : PARTS;
+      targets.forEach((part) => queryClient.invalidateQueries({ queryKey: [...key, part] }));
+    }
   };
 }

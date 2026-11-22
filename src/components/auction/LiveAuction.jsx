@@ -73,12 +73,12 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
 
   const updateAuction = (data) => base44.entities.Auction.update(auction.id, data);
 
-  const run = async (fn) => {
+  const run = async (fn, parts) => {
     setBusy(true);
     setError('');
     try {
       await fn();
-      refresh && refresh();
+      refresh && refresh(parts);
     } catch (e) {
       setError(e?.message || 'Something went wrong.');
     } finally {
@@ -128,7 +128,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         current_bid: amount,
         current_bidder_team_id: teamId
       });
-    });
+    }, ['state', 'bids']);
 
   const nominate = (player) =>
     run(async () => {
@@ -138,7 +138,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         current_bid: 0,
         current_bidder_team_id: ''
       });
-    });
+    }, ['state']);
 
   const markSold = () =>
     run(async () => {
@@ -159,7 +159,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         team: bidderTeam,
         price: liveAuction.current_bid
       });
-    });
+    }, ['state', 'players']);
 
   const markUnsold = () =>
     run(async () => {
@@ -175,17 +175,19 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         current_bidder_team_id: ''
       });
       showFlash({ type: 'unsold', player: currentPlayer });
-    });
+    }, ['state', 'players']);
 
   const reopenUnsold = () =>
     run(() =>
       base44.entities.AuctionPlayer.updateMany(
         { tournament_id: auction.tournament_id, status: 'unsold' },
         { $set: { status: 'available' } }
-      )
+      ),
+      ['players']
     );
 
-  const togglePause = () => run(() => updateAuction({ status: paused ? 'auction' : 'paused' }));
+  const togglePause = () =>
+    run(() => updateAuction({ status: paused ? 'auction' : 'paused' }), ['state']);
 
   const finalise = () =>
     run(async () => {
@@ -194,13 +196,13 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         return;
       }
       await updateAuction({ status: 'completed' });
-    });
+    }, ['state']);
 
   const overrideFinalise = () =>
     run(async () => {
       setConfirmFinal(false);
       await updateAuction({ status: 'completed' });
-    });
+    }, ['state']);
 
   if (completed) {
     return (
