@@ -183,7 +183,16 @@ export default function MatchSetup() {
 
   const auctionSquadSize = (Array.isArray(tournamentAuctions) ? tournamentAuctions[0] : null)?.required_squad_size || 0;
 
-  const squadLimit = auctionSquadSize || (formData.format === 'test' ? formData.players_per_team : 11);
+  // Only teams carrying a squad bought at that auction follow the auction squad size;
+  // everything else keeps the usual match limit.
+  const usesAuctionSquad =
+    !!auctionTournamentId &&
+    [formData.team1_id, formData.team2_id].some((teamId) =>
+      modePlayers.some((p) => p.team_id === teamId && p.tournament_id === auctionTournamentId)
+    );
+
+  const squadLimit =
+    usesAuctionSquad && auctionSquadSize ? auctionSquadSize : formData.format === 'test' ? formData.players_per_team : 11;
 
   // A tournament match is played by the squad bought at that tournament's auction.
   // Club matches keep the club squad.
