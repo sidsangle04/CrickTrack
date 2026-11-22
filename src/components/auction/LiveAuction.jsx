@@ -28,6 +28,7 @@ import { Panel } from './Shared';
 import { auctionTotals, bidProblem, teamFinance } from '@/lib/auction/squad';
 import { nextBidAmount } from '@/lib/auction/bidding';
 import { liveLotState } from '@/lib/auction/liveState';
+import { celebrateSale } from '@/lib/auction/celebrate';
 import CurrentPlayerCard from './live/CurrentPlayerCard';
 import TeamBidCard from './live/TeamBidCard';
 import BidHistory from './live/BidHistory';
@@ -173,6 +174,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         team: bidderTeam,
         price: liveAuction.current_bid
       });
+      celebrateSale(bidderTeam?.color);
     }, ['state', 'players']);
 
   const markUnsold = () =>
