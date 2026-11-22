@@ -36,6 +36,7 @@ import SquadBoard from './live/SquadBoard';
 import BigScreen from './live/BigScreen';
 import AuctionMusicToggle from './live/AuctionMusicToggle';
 import AuctionResults from './live/AuctionResults';
+import SoldCard3D from './live/SoldCard3D';
 import SettingsPanel from './setup/SettingsPanel';
 
 export default function LiveAuction({ auction, teams, players, bids, refresh }) {
@@ -48,6 +49,8 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
   // True from the moment a player is sold until the next player is brought in,
   // so the music can switch to the celebration track and back.
   const [celebrating, setCelebrating] = useState(false);
+  // The 3D "sold" card shown in front of everything after a sale.
+  const [soldCard, setSoldCard] = useState(null);
 
   const completed = auction.status === 'completed';
   const paused = auction.status === 'paused';
@@ -181,6 +184,11 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
       });
       celebrateSale(liveAuction.current_bid, bidderTeam?.color);
       setCelebrating(true);
+      setSoldCard({
+        player: currentPlayer,
+        team: bidderTeam,
+        price: liveAuction.current_bid
+      });
     }, ['state', 'players']);
 
   const markUnsold = () =>
@@ -417,6 +425,8 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
           <SquadBoard teams={teams} players={players} settings={auction} />
         </div>
       </div>
+
+      {soldCard && <SoldCard3D sale={soldCard} onDone={() => setSoldCard(null)} />}
 
       {bigScreen && (
         <BigScreen
