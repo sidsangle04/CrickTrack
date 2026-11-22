@@ -78,7 +78,7 @@ export default function AuctionResults({ teams, players, settings }) {
                       )}
                     </span>
                     <span className="text-slate-400 tabular-nums shrink-0">
-                      {p.category === 'icon' ? 'Free' : p.sold_price || 0}
+                      {p.category === 'icon' ? 'ICON' : p.sold_price || 0}
                     </span>
                     <SoldCardPhotoButton sale={sale} />
                   </div>
