@@ -4,6 +4,9 @@ import { CategoryBadge, PlayerAvatar, ROLE_LABELS, TeamBadge } from '../Shared';
 
 // The sold-card design itself — a slab lit in the winning team's colour.
 // Shared by the 3D pop-up and the photo download so both always look the same.
+// The layout deliberately avoids flex rows and gaps: the photo is drawn by
+// html2canvas, which lays flex rows out badly (text ends up overlapping), while
+// plain block and inline-block flow comes out exactly as it does on screen.
 const SoldCardFace = forwardRef(function SoldCardFace({ player, team, price }, ref) {
   if (!player) return null;
 
@@ -35,18 +38,22 @@ const SoldCardFace = forwardRef(function SoldCardFace({ player, team, price }, r
 
       <div className="relative px-5 pt-5 pb-6 text-center">
         <div
-          className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-black uppercase tracking-[0.3em] text-slate-950"
+          className="inline-block rounded-full px-4 py-1.5 text-sm font-black uppercase tracking-[0.3em] text-slate-950"
           style={{
             background: 'linear-gradient(180deg, #fde68a, #f59e0b)',
             boxShadow: '0 5px 0 #b45309, 0 12px 26px rgba(245,158,11,0.4)',
           }}
         >
-          <Gavel className="h-4 w-4" /> Sold
+          <Gavel
+            className="h-4 w-4"
+            style={{ display: 'inline-block', verticalAlign: '-3px', marginRight: '6px' }}
+          />
+          Sold
         </div>
 
-        <div className="mt-5 flex justify-center">
+        <div className="mt-5 text-center">
           <div
-            className="rounded-2xl p-1"
+            className="inline-block rounded-2xl p-1"
             style={{
               backgroundColor: color,
               boxShadow: `0 0 0 5px rgba(255,255,255,0.07), 0 18px 40px -10px ${color}`,
@@ -56,15 +63,23 @@ const SoldCardFace = forwardRef(function SoldCardFace({ player, team, price }, r
           </div>
         </div>
 
-        <h2 className="mt-4 text-2xl sm:text-3xl font-black text-white leading-tight break-words">
+        <h2
+          className="mt-4 text-2xl sm:text-3xl font-black text-white leading-tight"
+          style={{ wordBreak: 'break-word' }}
+        >
           {player.name}
         </h2>
-        <div className="mt-2 flex items-center justify-center gap-2 flex-wrap">
-          <CategoryBadge category={player.category} />
+        <div className="mt-2">
+          <div style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+            <CategoryBadge category={player.category} />
+          </div>
           {player.primary_role && (
-            <span className="text-[11px] uppercase tracking-widest text-slate-400">
+            <div
+              className="text-[11px] uppercase tracking-widest text-slate-400"
+              style={{ display: 'inline-block', verticalAlign: 'middle', marginLeft: '8px' }}
+            >
               {ROLE_LABELS[player.primary_role]}
-            </span>
+            </div>
           )}
         </div>
 
@@ -75,11 +90,26 @@ const SoldCardFace = forwardRef(function SoldCardFace({ player, team, price }, r
           }}
         />
 
-        <div className="mt-4 flex items-center justify-center gap-3">
-          <TeamBadge team={team} size="lg" />
-          <div className="text-left min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.25em] text-slate-400">Sold to</p>
-            <p className="text-lg sm:text-xl font-bold text-white truncate">{team?.name || 'Team'}</p>
+        <div className="mt-4 text-center">
+          <div style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+            <TeamBadge team={team} size="lg" />
+          </div>
+          <div
+            style={{
+              display: 'inline-block',
+              verticalAlign: 'middle',
+              textAlign: 'left',
+              marginLeft: '12px',
+              maxWidth: '200px',
+            }}
+          >
+            <div className="text-[10px] uppercase tracking-[0.25em] text-slate-400">Sold to</div>
+            <div
+              className="text-lg sm:text-xl font-bold text-white"
+              style={{ wordBreak: 'break-word' }}
+            >
+              {team?.name || 'Team'}
+            </div>
           </div>
         </div>
 
@@ -102,13 +132,22 @@ const SoldCardFace = forwardRef(function SoldCardFace({ player, team, price }, r
         </div>
 
         {/* CrickTrack lockup */}
-        <div className="mt-4 flex items-center justify-center gap-2">
-          <img
-            src="https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/c49e9414c_CrickTrackLogo.png"
-            alt="CrickTrack"
-            className="h-6 w-auto rounded bg-white p-0.5"
-          />
-          <div className="text-left">
+        <div className="mt-4 text-center">
+          <div style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+            <img
+              src="https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/c49e9414c_CrickTrackLogo.png"
+              alt="CrickTrack"
+              className="h-6 w-auto rounded bg-white p-0.5"
+            />
+          </div>
+          <div
+            style={{
+              display: 'inline-block',
+              verticalAlign: 'middle',
+              textAlign: 'left',
+              marginLeft: '8px',
+            }}
+          >
             <p className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-300 leading-none">
               CrickTrack
             </p>

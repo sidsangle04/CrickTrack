@@ -34,6 +34,7 @@ export default function SoldCardPhotoButton({ sale, variant = 'chip', className 
       );
       await downloadNodeAsPng(nodeRef.current, soldCardFilename(sale?.player?.name), {
         backgroundColor: null,
+        scale: 3,
       });
     } finally {
       setRender(false);
@@ -69,7 +70,7 @@ export default function SoldCardPhotoButton({ sale, variant = 'chip', className 
             position: 'fixed',
             left: '-10000px',
             top: 0,
-            width: '420px',
+            width: '460px',
             pointerEvents: 'none',
           }}
         >

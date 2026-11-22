@@ -14,8 +14,8 @@ const SoldCardExport = forwardRef(function SoldCardExport({ player, team, price 
     <div
       ref={ref}
       style={{
-        width: '420px',
-        padding: '36px 34px 42px',
+        width: '460px',
+        padding: '40px 38px 46px',
         background: `radial-gradient(circle at 50% 34%, ${color}66 0%, #0b1220 48%, #020617 80%)`,
       }}
     >
