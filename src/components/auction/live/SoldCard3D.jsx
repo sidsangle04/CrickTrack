@@ -1,18 +1,12 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Gavel } from 'lucide-react';
 import { CategoryBadge, PlayerAvatar, ROLE_LABELS, TeamBadge } from '../Shared';
 
 // Full-screen "player sold" card that swings in and keeps turning in 3D.
+// It stays up until the operator taps anywhere.
 export default function SoldCard3D({ sale, onDone }) {
   const { player, team, price } = sale || {};
-  const doneRef = useRef(onDone);
-  doneRef.current = onDone;
-
-  useEffect(() => {
-    const timer = setTimeout(() => doneRef.current && doneRef.current(), 6500);
-    return () => clearTimeout(timer);
-  }, [sale]);
 
   if (!player) return null;
 
@@ -102,6 +96,10 @@ export default function SoldCard3D({ sale, onDone }) {
                   <span className="text-sm font-bold text-slate-400 ml-1.5">coins</span>
                 </p>
               </div>
+
+              <p className="mt-3 text-[10px] uppercase tracking-[0.25em] text-slate-500">
+                Tap anywhere to continue
+              </p>
             </div>
           </div>
         </motion.div>
