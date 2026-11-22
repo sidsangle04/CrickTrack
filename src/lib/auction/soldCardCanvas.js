@@ -9,6 +9,8 @@ const PAD = 38;
 const INNER = W - PAD * 2;
 const SCALE = 3;
 const RADIUS = 24;
+const ICON_SIZE = 22;
+const ICON_TRACKING = 2.5;
 
 const SANS =
   '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
@@ -156,7 +158,10 @@ export async function buildSoldCardCanvas({ player, team, price }) {
   const roleLabel = player?.primary_role
     ? String(ROLE_LABELS[player.primary_role] || '').toUpperCase()
     : '';
-  const priceValue = String(Number(price) || 0);
+  // Icon players are allocated rather than bought, so their panel names them
+  // instead of showing a price of zero.
+  const isIcon = !Number(price);
+  const priceValue = isIcon ? 'ICON PLAYER' : String(Number(price));
 
   if (document.fonts?.ready) await document.fonts.ready;
 
@@ -194,11 +199,13 @@ export async function buildSoldCardCanvas({ player, team, price }) {
   const soldToTextW = Math.max(soldToLabelW, teamTextW);
   const soldToGroupW = 64 + 12 + soldToTextW;
 
-  scratch.font = font(900, 36);
-  const priceNumW = scratch.measureText(priceValue).width;
+  scratch.font = font(900, isIcon ? ICON_SIZE : 36);
+  const priceNumW = isIcon
+    ? spacedWidth(scratch, priceValue, ICON_TRACKING)
+    : scratch.measureText(priceValue).width;
   scratch.font = font(700, 14);
-  const coinsW = scratch.measureText('coins').width;
-  const priceGroupW = priceNumW + 6 + coinsW;
+  const coinsW = isIcon ? 0 : scratch.measureText('coins').width + 6;
+  const priceGroupW = priceNumW + coinsW;
 
   scratch.font = font(900, 11);
   const brandW = spacedWidth(scratch, 'CRICKTRACK', 2.2);
@@ -462,19 +469,28 @@ export async function buildSoldCardCanvas({ player, team, price }) {
   ctx.stroke();
   ctx.restore();
 
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = font(600, 10);
-  drawSpaced(ctx, 'PRICE', centreX, priceTop + 26, 2.5, 'center');
+  if (isIcon) {
+    // Icon players are drawn rather than bought, so the panel names them
+    // instead of showing a zero price. One line, centred in the panel.
+    ctx.fillStyle = '#ffffff';
+    ctx.font = font(900, ICON_SIZE);
+    drawSpaced(ctx, priceValue, centreX, priceTop + priceH / 2 + 8, ICON_TRACKING, 'center');
+  } else {
+    // Label and figure are centred together in the panel.
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = font(600, 10);
+    drawSpaced(ctx, 'PRICE', centreX, priceTop + 30, 2.5, 'center');
 
-  const priceX = centreX - priceGroupW / 2;
-  const priceBaseline = priceTop + 66;
-  ctx.fillStyle = '#ffffff';
-  ctx.font = font(900, 36);
-  ctx.textAlign = 'left';
-  ctx.fillText(priceValue, priceX, priceBaseline);
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = font(700, 14);
-  ctx.fillText('coins', priceX + priceNumW + 6, priceBaseline);
+    const priceX = centreX - priceGroupW / 2;
+    const priceBaseline = priceTop + 62;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = font(900, 36);
+    ctx.textAlign = 'left';
+    ctx.fillText(priceValue, priceX, priceBaseline);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = font(700, 14);
+    ctx.fillText('coins', priceX + priceNumW + 6, priceBaseline);
+  }
 
   // ---- CrickTrack lockup ---------------------------------------------------
   const footerX = centreX - footerGroupW / 2;
