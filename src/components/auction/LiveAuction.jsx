@@ -174,7 +174,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         team: bidderTeam,
         price: liveAuction.current_bid
       });
-      celebrateSale(bidderTeam?.color);
+      celebrateSale(liveAuction.current_bid, bidderTeam?.color);
     }, ['state', 'players']);
 
   const markUnsold = () =>
