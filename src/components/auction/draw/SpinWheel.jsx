@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -12,22 +12,36 @@ const pointAt = (deg, radius) => {
 
 // One wheel per bowl: the arrow sits at the top and the sector it stops on is the
 // player that team gets. The winner is picked first, then the wheel is turned to it.
-export default function SpinWheel({ title, entries, hint, active, busy, accent, onSpinComplete }) {
+export default function SpinWheel({ title, entries, hint, active, busy, accent, maxEntries, onSpinComplete }) {
   const [rotation, setRotation] = useState(0);
   const [animate, setAnimate] = useState(false);
   const [spinning, setSpinning] = useState(false);
   const timer = useRef(null);
 
-  const count = entries.length;
+  const cap = maxEntries || 12;
+  const sourceKey = entries.map((e) => e.id).join(',');
+  // A large pool goes on the wheel as a fresh random shortlist each time it changes,
+  // so the names stay readable and every player keeps the same chance of coming up.
+  const shown = useMemo(() => {
+    if (entries.length <= cap) return entries;
+    const copy = [...entries];
+    for (let i = copy.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy.slice(0, cap);
+  }, [sourceKey, cap]);
+
+  const count = shown.length;
   const step = count ? 360 / count : 360;
-  const entriesKey = entries.map((e) => e.id).join(',');
+  const shownKey = shown.map((e) => e.id).join(',');
   const color = accent || '#10b981';
 
-  // A changed bowl means the old landing spot no longer points at anything.
+  // A changed wheel means the old landing spot no longer points at anything.
   useEffect(() => {
     setAnimate(false);
     setRotation(0);
-  }, [entriesKey]);
+  }, [shownKey]);
 
   useEffect(() => () => clearTimeout(timer.current), []);
 
@@ -44,13 +58,13 @@ export default function SpinWheel({ title, entries, hint, active, busy, accent, 
     setRotation(rotation + 360 * 6 + delta);
     timer.current = setTimeout(() => {
       setSpinning(false);
-      onSpinComplete && onSpinComplete(entries[winnerIndex]);
+      onSpinComplete && onSpinComplete(shown[winnerIndex]);
     }, SPIN_MS + 140);
   };
 
   const fontSize = count <= 6 ? 9.5 : count <= 8 ? 8.5 : 7.5;
 
-  const sectors = entries.map((entry, i) => {
+  const sectors = shown.map((entry, i) => {
     const start = i * step;
     const end = start + step;
     const [x1, y1] = pointAt(start, R);
@@ -86,7 +100,7 @@ export default function SpinWheel({ title, entries, hint, active, busy, accent, 
       <div className="flex items-center justify-between mb-2">
         <p className="text-[11px] font-bold uppercase tracking-widest text-slate-300">{title}</p>
         <span className="text-[11px] font-semibold text-slate-400 tabular-nums">
-          {count} left
+          {entries.length} left
         </span>
       </div>
 
@@ -115,9 +129,9 @@ export default function SpinWheel({ title, entries, hint, active, busy, accent, 
                     fontWeight="700"
                     fill="#ecfdf5"
                   >
-                    {entries[0].name.length > 15
-                      ? `${entries[0].name.slice(0, 14)}…`
-                      : entries[0].name}
+                    {shown[0].name.length > 15
+                      ? `${shown[0].name.slice(0, 14)}…`
+                      : shown[0].name}
                   </text>
                 )}
               </svg>

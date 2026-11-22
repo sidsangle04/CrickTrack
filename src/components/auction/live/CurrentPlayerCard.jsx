@@ -1,23 +1,35 @@
 import React from 'react';
-import { Gavel, UserPlus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Gavel } from 'lucide-react';
 import { CategoryBadge, PlayerAvatar, ROLE_LABELS, TeamBadge } from '../Shared';
+import SpinWheel from '../draw/SpinWheel';
 
-export default function CurrentPlayerCard({ player, bid, bidderTeam, nextAmount, onNominate, locked }) {
+export default function CurrentPlayerCard({
+  player,
+  bid,
+  bidderTeam,
+  nextAmount,
+  onNominate,
+  locked,
+  pool = []
+}) {
   if (!player) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/40 p-8 text-center">
-        <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-slate-800 flex items-center justify-center">
-          <Gavel className="w-7 h-7 text-slate-500" />
+      <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/40 p-4 sm:p-5">
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <Gavel className="w-4 h-4 text-slate-500" />
+          <p className="text-sm text-slate-400">No player on the block — spin for the next one</p>
         </div>
-        <p className="text-sm text-slate-400 mb-4">No player on the block right now.</p>
-        <Button
-          onClick={onNominate}
-          disabled={locked}
-          className="bg-emerald-500 hover:bg-emerald-600"
-        >
-          <UserPlus className="w-4 h-4 mr-2" /> Bring next player to auction
-        </Button>
+        {pool.length ? (
+          <SpinWheel
+            title="Auction pool"
+            entries={pool}
+            active={!locked}
+            hint={`${pool.length} player${pool.length === 1 ? '' : 's'} still to be auctioned`}
+            onSpinComplete={(entry) => onNominate(entry.id)}
+          />
+        ) : (
+          <p className="text-sm text-slate-500 text-center py-4">Every player has been auctioned.</p>
+        )}
       </div>
     );
   }

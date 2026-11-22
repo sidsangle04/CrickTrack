@@ -168,13 +168,25 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
       });
     }, ['state', 'bids']);
 
-  const nominateNext = () =>
+  // `chosenId` is the player the wheel landed on; without it a random pick is used.
+  const nominateNext = (chosenId) =>
     run(async () => {
-      if (!pickNextPlayer(auction.current_player_id)) {
+      const chosen = chosenId
+        ? players.find((p) => p.id === chosenId && p.status === 'available')
+        : null;
+      if (!chosen && !pickNextPlayer(auction.current_player_id)) {
         setError('Every player has been auctioned.');
         return;
       }
-      await bringInNextPlayer(auction.current_player_id);
+      if (chosen) {
+        await updateAuction({
+          current_player_id: chosen.id,
+          current_bid: 0,
+          current_bidder_team_id: ''
+        });
+      } else {
+        await bringInNextPlayer(auction.current_player_id);
+      }
       setCelebrating(false);
     }, ['state']);
 
@@ -398,6 +410,9 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
             bid={liveAuction.current_bid}
             bidderTeam={bidderTeam}
             nextAmount={nextAmount}
+            pool={players
+              .filter((p) => p.status === 'available' && p.id !== auction.current_player_id)
+              .map((p) => ({ id: p.id, name: p.name }))}
             onNominate={nominateNext}
             locked={paused || busy}
           />
