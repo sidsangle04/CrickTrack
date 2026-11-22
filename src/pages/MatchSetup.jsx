@@ -85,6 +85,12 @@ export default function MatchSetup() {
     enabled: !!matchId
   });
 
+  const { data: tournamentMatch } = useQuery({
+    queryKey: ['tournament-match', formData.tournament_match_id],
+    queryFn: () => base44.entities.TournamentMatch.filter({ id: formData.tournament_match_id }),
+    enabled: !!formData.tournament_match_id
+  });
+
   useEffect(() => {
     if (existingMatch && existingMatch[0]) {
       const m = existingMatch[0];
@@ -109,7 +115,8 @@ export default function MatchSetup() {
         players_per_team: m.players_per_team || 11,
         is_over_limited: m.is_over_limited || false,
         total_match_overs: m.total_match_overs || 90,
-        enable_visual_tagging: m.enable_visual_tagging !== false
+        enable_visual_tagging: m.enable_visual_tagging !== false,
+        tournament_match_id: m.tournament_match_id || ''
       });
     }
   }, [existingMatch]);
@@ -135,11 +142,22 @@ export default function MatchSetup() {
 
   const teamsMap = modeTeams.reduce((acc, t) => ({ ...acc, [t.id]: t }), {});
 
-  // Auction squads are only selectable for the tournament they were bought in.
-  const squadOf = (teamId) =>
-    modePlayers.filter(
-      (p) => p.team_id === teamId && (!p.tournament_id || p.tournament_id === teamsMap[teamId]?.tournament_id)
-    );
+  // The tournament this match belongs to (a fixture link, or a team that only exists inside one).
+  const matchTournament = Array.isArray(tournamentMatch) ? tournamentMatch[0] : null;
+  const tournamentId = matchTournament?.tournament_id || '';
+
+  // A tournament match is played by the squad bought at that tournament's auction.
+  // Club matches keep the club squad.
+  const squadOf = (teamId) => {
+    const clubSquad = modePlayers.filter((p) => p.team_id === teamId && !p.tournament_id);
+    const scopeId = tournamentId || teamsMap[teamId]?.tournament_id || '';
+    if (!scopeId) return clubSquad;
+    const auctionSquad = modePlayers.filter((p) => p.team_id === teamId && p.tournament_id === scopeId);
+    return auctionSquad.length ? auctionSquad : clubSquad;
+  };
+
+  // Team pickers offer the club's own teams, plus the teams of the tournament in play.
+  const selectableTeams = modeTeams.filter((t) => !t.tournament_id || t.tournament_id === tournamentId);
 
   const team1Players = squadOf(formData.team1_id);
   const team2Players = squadOf(formData.team2_id);
@@ -336,7 +354,7 @@ export default function MatchSetup() {
               <Users className="w-5 h-5 text-emerald-400" />
               <h2 className="text-lg font-semibold text-white">Select Teams</h2>
             </div>
-            {modeTeams.length === 0 ?
+            {selectableTeams.length === 0 ?
           <div className="text-center py-8">
                 <p className="text-slate-400 mb-4">No teams found for this mode. Create teams first.</p>
                 <Link to={createPageUrl('TeamManagement')}>
@@ -355,7 +373,7 @@ export default function MatchSetup() {
                       <SelectValue placeholder="Select team" />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-900 border-slate-700">
-                      {modeTeams.map((t) =>
+                      {selectableTeams.map((t) =>
                   <SelectItem key={t.id} value={t.id} disabled={t.id === formData.team2_id} className="text-white">
                           {t.name}
                         </SelectItem>
@@ -370,7 +388,7 @@ export default function MatchSetup() {
                       <SelectValue placeholder="Select team" />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-900 border-slate-700">
-                      {modeTeams.map((t) =>
+                      {selectableTeams.map((t) =>
                   <SelectItem key={t.id} value={t.id} disabled={t.id === formData.team1_id} className="text-white">
                           {t.name}
                         </SelectItem>
