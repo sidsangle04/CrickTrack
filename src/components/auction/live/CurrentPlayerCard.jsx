@@ -16,7 +16,7 @@ export default function CurrentPlayerCard({ player, bid, bidderTeam, nextAmount,
           disabled={locked}
           className="bg-emerald-500 hover:bg-emerald-600"
         >
-          <UserPlus className="w-4 h-4 mr-2" /> Bring in the next player
+          <UserPlus className="w-4 h-4 mr-2" /> Bring next player to auction
         </Button>
       </div>
     );

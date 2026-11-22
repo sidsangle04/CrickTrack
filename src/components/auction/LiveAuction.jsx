@@ -169,7 +169,6 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         team: bidderTeam,
         price: liveAuction.current_bid
       });
-      await bringInNextPlayer(currentPlayer.id);
     }, ['state', 'players']);
 
   const markUnsold = () =>
@@ -181,7 +180,6 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         sold_price: 0
       });
       showFlash({ type: 'unsold', player: currentPlayer });
-      await bringInNextPlayer(currentPlayer.id);
     }, ['state', 'players']);
 
   const reopenUnsold = () =>
@@ -354,7 +352,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
               variant="outline"
               className="border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800"
             >
-              <UserPlus className="w-4 h-4 mr-1.5" /> Next player
+              <UserPlus className="w-4 h-4 mr-1.5" /> Bring next player to auction
             </Button>
             <Button
               onClick={markSold}
