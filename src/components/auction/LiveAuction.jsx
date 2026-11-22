@@ -34,6 +34,7 @@ import TeamBidCard from './live/TeamBidCard';
 import BidHistory from './live/BidHistory';
 import SquadBoard from './live/SquadBoard';
 import BigScreen from './live/BigScreen';
+import AuctionMusicToggle from './live/AuctionMusicToggle';
 import AuctionResults from './live/AuctionResults';
 import SettingsPanel from './setup/SettingsPanel';
 
@@ -278,6 +279,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
           {paused ? <Play className="w-4 h-4 mr-1.5" /> : <Pause className="w-4 h-4 mr-1.5" />}
           {paused ? 'Resume' : 'Pause'}
         </Button>
+        <AuctionMusicToggle />
         <Button
           variant="outline"
           size="sm"
