@@ -147,6 +147,7 @@ export default function Auction() {
           players={players}
           bids={bids}
           refresh={refresh}
+          tournament={tournament}
         />
       )}
     </div>

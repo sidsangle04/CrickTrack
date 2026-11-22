@@ -1,6 +1,7 @@
 import React from 'react';
 import { Trophy } from 'lucide-react';
 import { Panel, PlayerAvatar, TeamBadge } from '../Shared';
+import SoldCardPhotoButton from './SoldCardPhotoButton';
 import { teamFinance } from '@/lib/auction/squad';
 
 export default function AuctionResults({ teams, players, settings }) {
@@ -67,6 +68,9 @@ export default function AuctionResults({ teams, players, settings }) {
                   <span className="text-slate-400 tabular-nums shrink-0">
                     {p.category === 'icon' ? 'Free' : p.sold_price || 0}
                   </span>
+                  <SoldCardPhotoButton
+                    sale={{ player: p, team, price: p.category === 'icon' ? 0 : p.sold_price }}
+                  />
                 </div>
               ))}
               {finance.squad.length === 0 && (

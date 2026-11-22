@@ -39,9 +39,10 @@ import AuctionResults from './live/AuctionResults';
 import SoldCard3D from './live/SoldCard3D';
 import JumpBidDialog from './live/JumpBidDialog';
 import promoteAuctionSquads from '@/lib/auction/promote';
+import AuctionPdfButton from './live/AuctionPdfButton';
 import SettingsPanel from './setup/SettingsPanel';
 
-export default function LiveAuction({ auction, teams, players, bids, refresh }) {
+export default function LiveAuction({ auction, teams, players, bids, refresh, tournament }) {
   const [actingTeamId, setActingTeamId] = useState('');
   const [bigScreen, setBigScreen] = useState(false);
   const [flash, setFlash] = useState(null);
@@ -280,7 +281,14 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
           Squads are saved to the tournament — every sold player now belongs to their team and counts
           in your player records.
         </p>
-        <div className="flex justify-center">
+        <div className="flex flex-wrap justify-center gap-2">
+          <AuctionPdfButton
+            tournament={tournament}
+            auction={auction}
+            teams={teams}
+            players={players}
+            label="Download auction PDF"
+          />
           <Button
             variant="outline"
             onClick={() => updateAuction({ status: 'auction' }).then(() => refresh && refresh())}
@@ -335,6 +343,13 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
           {paused ? 'Resume' : 'Pause'}
         </Button>
         <AuctionMusicToggle celebrating={celebrating} />
+        <AuctionPdfButton
+          tournament={tournament}
+          auction={auction}
+          teams={teams}
+          players={players}
+          label="PDF"
+        />
         <Button
           variant="outline"
           size="sm"
