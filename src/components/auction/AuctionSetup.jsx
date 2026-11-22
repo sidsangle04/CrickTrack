@@ -53,7 +53,13 @@ export default function AuctionSetup({ auction, teams, players, tournament, refr
         tournament={tournament}
         refresh={refresh}
       />
-      <PlayersPanel auction={auction} players={players} teams={teams} refresh={refresh} />
+      <PlayersPanel
+        auction={auction}
+        players={players}
+        teams={teams}
+        tournament={tournament}
+        refresh={refresh}
+      />
 
       <p className="text-[11px] text-slate-500 flex items-center gap-1.5">
         <CalendarPlus className="w-3.5 h-3.5" />

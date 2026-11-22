@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Eye, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Eye, Loader2, Pencil, Plus, Search, Trash2, Users } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,13 +20,60 @@ const STATUS_STYLES = {
   unsold: 'bg-red-500/20 text-red-300'
 };
 
-export default function PlayersPanel({ auction, players, teams, refresh }) {
+export default function PlayersPanel({ auction, players, teams, tournament, refresh }) {
   const [modal, setModal] = useState({ open: false, player: null });
   const [profile, setProfile] = useState(null);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const teamName = (id) => teams.find((t) => t.id === id)?.name || '';
+
+  // Brings everyone from the Players section into this auction, skipping anyone
+  // already in the pool by name.
+  const importFromPlayers = async () => {
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      const query = tournament?.ground_mode ? { ground_mode: tournament.ground_mode } : {};
+      const roster = await base44.entities.Player.filter(query, 'name', 2000);
+      const known = new Set(players.map((p) => (p.name || '').trim().toLowerCase()));
+      const picks = [];
+      roster.forEach((p) => {
+        const name = (p.name || '').trim();
+        const key = name.toLowerCase();
+        if (!key || known.has(key)) return;
+        known.add(key);
+        picks.push({
+          tournament_id: auction.tournament_id,
+          name,
+          primary_role: p.role,
+          batting_style: p.batting_style,
+          bowling_style: p.bowling_style,
+          category: 'gold',
+          status: 'available',
+          bowl: 'none'
+        });
+      });
+      if (!picks.length) {
+        setNotice(
+          roster.length
+            ? 'Everyone from your Players section is already in the pool.'
+            : 'No players found in your Players section yet.'
+        );
+        return;
+      }
+      await base44.entities.AuctionPlayer.bulkCreate(picks);
+      setNotice(`Added ${picks.length} player${picks.length === 1 ? '' : 's'} from your Players section.`);
+      refresh && refresh();
+    } catch (e) {
+      setError(e?.message || 'Could not bring the players across.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const list = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -49,13 +96,30 @@ export default function PlayersPanel({ auction, players, teams, refresh }) {
     <Panel
       title={`Players (${players.length})`}
       action={
-        <Button
-          size="sm"
-          onClick={() => setModal({ open: true, player: null })}
-          className="bg-emerald-500 hover:bg-emerald-600"
-        >
-          <Plus className="w-3.5 h-3.5 mr-1.5" /> Add player
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={importFromPlayers}
+            disabled={busy}
+            className="border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800"
+            title="Bring every player from your Players section into the auction"
+          >
+            {busy ? (
+              <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+            ) : (
+              <Users className="w-3.5 h-3.5 mr-1.5" />
+            )}
+            From players
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setModal({ open: true, player: null })}
+            className="bg-emerald-500 hover:bg-emerald-600"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1.5" /> Add player
+          </Button>
+        </div>
       }
     >
       <div className="relative mb-3">
@@ -69,6 +133,7 @@ export default function PlayersPanel({ auction, players, teams, refresh }) {
       </div>
 
       {error && <p className="text-xs text-red-400 mb-3">{error}</p>}
+      {notice && <p className="text-xs text-emerald-400 mb-3">{notice}</p>}
 
       {list.length === 0 ? (
         <p className="text-sm text-slate-400">
