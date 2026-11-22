@@ -6,8 +6,7 @@ import {
   Pause,
   Play,
   RotateCcw,
-  Trophy,
-  UserPlus
+  Trophy
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -355,15 +354,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
             locked={paused || busy}
           />
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <Button
-              onClick={nominateNext}
-              disabled={paused || busy || !!currentPlayer}
-              variant="outline"
-              className="border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800"
-            >
-              <UserPlus className="w-4 h-4 mr-1.5" /> Bring next player to auction
-            </Button>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             <Button
               onClick={markSold}
               disabled={paused || busy || !bidderTeam}
