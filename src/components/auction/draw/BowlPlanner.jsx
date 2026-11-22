@@ -138,20 +138,56 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
   };
 
   const saveSelection = async () => {
-    const chosen = new Set(selectedIds);
-    const updates = [];
-    players
-      .filter((p) => !p.sold_to_team_id)
-      .forEach((p) => {
-        const isIcon = p.category === 'icon';
-        if (chosen.has(p.id) && !isIcon) updates.push({ id: p.id, category: 'icon', bowl: 'none' });
-        if (!chosen.has(p.id) && isIcon)
-          updates.push({ id: p.id, category: 'gold', bowl: 'none', sold_price: 0, status: 'available' });
+    if (selectedIds.length !== teams.length * 2 || saving) return;
+    setSaving(true);
+    setError('');
+    try {
+      const chosen = new Set(selectedIds);
+      // Newly chosen icons are split straight into the two bowls, so the draw is ready
+      // as soon as the selection is saved — the bowls can still be rearranged by hand.
+      const counts = { bowl1: 0, bowl2: 0 };
+      players.forEach((p) => {
+        if (chosen.has(p.id) && p.category === 'icon' && counts[p.bowl] !== undefined)
+          counts[p.bowl] += 1;
       });
-    if (updates.length) await base44.entities.AuctionPlayer.bulkUpdate(updates);
-    setDirty(false);
-    setPicker(false);
-    refresh && refresh();
+      const nextBowl = () => {
+        if (counts.bowl1 < teams.length) {
+          counts.bowl1 += 1;
+          return 'bowl1';
+        }
+        if (counts.bowl2 < teams.length) {
+          counts.bowl2 += 1;
+          return 'bowl2';
+        }
+        return 'none';
+      };
+      const updates = [];
+      players
+        .filter((p) => !p.sold_to_team_id)
+        .forEach((p) => {
+          const isIcon = p.category === 'icon';
+          if (chosen.has(p.id)) {
+            const kept = isIcon && (p.bowl === 'bowl1' || p.bowl === 'bowl2');
+            updates.push({ id: p.id, category: 'icon', bowl: kept ? p.bowl : nextBowl() });
+          } else if (isIcon) {
+            updates.push({
+              id: p.id,
+              category: 'gold',
+              bowl: 'none',
+              sold_price: 0,
+              status: 'available'
+            });
+          }
+        });
+      if (updates.length) await base44.entities.AuctionPlayer.bulkUpdate(updates);
+      setDirty(false);
+      setPicker(false);
+      refresh && refresh();
+    } catch (e) {
+      setError(e?.message || 'Could not save the icon players.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const renderRow = (player, index) => (
@@ -313,15 +349,22 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
               );
             })}
           </div>
-          <DialogFooter>
+          {error && <p className="text-xs text-red-400">{error}</p>}
+          <DialogFooter className="flex-col-reverse sm:flex-row sm:items-center gap-2">
+            <p className="text-[11px] text-slate-400 sm:mr-auto text-center sm:text-left">
+              {selectedIds.length === teams.length * 2
+                ? 'Ready — the bowls will be filled for you.'
+                : `Select exactly ${teams.length * 2} players (${selectedIds.length} chosen).`}
+            </p>
             <Button variant="ghost" onClick={() => setPicker(false)} className="text-slate-300">
               Cancel
             </Button>
             <Button
               onClick={saveSelection}
               className="bg-emerald-500 hover:bg-emerald-600"
-              disabled={selectedIds.length !== teams.length * 2}
+              disabled={saving || selectedIds.length !== teams.length * 2}
             >
+              {saving && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
               Use {selectedIds.length} players
             </Button>
           </DialogFooter>
