@@ -3,8 +3,8 @@ import { motion } from 'framer-motion';
 import { Gavel } from 'lucide-react';
 import { CategoryBadge, PlayerAvatar, ROLE_LABELS, TeamBadge } from '../Shared';
 
-// Full-screen "player sold" card that swings in and keeps turning in 3D.
-// It stays up until the operator taps anywhere.
+// Full-screen "player sold" card: a layered, extruded 3D slab lit in the
+// winning team's colour. It stays up until the operator taps anywhere.
 export default function SoldCard3D({ sale, onDone }) {
   const { player, team, price } = sale || {};
 
@@ -15,50 +15,94 @@ export default function SoldCard3D({ sale, onDone }) {
   return (
     <div
       onClick={onDone}
-      className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md"
-      style={{ perspective: '1400px' }}
+      className="fixed inset-0 z-[200] flex items-center justify-center overflow-hidden p-4 bg-slate-950/90 backdrop-blur-md"
+      style={{ perspective: '1600px' }}
     >
+      {/* team-coloured halo behind the card */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute h-[560px] w-[560px] rounded-full blur-3xl opacity-50"
+        style={{ background: `radial-gradient(circle, ${color}, transparent 68%)` }}
+      />
+
       <motion.div
         initial={{ rotateY: -170, rotateX: 22, scale: 0.7, opacity: 0 }}
         animate={{ rotateY: 0, rotateX: 0, scale: 1, opacity: 1 }}
         transition={{ duration: 1.05, ease: [0.16, 1, 0.3, 1] }}
         style={{ transformStyle: 'preserve-3d' }}
-        className="w-full max-w-sm"
+        className="relative w-full max-w-sm"
       >
         <motion.div
           animate={{ rotateY: [0, 15, 0, -15, 0], rotateX: [0, -6, 0, 6, 0] }}
           transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut', delay: 1.05 }}
           style={{ transformStyle: 'preserve-3d' }}
+          className="relative"
         >
+          {/* extruded edge — stacked layers behind the face give the slab real depth */}
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              aria-hidden
+              className="absolute inset-0 rounded-3xl"
+              style={{
+                transform: `translateZ(${-10 - i * 10}px)`,
+                background: `linear-gradient(165deg, ${color}, #0b1220 65%)`,
+                opacity: 0.9 - i * 0.12,
+                boxShadow: i === 4 ? `0 40px 80px -30px ${color}` : 'none'
+              }}
+            />
+          ))}
+
+          {/* card face */}
           <div
-            className="relative overflow-hidden rounded-3xl border-2 bg-gradient-to-b from-slate-800 via-slate-900 to-slate-950"
+            className="relative overflow-hidden rounded-3xl border"
             style={{
-              borderColor: color,
-              boxShadow: `0 40px 90px -25px ${color}, 0 0 0 1px rgba(255,255,255,0.06) inset`
+              borderColor: `${color}80`,
+              background: `linear-gradient(165deg, ${color}40 0%, #101a2c 38%, #030712 100%)`,
+              boxShadow:
+                '0 1px 0 rgba(255,255,255,0.16) inset, 0 0 0 1px rgba(255,255,255,0.05) inset, 0 30px 60px -25px #000'
             }}
           >
+            {/* top gloss */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-2/5"
+              style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.16), transparent)' }}
+            />
             {/* colour wash from the winning team */}
             <div
-              className="absolute inset-x-0 top-0 h-40 opacity-40 pointer-events-none"
-              style={{ background: `radial-gradient(circle at 50% 0%, ${color}, transparent 70%)` }}
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-48 opacity-50"
+              style={{ background: `radial-gradient(circle at 50% -10%, ${color}, transparent 70%)` }}
             />
-
             {/* sweeping shine */}
             <motion.div
               aria-hidden
               initial={{ x: '-120%' }}
               animate={{ x: '160%' }}
               transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 1.2, ease: 'easeInOut' }}
-              className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/15 to-transparent pointer-events-none"
+              className="pointer-events-none absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent"
             />
 
             <div className="relative px-5 pt-5 pb-6 text-center">
-              <div className="inline-flex items-center gap-2 rounded-full bg-amber-400 text-slate-900 px-4 py-1.5 font-black uppercase tracking-[0.3em] text-sm shadow-lg">
-                <Gavel className="w-4 h-4" /> Sold
+              <div
+                className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-black uppercase tracking-[0.3em] text-slate-950"
+                style={{
+                  background: 'linear-gradient(180deg, #fde68a, #f59e0b)',
+                  boxShadow: '0 5px 0 #b45309, 0 12px 26px rgba(245,158,11,0.4)'
+                }}
+              >
+                <Gavel className="h-4 w-4" /> Sold
               </div>
 
               <div className="mt-5 flex justify-center">
-                <div className="rounded-2xl p-1" style={{ backgroundColor: color }}>
+                <div
+                  className="rounded-2xl p-1"
+                  style={{
+                    backgroundColor: color,
+                    boxShadow: `0 0 0 5px rgba(255,255,255,0.07), 0 18px 40px -10px ${color}`
+                  }}
+                >
                   <PlayerAvatar player={player} size="hero" />
                 </div>
               </div>
@@ -75,7 +119,13 @@ export default function SoldCard3D({ sale, onDone }) {
                 )}
               </div>
 
-              <div className="mt-5 h-px bg-white/10" />
+              <div
+                className="mt-5 h-px"
+                style={{
+                  background:
+                    'linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent)'
+                }}
+              />
 
               <div className="mt-4 flex items-center justify-center gap-3">
                 <TeamBadge team={team} size="lg" />
@@ -89,11 +139,21 @@ export default function SoldCard3D({ sale, onDone }) {
                 </div>
               </div>
 
-              <div className="mt-4 rounded-2xl bg-slate-950/70 border border-white/10 py-3">
-                <p className="text-[10px] uppercase tracking-[0.25em] text-slate-500">Price</p>
-                <p className="text-4xl font-black tabular-nums leading-none" style={{ color }}>
+              <div
+                className="mt-4 rounded-2xl border py-3"
+                style={{
+                  borderColor: `${color}55`,
+                  background: `linear-gradient(180deg, ${color}26, rgba(2,6,23,0.9))`,
+                  boxShadow: `0 0 34px -14px ${color} inset`
+                }}
+              >
+                <p className="text-[10px] uppercase tracking-[0.25em] text-slate-400">Price</p>
+                <p
+                  className="text-4xl font-black tabular-nums leading-none text-white"
+                  style={{ textShadow: `0 0 26px ${color}` }}
+                >
                   {price || 0}
-                  <span className="text-sm font-bold text-slate-400 ml-1.5">coins</span>
+                  <span className="ml-1.5 text-sm font-bold text-slate-400">coins</span>
                 </p>
               </div>
             </div>
