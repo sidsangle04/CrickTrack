@@ -71,13 +71,13 @@ export default function AuctionResults({ teams, players, settings }) {
                     title="Open this player's sold card"
                     className="flex items-center justify-between gap-2 text-xs border-b border-slate-700/40 last:border-0 py-1 -mx-1 px-1 rounded cursor-pointer hover:bg-slate-700/30 transition-colors"
                   >
-                    <span className="text-slate-200 truncate">
+                    <span className="text-slate-200 truncate flex-1 min-w-0">
                       {p.name}
                       {p.category === 'icon' && (
                         <span className="text-[9px] uppercase text-purple-300 ml-1">icon</span>
                       )}
                     </span>
-                    <span className="text-slate-400 tabular-nums shrink-0">
+                    <span className="text-slate-400 tabular-nums shrink-0 w-16 text-right">
                       {p.category === 'icon' ? 'ICON' : p.sold_price || 0}
                     </span>
                     <SoldCardPhotoButton sale={sale} />
