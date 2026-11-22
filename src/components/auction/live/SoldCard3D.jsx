@@ -156,6 +156,23 @@ export default function SoldCard3D({ sale, onDone }) {
                   <span className="ml-1.5 text-sm font-bold text-slate-400">coins</span>
                 </p>
               </div>
+
+              {/* CrickTrack lockup */}
+              <div className="mt-4 flex items-center justify-center gap-2">
+                <img
+                  src="https://media.base44.com/images/public/69cd6e7dda99287bd2ab65f2/c49e9414c_CrickTrackLogo.png"
+                  alt="CrickTrack"
+                  className="h-6 w-auto rounded bg-white p-0.5"
+                />
+                <div className="text-left">
+                  <p className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-300 leading-none">
+                    CrickTrack
+                  </p>
+                  <p className="mt-0.5 text-[8px] uppercase tracking-[0.2em] text-slate-500 leading-none">
+                    Tag · Analyse · Elevate
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </motion.div>
