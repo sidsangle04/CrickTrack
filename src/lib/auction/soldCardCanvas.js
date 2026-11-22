@@ -79,6 +79,13 @@ function drawSpaced(ctx, text, x, y, spacing, align = 'left') {
   return w;
 }
 
+// Cap height of the current font, so a line can be centred on its ink rather
+// than on its baseline.
+function ascentOf(ctx, text, size) {
+  const ascent = ctx.measureText(text).actualBoundingBoxAscent;
+  return Number.isFinite(ascent) && ascent > 0 ? ascent : size * 0.72;
+}
+
 function wrapLines(ctx, text, maxWidth) {
   const words = String(text || '').split(/\s+/).filter(Boolean);
   const lines = [];
@@ -472,25 +479,34 @@ export async function buildSoldCardCanvas({ player, team, price }) {
 
   if (isIcon) {
     // Icon players are drawn rather than bought, so the panel names them
-    // instead of showing a zero price. One line, centred in the panel.
+    // instead of showing a zero price. One line, centred on its own ink.
     ctx.fillStyle = '#ffffff';
     ctx.font = font(900, ICON_SIZE);
-    drawSpaced(ctx, priceValue, centreX, priceTop + priceH / 2 + 8, ICON_TRACKING, 'center');
+    const iconAsc = ascentOf(ctx, priceValue, ICON_SIZE);
+    drawSpaced(ctx, priceValue, centreX, priceTop + (priceH + iconAsc) / 2, ICON_TRACKING, 'center');
   } else {
     // Label and figure are centred together in the panel.
+    ctx.font = font(600, 10);
+    const labelAsc = ascentOf(ctx, 'PRICE', 10);
+    ctx.font = font(900, 36);
+    const valueAsc = ascentOf(ctx, priceValue, 36);
+    const gap = 6;
+    const blockTop = priceTop + (priceH - (labelAsc + gap + valueAsc)) / 2;
+    const labelBaseline = blockTop + labelAsc;
+    const valueBaseline = labelBaseline + gap + valueAsc;
+
     ctx.fillStyle = '#94a3b8';
     ctx.font = font(600, 10);
-    drawSpaced(ctx, 'PRICE', centreX, priceTop + 30, 2.5, 'center');
+    drawSpaced(ctx, 'PRICE', centreX, labelBaseline, 2.5, 'center');
 
     const priceX = centreX - priceGroupW / 2;
-    const priceBaseline = priceTop + 62;
     ctx.fillStyle = '#ffffff';
     ctx.font = font(900, 36);
     ctx.textAlign = 'left';
-    ctx.fillText(priceValue, priceX, priceBaseline);
+    ctx.fillText(priceValue, priceX, valueBaseline);
     ctx.fillStyle = '#94a3b8';
     ctx.font = font(700, 14);
-    ctx.fillText('coins', priceX + priceNumW + 6, priceBaseline);
+    ctx.fillText('coins', priceX + priceNumW + 6, valueBaseline);
   }
 
   // ---- CrickTrack lockup ---------------------------------------------------
