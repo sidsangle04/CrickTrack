@@ -1,31 +1,16 @@
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import { Download, Loader2 } from 'lucide-react';
 import SoldCardFace from './SoldCardFace';
-import { downloadNodeAsPng } from '@/lib/shareGraphic';
-import { soldCardFilename } from '@/lib/auction/cardPhoto';
+import SoldCardPhotoButton from './SoldCardPhotoButton';
 
 // Full-screen "player sold" card: a layered, extruded 3D slab lit in the
 // winning team's colour. It stays up until the operator taps anywhere.
 export default function SoldCard3D({ sale, onDone }) {
   const { player, team, price } = sale || {};
-  const faceRef = useRef(null);
-  const [saving, setSaving] = useState(false);
 
   if (!player) return null;
 
   const color = team?.color || '#10b981';
-
-  const savePhoto = async (event) => {
-    event.stopPropagation();
-    if (saving) return;
-    setSaving(true);
-    try {
-      await downloadNodeAsPng(faceRef.current, soldCardFilename(player.name));
-    } finally {
-      setSaving(false);
-    }
-  };
 
   return (
     <div
@@ -69,7 +54,7 @@ export default function SoldCard3D({ sale, onDone }) {
           ))}
 
           <div className="relative">
-            <SoldCardFace ref={faceRef} player={player} team={team} price={price} />
+            <SoldCardFace player={player} team={team} price={price} />
 
             {/* sweeping shine */}
             <motion.div
@@ -84,19 +69,7 @@ export default function SoldCard3D({ sale, onDone }) {
       </motion.div>
 
       <div className="absolute inset-x-0 bottom-5 flex flex-col items-center gap-2 px-4">
-        <button
-          type="button"
-          onClick={savePhoto}
-          disabled={saving}
-          className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-slate-900/90 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white shadow-lg transition-colors hover:border-emerald-400/60 hover:text-emerald-300 disabled:opacity-60"
-        >
-          {saving ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Download className="h-4 w-4" />
-          )}
-          {saving ? 'Saving' : 'Save photo'}
-        </button>
+        <SoldCardPhotoButton sale={sale} variant="pill" />
         <p className="text-[10px] uppercase tracking-[0.25em] text-slate-500">
           Tap anywhere to continue
         </p>

@@ -1,13 +1,14 @@
 import html2canvas from 'html2canvas';
 
 // Render a DOM node to a PNG and hand it to the user as a download.
-export async function downloadNodeAsPng(node, filename) {
+export async function downloadNodeAsPng(node, filename, options = {}) {
   if (!node) return false;
   const canvas = await html2canvas(node, {
     backgroundColor: '#0f172a',
     scale: 2,
     useCORS: true,
     logging: false,
+    ...options,
   });
   const link = document.createElement('a');
   link.href = canvas.toDataURL('image/png');
