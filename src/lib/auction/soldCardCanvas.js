@@ -493,8 +493,11 @@ export async function buildSoldCardCanvas({ player, team, price }) {
     const valueAsc = ascentOf(ctx, priceValue, 36);
     const gap = 10;
     const blockTop = priceTop + (priceH - (labelAsc + gap + valueAsc)) / 2;
-    const labelBaseline = blockTop + labelAsc;
-    const valueBaseline = labelBaseline + gap + valueAsc;
+    const valueBaseline = blockTop + labelAsc + gap + valueAsc;
+    // The label sits in the middle of the band between the panel's top edge
+    // and the top of the figure.
+    const valueTop = valueBaseline - valueAsc;
+    const labelBaseline = priceTop + (valueTop - priceTop) / 2 + labelAsc / 2;
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = font(600, 10);
