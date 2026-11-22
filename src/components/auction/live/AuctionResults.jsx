@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Trophy } from 'lucide-react';
 import { Panel, PlayerAvatar, TeamBadge } from '../Shared';
 import SoldCardPhotoButton from './SoldCardPhotoButton';
+import SoldCard3D from './SoldCard3D';
 import { teamFinance } from '@/lib/auction/squad';
 
 export default function AuctionResults({ teams, players, settings }) {
+  // The sold card opened by tapping a player in a squad.
+  const [card, setCard] = useState(null);
+
   const rows = teams.map((team) => ({
     team,
     finance: teamFinance({ teamId: team.id, players, settings })
@@ -22,6 +26,7 @@ export default function AuctionResults({ teams, players, settings }) {
         <p className="text-sm text-slate-300">
           {teams.length} teams · {players.filter((p) => p.sold_to_team_id).length} players signed
         </p>
+        <p className="text-[11px] text-slate-400 mt-1">Tap any player to open their sold card</p>
       </div>
 
       {topBuys.length > 0 && (
@@ -54,25 +59,31 @@ export default function AuctionResults({ teams, players, settings }) {
               </div>
             </div>
             <div className="space-y-1">
-              {finance.squad.map((p) => (
-                <div
-                  key={p.id}
-                  className="flex items-center justify-between gap-2 text-xs border-b border-slate-700/40 last:border-0 py-1"
-                >
-                  <span className="text-slate-200 truncate">
-                    {p.name}
-                    {p.category === 'icon' && (
-                      <span className="text-[9px] uppercase text-purple-300 ml-1">icon</span>
-                    )}
-                  </span>
-                  <span className="text-slate-400 tabular-nums shrink-0">
-                    {p.category === 'icon' ? 'Free' : p.sold_price || 0}
-                  </span>
-                  <SoldCardPhotoButton
-                    sale={{ player: p, team, price: p.category === 'icon' ? 0 : p.sold_price }}
-                  />
-                </div>
-              ))}
+              {finance.squad.map((p) => {
+                const sale = { player: p, team, price: p.category === 'icon' ? 0 : p.sold_price };
+                return (
+                  <div
+                    key={p.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setCard(sale)}
+                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setCard(sale)}
+                    title="Open this player's sold card"
+                    className="flex items-center justify-between gap-2 text-xs border-b border-slate-700/40 last:border-0 py-1 -mx-1 px-1 rounded cursor-pointer hover:bg-slate-700/30 transition-colors"
+                  >
+                    <span className="text-slate-200 truncate">
+                      {p.name}
+                      {p.category === 'icon' && (
+                        <span className="text-[9px] uppercase text-purple-300 ml-1">icon</span>
+                      )}
+                    </span>
+                    <span className="text-slate-400 tabular-nums shrink-0">
+                      {p.category === 'icon' ? 'Free' : p.sold_price || 0}
+                    </span>
+                    <SoldCardPhotoButton sale={sale} />
+                  </div>
+                );
+              })}
               {finance.squad.length === 0 && (
                 <p className="text-xs text-slate-500">No players.</p>
               )}
@@ -80,6 +91,8 @@ export default function AuctionResults({ teams, players, settings }) {
           </Panel>
         ))}
       </div>
+
+      {card && <SoldCard3D sale={card} onDone={() => setCard(null)} />}
     </div>
   );
 }
