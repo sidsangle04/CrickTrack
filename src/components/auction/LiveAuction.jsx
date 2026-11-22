@@ -33,13 +33,11 @@ import CurrentPlayerCard from './live/CurrentPlayerCard';
 import TeamBidCard from './live/TeamBidCard';
 import BidHistory from './live/BidHistory';
 import SquadBoard from './live/SquadBoard';
-import NominateModal from './live/NominateModal';
 import BigScreen from './live/BigScreen';
 import AuctionResults from './live/AuctionResults';
 import SettingsPanel from './setup/SettingsPanel';
 
 export default function LiveAuction({ auction, teams, players, bids, refresh }) {
-  const [nominateOpen, setNominateOpen] = useState(false);
   const [actingTeamId, setActingTeamId] = useState('');
   const [bigScreen, setBigScreen] = useState(false);
   const [flash, setFlash] = useState(null);
@@ -72,6 +70,24 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
   };
 
   const updateAuction = (data) => base44.entities.Auction.update(auction.id, data);
+
+  // The next player on the block is drawn at random from everyone still to be
+  // auctioned, so no team can plan around the running order.
+  const pickNextPlayer = (excludeId) => {
+    const pool = players.filter((p) => p.status === 'available' && p.id !== excludeId);
+    if (!pool.length) return null;
+    return pool[Math.floor(Math.random() * pool.length)];
+  };
+
+  // Puts the next random player up for bidding, clearing the previous lot.
+  const bringInNextPlayer = (excludeId) => {
+    const next = pickNextPlayer(excludeId);
+    return updateAuction({
+      current_player_id: next ? next.id : '',
+      current_bid: 0,
+      current_bidder_team_id: ''
+    });
+  };
 
   const run = async (fn, parts) => {
     setBusy(true);
@@ -130,14 +146,13 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
       });
     }, ['state', 'bids']);
 
-  const nominate = (player) =>
+  const nominateNext = () =>
     run(async () => {
-      setNominateOpen(false);
-      await updateAuction({
-        current_player_id: player.id,
-        current_bid: 0,
-        current_bidder_team_id: ''
-      });
+      if (!pickNextPlayer(auction.current_player_id)) {
+        setError('Every player has been auctioned.');
+        return;
+      }
+      await bringInNextPlayer(auction.current_player_id);
     }, ['state']);
 
   const markSold = () =>
@@ -148,17 +163,13 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         sold_to_team_id: liveAuction.current_bidder_team_id,
         sold_price: liveAuction.current_bid
       });
-      await updateAuction({
-        current_player_id: '',
-        current_bid: 0,
-        current_bidder_team_id: ''
-      });
       showFlash({
         type: 'sold',
         player: currentPlayer,
         team: bidderTeam,
         price: liveAuction.current_bid
       });
+      await bringInNextPlayer(currentPlayer.id);
     }, ['state', 'players']);
 
   const markUnsold = () =>
@@ -169,12 +180,8 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         sold_to_team_id: '',
         sold_price: 0
       });
-      await updateAuction({
-        current_player_id: '',
-        current_bid: 0,
-        current_bidder_team_id: ''
-      });
       showFlash({ type: 'unsold', player: currentPlayer });
+      await bringInNextPlayer(currentPlayer.id);
     }, ['state', 'players']);
 
   const reopenUnsold = () =>
@@ -336,18 +343,18 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
             bid={liveAuction.current_bid}
             bidderTeam={bidderTeam}
             nextAmount={nextAmount}
-            onNominate={() => setNominateOpen(true)}
+            onNominate={nominateNext}
             locked={paused || busy}
           />
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <Button
-              onClick={() => setNominateOpen(true)}
+              onClick={nominateNext}
               disabled={paused || busy || !!currentPlayer}
               variant="outline"
               className="border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800"
             >
-              <UserPlus className="w-4 h-4 mr-1.5" /> Nominate
+              <UserPlus className="w-4 h-4 mr-1.5" /> Next player
             </Button>
             <Button
               onClick={markSold}
@@ -402,13 +409,6 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
           <SquadBoard teams={teams} players={players} settings={auction} />
         </div>
       </div>
-
-      <NominateModal
-        open={nominateOpen}
-        onOpenChange={setNominateOpen}
-        players={players}
-        onNominate={nominate}
-      />
 
       {bigScreen && (
         <BigScreen
