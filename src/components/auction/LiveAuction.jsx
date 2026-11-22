@@ -37,6 +37,7 @@ import BigScreen from './live/BigScreen';
 import AuctionMusicToggle from './live/AuctionMusicToggle';
 import AuctionResults from './live/AuctionResults';
 import SoldCard3D from './live/SoldCard3D';
+import JumpBidDialog from './live/JumpBidDialog';
 import SettingsPanel from './setup/SettingsPanel';
 
 export default function LiveAuction({ auction, teams, players, bids, refresh }) {
@@ -51,6 +52,8 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
   const [celebrating, setCelebrating] = useState(false);
   // The 3D "sold" card shown in front of everything after a sale.
   const [soldCard, setSoldCard] = useState(null);
+  // Team whose jump-bid dialog is open (empty = closed).
+  const [jumpTeamId, setJumpTeamId] = useState('');
 
   const completed = auction.status === 'completed';
   const paused = auction.status === 'paused';
@@ -69,6 +72,10 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
   const nextAmount = nextBidAmount(liveAuction.current_bid, auction);
   const totals = auctionTotals({ teams, players, settings: auction });
   const unsoldCount = players.filter((p) => p.status === 'unsold').length;
+  const jumpTeam = teams.find((t) => t.id === jumpTeamId) || null;
+  const jumpFinance = jumpTeam
+    ? teamFinance({ teamId: jumpTeam.id, players, settings: auction })
+    : null;
 
   const showFlash = (payload) => {
     const at = Date.now();
@@ -109,7 +116,8 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
     }
   };
 
-  const placeBid = (teamId) =>
+  // `forcedAmount` is a jump bid — a figure the team named instead of the ladder.
+  const placeBid = (teamId, forcedAmount) =>
     run(async () => {
       // Read the saved auction first, so a slow screen can never bid the same
       // amount twice or bid against a team that is already on top.
@@ -130,7 +138,13 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
         setError(`${name} already has the highest bid.`);
         return;
       }
-      const amount = nextBidAmount(state.currentBid, fresh);
+      const amount = forcedAmount
+        ? Math.round(Number(forcedAmount))
+        : nextBidAmount(state.currentBid, fresh);
+      if (forcedAmount && !(amount > state.currentBid)) {
+        setError(`A jump bid has to be higher than the current bid of ${state.currentBid}.`);
+        return;
+      }
       const finance = teamFinance({ teamId, players, settings: auction });
       const problem = bidProblem({ amount, finance });
       if (problem) {
@@ -355,6 +369,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
                   isHighest={liveAuction.current_bidder_team_id === team.id}
                   blocked={blocked}
                   onBid={placeBid}
+                  onJump={setJumpTeamId}
                 />
               );
             })}
@@ -427,6 +442,20 @@ export default function LiveAuction({ auction, teams, players, bids, refresh }) 
       </div>
 
       {soldCard && <SoldCard3D sale={soldCard} onDone={() => setSoldCard(null)} />}
+
+      <JumpBidDialog
+        open={!!jumpTeam}
+        onOpenChange={(o) => !o && setJumpTeamId('')}
+        team={jumpTeam}
+        finance={jumpFinance}
+        currentBid={liveAuction.current_bid}
+        nextAmount={nextAmount}
+        onConfirm={(amount) => {
+          const id = jumpTeamId;
+          setJumpTeamId('');
+          placeBid(id, amount);
+        }}
+      />
 
       {bigScreen && (
         <BigScreen
