@@ -28,19 +28,30 @@ export function orderedTeams(teams) {
   return [...teams].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 }
 
-// Which team draws next, and from which bowl.
-export function nextDrawTurn({ auction, teams }) {
+// Which team draws next, and from which bowl. Worked out from who already holds a
+// player in each bowl, so the order can never drift from what is actually saved.
+export function nextDrawTurn({ players, teams }) {
   const order = orderedTeams(teams);
-  const round = auction?.draw_round || 1;
-  const index = auction?.draw_index || 0;
-  if (round > 2) return { done: true, round: 2, index, team: null, bowl: null };
-  return {
-    done: false,
-    round,
-    index,
-    team: order[index] || null,
-    bowl: round === 1 ? 'bowl1' : 'bowl2'
-  };
+  if (!order.length) return { done: false, round: 1, index: 0, team: null, bowl: null };
+  const has = (teamId, bowl) =>
+    players.some((p) => p.category === 'icon' && p.bowl === bowl && p.sold_to_team_id === teamId);
+  for (const bowl of BOWLS) {
+    const index = order.findIndex((team) => !has(team.id, bowl));
+    if (index !== -1) {
+      return { done: false, round: bowl === 'bowl1' ? 1 : 2, index, team: order[index], bowl };
+    }
+  }
+  return { done: true, round: 2, index: order.length, team: null, bowl: null };
+}
+
+// Teams still without a player in a bowl.
+export function teamsMissingBowl({ players, teams, bowl }) {
+  return orderedTeams(teams).filter(
+    (team) =>
+      !players.some(
+        (p) => p.category === 'icon' && p.bowl === bowl && p.sold_to_team_id === team.id
+      )
+  );
 }
 
 export function bowlsReady({ players, teams }) {

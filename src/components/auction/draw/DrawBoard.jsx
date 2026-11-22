@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeftRight, Check, Loader2, PlayCircle, Shuffle, Trophy } from 'lucide-react';
+import { ArrowLeftRight, Check, Loader2, PlayCircle, RefreshCw, Shuffle, Trophy } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,12 +12,14 @@ import {
 } from '@/components/ui/dialog';
 import { Panel, PlayerAvatar, TeamBadge } from '../Shared';
 import {
+  BOWLS,
   assignmentsFor,
   inBowl,
   nextDrawTurn,
   orderedTeams,
   pickRandom,
-  remainingInBowl
+  remainingInBowl,
+  teamsMissingBowl
 } from '@/lib/auction/draw';
 
 const BOWL_LABEL = { bowl1: 'Bowl 1', bowl2: 'Bowl 2' };
@@ -35,48 +37,94 @@ export default function DrawBoard({
   const [busy, setBusy] = useState(false);
   const [reveal, setReveal] = useState(null);
   const [reselection, setReselection] = useState(null);
+  const [resetTarget, setResetTarget] = useState(null);
   const [error, setError] = useState('');
 
   const order = orderedTeams(teams);
-  const turn = nextDrawTurn({ auction, teams });
+  const turn = nextDrawTurn({ players, teams });
   const assignments = assignmentsFor({ players, teams });
   const drawn = (bowl) => inBowl(players, bowl).filter((p) => p.sold_to_team_id).length;
 
+  // A bowl is stuck when it is empty but some team still has no player from it.
+  const stuckBowls = BOWLS.filter(
+    (bowl) =>
+      teamsMissingBowl({ players, teams, bowl }).length > 0 && remainingInBowl(players, bowl).length === 0
+  );
+
   const draw = async () => {
-    if (!turn.team || busy) return;
+    if (busy) return;
     setBusy(true);
     setError('');
     try {
-      const player = pickRandom(remainingInBowl(players, turn.bowl));
+      // Read the live bowls first: a screen that has not refreshed yet must never
+      // give the same team a second pick or skip a team.
+      const livePlayers = await base44.entities.AuctionPlayer.filter({
+        tournament_id: auction.tournament_id
+      });
+      const liveTurn = nextDrawTurn({ players: livePlayers, teams });
+      if (liveTurn.done || !liveTurn.team) {
+        setError('Every team already has one player from each bowl.');
+        refresh && refresh();
+        return;
+      }
+      const player = pickRandom(remainingInBowl(livePlayers, liveTurn.bowl));
       if (!player) {
-        setError(`No players left in ${BOWL_LABEL[turn.bowl]}.`);
+        setError(`No players left in ${BOWL_LABEL[liveTurn.bowl]}.`);
+        refresh && refresh();
         return;
       }
       await base44.entities.AuctionPlayer.update(player.id, {
-        sold_to_team_id: turn.team.id,
+        sold_to_team_id: liveTurn.team.id,
         sold_price: 0,
         status: 'sold'
       });
       await base44.entities.AuctionIconDraw.create({
         tournament_id: auction.tournament_id,
-        team_id: turn.team.id,
-        team_name: turn.team.name,
+        team_id: liveTurn.team.id,
+        team_name: liveTurn.team.name,
         player_id: player.id,
         player_name: player.name,
-        bowl: turn.bowl,
+        bowl: liveTurn.bowl,
         action: 'assigned'
       });
-      let round = auction.draw_round || 1;
-      let index = (auction.draw_index || 0) + 1;
-      if (index >= order.length) {
-        round += 1;
-        index = 0;
-      }
-      await base44.entities.Auction.update(auction.id, { draw_round: round, draw_index: index });
-      setReveal({ team: turn.team, player, bowl: turn.bowl, at: Date.now() });
+      const after = livePlayers.map((p) =>
+        p.id === player.id ? { ...p, sold_to_team_id: liveTurn.team.id } : p
+      );
+      const next = nextDrawTurn({ players: after, teams });
+      await base44.entities.Auction.update(auction.id, {
+        draw_round: next.done ? 3 : next.round,
+        draw_index: next.index
+      });
+      setReveal({ team: liveTurn.team, player, bowl: liveTurn.bowl, at: Date.now() });
       refresh && refresh();
     } catch (e) {
       setError(e?.message || 'Could not draw a player.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Puts every player of a bowl that ended up short back into the bowl so it can be drawn again.
+  const resetBowl = async () => {
+    if (!resetTarget || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const held = inBowl(players, resetTarget).filter((p) => p.sold_to_team_id);
+      if (held.length) {
+        await base44.entities.AuctionPlayer.bulkUpdate(
+          held.map((p) => ({ id: p.id, sold_to_team_id: '', sold_price: 0, status: 'available' }))
+        );
+      }
+      await base44.entities.Auction.update(auction.id, {
+        draw_round: resetTarget === 'bowl1' ? 1 : 2,
+        draw_index: 0
+      });
+      setResetTarget(null);
+      setReveal(null);
+      refresh && refresh();
+    } catch (e) {
+      setError(e?.message || 'Could not reset the bowl.');
     } finally {
       setBusy(false);
     }
@@ -88,8 +136,11 @@ export default function DrawBoard({
     setBusy(true);
     setError('');
     try {
+      const livePlayers = await base44.entities.AuctionPlayer.filter({
+        tournament_id: auction.tournament_id
+      });
       const replacement = pickRandom(
-        players.filter(
+        livePlayers.filter(
           (p) => p.category === 'icon' && p.bowl === bowl && !p.sold_to_team_id && p.id !== player.id
         )
       );
@@ -159,6 +210,28 @@ export default function DrawBoard({
 
       {error && <p className="text-xs text-red-400">{error}</p>}
 
+      {stuckBowls.map((bowl) => (
+        <div
+          key={bowl}
+          className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 flex flex-wrap items-center justify-between gap-2"
+        >
+          <p className="text-xs text-amber-200">
+            {BOWL_LABEL[bowl]} is empty but{' '}
+            {teamsMissingBowl({ players, teams, bowl }).length} team
+            {teamsMissingBowl({ players, teams, bowl }).length === 1 ? '' : 's'} still have no pick. Reset
+            the bowl to draw again.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setResetTarget(bowl)}
+            className="border-amber-500/50 bg-transparent text-amber-200 hover:bg-amber-500/20"
+          >
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Reset {BOWL_LABEL[bowl]}
+          </Button>
+        </div>
+      ))}
+
       {turn.done ? (
         <Panel>
           <div className="text-center py-4">
@@ -177,7 +250,7 @@ export default function DrawBoard({
       ) : (
         <div className="rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/60 p-5">
           <p className="text-[11px] uppercase tracking-widest text-slate-400 mb-3 text-center">
-            {BOWL_LABEL[turn.bowl]} · draw {turn.index + 1} of {order.length}
+            {BOWL_LABEL[turn.bowl]} · draw {drawn(turn.bowl) + 1} of {order.length}
           </p>
           <div className="flex flex-col items-center gap-3">
             <TeamBadge team={turn.team} size="xl" />
@@ -344,6 +417,38 @@ export default function DrawBoard({
                 <Check className="w-4 h-4 mr-2" />
               )}
               Confirm replacement
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!resetTarget} onOpenChange={(open) => !open && setResetTarget(null)}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Reset {resetTarget ? BOWL_LABEL[resetTarget] : 'bowl'}?</DialogTitle>
+          </DialogHeader>
+          <div className="text-sm text-slate-300 space-y-2">
+            <p>
+              Every player already drawn from this bowl goes back into it, and the draw starts again
+              from the first team without a pick.
+            </p>
+            <p className="text-amber-400">Use this only when a team was left without a player.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setResetTarget(null)} className="text-slate-300">
+              Cancel
+            </Button>
+            <Button
+              onClick={resetBowl}
+              disabled={busy}
+              className="bg-amber-500 hover:bg-amber-600 text-slate-900"
+            >
+              {busy ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              Reset bowl
             </Button>
           </DialogFooter>
         </DialogContent>
