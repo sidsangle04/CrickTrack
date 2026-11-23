@@ -58,7 +58,7 @@ export default function MatchSetup() {
     players_per_team: 11,
     is_over_limited: false,
     total_match_overs: 90,
-    enable_visual_tagging: true
+    enable_visual_tagging: false
   });
 
   const { data: teams = [] } = useQuery({
