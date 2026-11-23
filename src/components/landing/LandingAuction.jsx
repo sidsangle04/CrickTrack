@@ -21,12 +21,6 @@ const STEPS = [
   },
 ];
 
-const BIDS = [
-  { team: 'Riverside XI', color: '#10b981', amount: 420, leading: false },
-  { team: 'North End CC', color: '#f59e0b', amount: 480, leading: true },
-  { team: 'Old Mill Town', color: '#6366f1', amount: 460, leading: false },
-];
-
 export default function LandingAuction() {
   return (
     <section id="auction" className="scroll-mt-24 py-12 md:py-16">
@@ -68,7 +62,7 @@ export default function LandingAuction() {
           </Reveal>
 
           <Reveal delay={0.1}>
-            <figure className="mx-auto mb-5 max-w-[280px]">
+            <figure className="mx-auto max-w-[340px]">
               <img
                 src="https://base44.app/api/apps/69cd6e7dda99287bd2ab65f2/files/mp/public/69cd6e7dda99287bd2ab65f2/181d20c3009de8be53bb82817cc9a55c_cricktrack-sold-card.png"
                 alt="CrickTrack sold player card showing the winning team and price"
@@ -79,52 +73,6 @@ export default function LandingAuction() {
                 Sold cards, ready to share
               </figcaption>
             </figure>
-            <div className="rounded-2xl border border-slate-700/60 bg-slate-900/70 p-5 shadow-2xl">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                  Live bid · Gold tier
-                </span>
-                <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-                  On the block
-                </span>
-              </div>
-
-              <p className="mt-3 text-lg font-bold text-white">A. Whitfield</p>
-              <p className="text-xs text-slate-400">All-rounder · right-hand bat · off spin</p>
-
-              <div className="mt-5 space-y-2">
-                {BIDS.map((bid) => (
-                  <div
-                    key={bid.team}
-                    className={`flex items-center justify-between rounded-xl border px-3 py-2.5 ${
-                      bid.leading
-                        ? 'border-emerald-500/50 bg-emerald-500/10'
-                        : 'border-slate-700/60 bg-slate-800/40'
-                    }`}>
-                    <span className="flex items-center gap-2 text-xs font-medium text-slate-200">
-                      <span
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{ backgroundColor: bid.color }}
-                      />
-                      {bid.team}
-                    </span>
-                    <span
-                      className={`text-sm font-bold tabular-nums ${
-                        bid.leading ? 'text-emerald-400' : 'text-slate-400'
-                      }`}>
-                      {bid.amount}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 flex items-center justify-between border-t border-slate-700/60 pt-4">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                  Purse left · North End CC
-                </span>
-                <span className="text-sm font-bold text-white tabular-nums">1,520</span>
-              </div>
-            </div>
           </Reveal>
         </div>
       </div>
