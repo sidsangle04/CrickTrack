@@ -50,6 +50,8 @@ export default function useTournamentScenario({ match, innings, allInnings, team
 
   const places = data.tournament.format === 'league_playoffs'
     ? 3
+    : data.tournament.format === 'league_qualifiers'
+    ? 4
     : data.tournament.knockout_teams || 4;
 
   return computeMatchScenario({

@@ -21,7 +21,7 @@ import {
 import { Button } from '@/components/ui/button';
 import CreateTournamentModal from '@/components/tournament/CreateTournamentModal';
 import BracketView from '@/components/tournament/BracketView';
-import { deriveBracket, computeStandings, leagueComplete, seedKnockoutRound1, seedPlayoffs, generateTournamentFixtures } from '@/lib/bracket';
+import { deriveBracket, computeStandings, leagueComplete, seedKnockoutRound1, seedPlayoffs, seedQualifierPlayoffs, deriveQualifierBracket, generateTournamentFixtures } from '@/lib/bracket';
 import { computeQualification } from '@/lib/qualification';
 import LeagueView from '@/components/tournament/LeagueView';
 import TournamentStats from '@/components/tournament/stats/TournamentStats';
@@ -154,6 +154,24 @@ export default function Tournaments() {
       });
       return { format: 'league_playoffs', leagueMatches, standings, leagueComplete: done, knockout, qualification };
     }
+    if (selected?.format === 'league_qualifiers') {
+      const leagueMatches = tmMatches.filter((m) => m.stage === 'league');
+      const knockoutMatches = tmMatches.filter((m) => m.stage !== 'league');
+      const standings = computeStandings(leagueMatches, matchesMap, inningsByMatch);
+      const done = leagueComplete(leagueMatches, matchesMap);
+      const seeds = done ? seedQualifierPlayoffs(standings) : null;
+      const knockout = knockoutMatches.length
+        ? deriveQualifierBracket(knockoutMatches, matchesMap, seeds)
+        : null;
+      const qualification = computeQualification({
+        standings,
+        leagueMatches,
+        matchesMap,
+        teamsMap,
+        qualifyPlaces: 4
+      });
+      return { format: 'league_qualifiers', leagueMatches, standings, leagueComplete: done, knockout, qualification };
+    }
     if (selected?.format === 'league_knockout') {
       const leagueMatches = tmMatches.filter((m) => m.stage === 'league');
       const knockoutMatches = tmMatches.filter((m) => m.stage !== 'league');
@@ -257,10 +275,13 @@ export default function Tournaments() {
 
   if (selected) {
     const isPlayoffs = selected.format === 'league_playoffs';
+    const isQualifiers = selected.format === 'league_qualifiers';
     const isLeagueKO = selected.format === 'league_knockout';
-    const isLeagueStage = isLeagueKO || isPlayoffs;
+    const isLeagueStage = isLeagueKO || isPlayoffs || isQualifiers;
     const formatLabel = isPlayoffs
       ? 'League + Playoffs'
+      : isQualifiers
+      ? 'League + Qualifiers'
       : isLeagueKO
       ? 'League + Knockout'
       : 'Knockout';
@@ -396,10 +417,18 @@ export default function Tournaments() {
               leagueComplete={derived.leagueComplete}
               qualification={derived.qualification}
               knockoutTeams={selected.knockout_teams || 4}
-              seedLabels={isPlayoffs ? ['Final', 'SF', 'SF', 'OUT'] : undefined}
+              seedLabels={
+                isPlayoffs
+                  ? ['Final', 'SF', 'SF', 'OUT']
+                  : isQualifiers
+                  ? ['Q1', 'Q1', 'EL', 'EL']
+                  : undefined
+              }
               footerNote={
                 isPlayoffs
                   ? 'Table topper goes straight to the Final · 2nd vs 3rd in the Semifinal · 4th eliminated · Win = 2 pts'
+                  : isQualifiers
+                  ? '1st vs 2nd in Qualifier 1 · 3rd vs 4th in the Eliminator · Win = 2 pts'
                   : undefined
               }
               onSetWinner={handleSetWinner}
@@ -437,10 +466,41 @@ export default function Tournaments() {
                 </div>
               </div>
             )}
+            {isQualifiers && derived.leagueComplete && derived.standings.length === 4 && (
+              <div className="mt-6 grid sm:grid-cols-3 gap-2">
+                <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 flex items-center gap-2.5">
+                  <Crown className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wide">Qualifier 1</div>
+                    <div className="text-sm text-white font-medium truncate">
+                      {teamsMap[derived.standings[0].id]?.name || 'TBD'} vs {teamsMap[derived.standings[1].id]?.name || 'TBD'}
+                    </div>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-blue-500/40 bg-blue-500/10 p-3 flex items-center gap-2.5">
+                  <Trophy className="w-4 h-4 text-blue-400 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-[10px] text-blue-400 font-semibold uppercase tracking-wide">Eliminator</div>
+                    <div className="text-sm text-white font-medium truncate">
+                      {teamsMap[derived.standings[2].id]?.name || 'TBD'} vs {teamsMap[derived.standings[3].id]?.name || 'TBD'}
+                    </div>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 flex items-center gap-2.5">
+                  <XCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-[10px] text-amber-400 font-semibold uppercase tracking-wide">Second chance</div>
+                    <div className="text-xs text-slate-300 leading-snug">
+                      Qualifier 1 loser meets the Eliminator winner in Qualifier 2
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             {derived.knockout && (
               <div className="mt-8">
                 <div className="flex items-center gap-2 mb-3">
-                  <h2 className="text-sm font-semibold text-white uppercase tracking-wide">{isPlayoffs ? 'Playoffs' : 'Knockout'}</h2>
+                  <h2 className="text-sm font-semibold text-white uppercase tracking-wide">{isPlayoffs || isQualifiers ? 'Playoffs' : 'Knockout'}</h2>
                   {!derived.leagueComplete && (
                     <span className="text-xs text-slate-500">· seeds after league stage</span>
                   )}
@@ -553,6 +613,8 @@ export default function Tournaments() {
                   {t.num_teams} teams ·{' '}
                   {t.format === 'league_playoffs'
                     ? 'League + Playoffs'
+                    : t.format === 'league_qualifiers'
+                    ? 'League + Qualifiers'
                     : t.format === 'league_knockout'
                     ? 'League + KO'
                     : 'Knockout'}

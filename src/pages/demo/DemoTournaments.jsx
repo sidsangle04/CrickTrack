@@ -8,6 +8,7 @@ const FORMAT_LABEL = {
   knockout: 'Knockout',
   league_knockout: 'League + Knockout',
   league_playoffs: 'League + Playoffs',
+  league_qualifiers: 'League + Qualifiers',
 };
 
 function TeamChip({ teamId, winner }) {

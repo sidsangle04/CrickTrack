@@ -45,10 +45,11 @@
       "enum": [
         "knockout",
         "league_knockout",
-        "league_playoffs"
+        "league_playoffs",
+        "league_qualifiers"
       ],
       "default": "knockout",
-      "description": "Tournament format: pure knockout, round-robin league then knockout, or 4-team league + playoffs (topper straight to final, 2nd vs 3rd semifinal)"
+      "description": "Tournament format: pure knockout; round-robin league then knockout; 4-team league + playoffs (topper straight to final, 2nd vs 3rd semifinal); or 4-team league + qualifiers (Qualifier 1, Eliminator, Qualifier 2, Final)"
     },
     "knockout_teams": {
       "type": "number",

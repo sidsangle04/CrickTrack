@@ -15,6 +15,7 @@ const FORMAT_LABELS = {
   knockout: 'Knockout',
   league_knockout: 'League + Knockout',
   league_playoffs: 'League + Playoffs',
+  league_qualifiers: 'League + Qualifiers',
 };
 
 const longDate = (value) => {

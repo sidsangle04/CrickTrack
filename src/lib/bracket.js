@@ -446,6 +446,7 @@ export function generateTournamentFixtures(tournament) {
   } = tournament || {};
 
   if (format === 'league_playoffs') return generateLeaguePlayoffs(id, teamIds);
+  if (format === 'league_qualifiers') return generateLeagueQualifiers(id, teamIds);
   if (format === 'league_knockout') {
     return [
       ...generateLeague(id, teamIds),
@@ -512,5 +513,99 @@ export function seedPlayoffs(standings, knockoutMatches, matchesMap) {
       1: [{ team1: at(1), team2: at(2) }],
       2: [{ team1: at(0), team2: semifinalWinner }]
     }
+  };
+}
+
+/**
+ * League + Qualifiers (exactly 4 teams): single round-robin league, then the
+ * four-match playoff chain used by franchise leagues —
+ *   Qualifier 1: 1st vs 2nd — winner to the Final, loser to Qualifier 2
+ *   Eliminator:  3rd vs 4th — winner to Qualifier 2, loser eliminated
+ *   Qualifier 2: Qualifier 1 loser vs Eliminator winner — winner to the Final
+ *   Final:       Qualifier 1 winner vs Qualifier 2 winner
+ * Each playoff game is its own round so the bracket reads in playing order.
+ */
+export function generateLeagueQualifiers(tournamentId, teamIds) {
+  const league = generateLeague(tournamentId, teamIds);
+  const playoff = (round, label) => ({
+    tournament_id: tournamentId,
+    stage: 'knockout',
+    round,
+    match_index: 0,
+    stage_label: label,
+    team1_id: '',
+    team2_id: '',
+    winner_team_id: '',
+    match_id: '',
+    next_round: 0,
+    next_index: 0,
+    status: 'pending'
+  });
+
+  return [
+    ...league,
+    playoff(1, 'Qualifier 1'),
+    playoff(2, 'Eliminator'),
+    playoff(3, 'Qualifier 2'),
+    playoff(4, 'Final')
+  ];
+}
+
+/**
+ * Seeds for the qualifier chain from the final league table: 1st vs 2nd in
+ * Qualifier 1, 3rd vs 4th in the Eliminator.
+ */
+export function seedQualifierPlayoffs(standings) {
+  const at = (i) => (standings[i] && standings[i].id) || '';
+  return {
+    qualifier1: { team1: at(0), team2: at(1) },
+    eliminator: { team1: at(2), team2: at(3) }
+  };
+}
+
+/**
+ * Derive the qualifier chain: unlike a knockout tree the loser of Qualifier 1
+ * plays on, so each match's participants are worked out explicitly.
+ */
+export function deriveQualifierBracket(knockoutMatches, matchesMap, seeds) {
+  const map = matchesMap || {};
+  const byRound = {};
+  (knockoutMatches || []).forEach((m) => {
+    byRound[m.round] = m;
+  });
+
+  const build = (round, team1In, team2In) => {
+    const tm = byRound[round] || {};
+    const team1 = team1In || tm.team1_id || '';
+    const team2 = team2In || tm.team2_id || '';
+    const winner = matchWinner({ ...tm, team1_id: team1, team2_id: team2 }, map, 1);
+    const loser = winner && team1 && team2 ? (winner === team1 ? team2 : team1) : '';
+    return {
+      loser,
+      row: {
+        id: tm.id,
+        team1,
+        team2,
+        winner,
+        stage_label: tm.stage_label,
+        match_id: tm.match_id || '',
+        status: tm.status
+      }
+    };
+  };
+
+  const qualifier1 = build(1, seeds?.qualifier1?.team1, seeds?.qualifier1?.team2);
+  const eliminator = build(2, seeds?.eliminator?.team1, seeds?.eliminator?.team2);
+  const qualifier2 = build(3, qualifier1.loser, eliminator.row.winner);
+  const final = build(4, qualifier1.row.winner, qualifier2.row.winner);
+
+  return {
+    state: {
+      1: { 0: qualifier1.row },
+      2: { 0: eliminator.row },
+      3: { 0: qualifier2.row },
+      4: { 0: final.row }
+    },
+    totalRounds: 4
   };
 }
