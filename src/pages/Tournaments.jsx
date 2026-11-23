@@ -467,17 +467,21 @@ export default function Tournaments() {
                 </div>
               </div>
             )}
-            {isQualifiers && derived.leagueComplete && derived.standings.length >= 4 && derived.knockout && (
+            {isQualifiers && derived.knockout && (
               <RoadToFinal
                 teamsMap={teamsMap}
+                matchesMap={matchesMap}
                 seeds={derived.standings.slice(0, 4).map((s) => s.id)}
                 matches={[1, 2, 3, 4].map((r) => derived.knockout.state[r]?.[0] || {})}
+                onSetWinner={handleSetWinner}
+                onStartGame={handleStartGame}
+                onOpenMatch={handleOpenMatch}
               />
             )}
-            {derived.knockout && (
+            {derived.knockout && !isQualifiers && (
               <div className="mt-8">
                 <div className="flex items-center gap-2 mb-3">
-                  <h2 className="text-sm font-semibold text-white uppercase tracking-wide">{isPlayoffs || isQualifiers ? 'Playoffs' : 'Knockout'}</h2>
+                  <h2 className="text-sm font-semibold text-white uppercase tracking-wide">{isPlayoffs ? 'Playoffs' : 'Knockout'}</h2>
                   {!derived.leagueComplete && (
                     <span className="text-xs text-slate-500">· seeds after league stage</span>
                   )}

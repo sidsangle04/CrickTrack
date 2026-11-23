@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, ChevronRight, Crown, Trophy } from 'lucide-react';
+import { ChevronDown, ChevronRight, Crown, Eye, Play, Trophy } from 'lucide-react';
 
 // Chamfered frame — an outer clipped layer acts as the 1px light-blue border.
 const CHAMFER = 'polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px)';
@@ -27,11 +27,17 @@ function Frame({ children, className = '' }) {
   );
 }
 
-function TeamLine({ teamId, winner, crown, teamsMap }) {
+function TeamLine({ teamId, winner, crown, teamsMap, onPick }) {
   const team = teamId ? teamsMap[teamId] : null;
   return (
-    <div
-      className={`flex items-center gap-1.5 px-2 py-1 rounded-sm ${winner ? 'bg-[#ffcc00]/15' : ''}`}
+    <button
+      type="button"
+      onClick={onPick}
+      disabled={!onPick}
+      title={onPick ? 'Set as winner' : undefined}
+      className={`w-full text-left flex items-center gap-1.5 px-2 py-1 rounded-sm transition-colors ${
+        winner ? 'bg-[#ffcc00]/15' : onPick ? 'hover:bg-[#a1c0e8]/15' : ''
+      }`}
     >
       <span
         className="w-2 h-2 rounded-full shrink-0"
@@ -45,7 +51,7 @@ function TeamLine({ teamId, winner, crown, teamsMap }) {
         {team ? team.name || team.short_name : 'To be decided'}
       </span>
       {crown && winner && <Crown className="w-3 h-3 text-[#ffcc00] ml-auto shrink-0" />}
-    </div>
+    </button>
   );
 }
 
@@ -65,12 +71,67 @@ function SeedBox({ place, teamId, teamsMap }) {
   );
 }
 
-function MatchCard({ stage, row, teamsMap, crown }) {
+function MatchCard({ stage, row, teamsMap, matchesMap, crown, onSetWinner, onStartGame, onOpenMatch }) {
   const team1 = row?.team1 || '';
   const team2 = row?.team2 || '';
   const winner = row?.winner || '';
+  const linked = row?.match_id ? matchesMap[row.match_id] : null;
+  const ready = !!team1 && !!team2 && !winner;
+
+  let action = null;
+  if (winner) {
+    action =
+      linked && onOpenMatch ? (
+        <button
+          type="button"
+          onClick={() => onOpenMatch(row.match_id, linked.status)}
+          className="w-full flex items-center justify-center gap-1.5 text-[10px] text-[#dbe7f7] hover:text-white"
+        >
+          <Eye className="w-3 h-3" /> View match
+        </button>
+      ) : (
+        <div className="text-center text-[10px] text-emerald-300">Winner advances</div>
+      );
+  } else if (ready) {
+    if (linked) {
+      action = onOpenMatch ? (
+        <button
+          type="button"
+          onClick={() => onOpenMatch(row.match_id, linked.status)}
+          className="w-full flex items-center justify-center gap-1.5 text-[10px] px-2 py-1 rounded bg-emerald-500 text-white hover:bg-emerald-600"
+        >
+          {linked.status === 'live' ? (
+            <>
+              <Play className="w-3 h-3" /> Score
+            </>
+          ) : (
+            <>
+              <Eye className="w-3 h-3" /> Resume
+            </>
+          )}
+        </button>
+      ) : (
+        <div className="text-center text-[10px] text-[#a1c0e8]/70">In progress</div>
+      );
+    } else {
+      action = onStartGame ? (
+        <button
+          type="button"
+          onClick={() => onStartGame(row.id, team1, team2)}
+          className="w-full flex items-center justify-center gap-1.5 text-[10px] px-2 py-1 rounded bg-emerald-500 text-white hover:bg-emerald-600"
+        >
+          <Play className="w-3 h-3" /> Start game
+        </button>
+      ) : (
+        <div className="text-center text-[10px] text-[#a1c0e8]/70">Ready to play</div>
+      );
+    }
+  } else {
+    action = <div className="text-center text-[10px] text-[#a1c0e8]/50">Awaiting teams</div>;
+  }
+
   return (
-    <div className="w-full md:w-[168px]">
+    <div className="w-full md:w-[172px]">
       <Frame>
         <div className="px-2.5 py-2">
           <div className="flex items-start justify-between gap-2 mb-1">
@@ -79,8 +140,21 @@ function MatchCard({ stage, row, teamsMap, crown }) {
             </span>
             <span className="w-5 h-2 shrink-0 mt-0.5" style={HATCH} />
           </div>
-          <TeamLine teamId={team1} winner={winner && winner === team1} crown={crown} teamsMap={teamsMap} />
-          <TeamLine teamId={team2} winner={winner && winner === team2} crown={crown} teamsMap={teamsMap} />
+          <TeamLine
+            teamId={team1}
+            winner={winner && winner === team1}
+            crown={crown}
+            teamsMap={teamsMap}
+            onPick={ready && onSetWinner ? () => onSetWinner(row.id, team1) : undefined}
+          />
+          <TeamLine
+            teamId={team2}
+            winner={winner && winner === team2}
+            crown={crown}
+            teamsMap={teamsMap}
+            onPick={ready && onSetWinner ? () => onSetWinner(row.id, team2) : undefined}
+          />
+          <div className="mt-1.5 pt-1.5 border-t border-[#a1c0e8]/20">{action}</div>
         </div>
       </Frame>
       <div className="text-[9px] text-[#a1c0e8]/70 text-center mt-1 leading-tight">{stage.hint}</div>
@@ -101,7 +175,15 @@ function Connector() {
  * Road to the Final — the qualifier chain drawn as a flow chart:
  * 1st/2nd -> Qualifier 1, 3rd/4th -> Eliminator, both feed Qualifier 2 and the Final.
  */
-export default function RoadToFinal({ seeds = [], matches = [], teamsMap = {} }) {
+export default function RoadToFinal({
+  seeds = [],
+  matches = [],
+  teamsMap = {},
+  matchesMap = {},
+  onSetWinner,
+  onStartGame,
+  onOpenMatch,
+}) {
   const rows = STAGES.map((_, i) => matches[i] || {});
   return (
     <div
@@ -136,20 +218,53 @@ export default function RoadToFinal({ seeds = [], matches = [], teamsMap = {} })
         <Connector />
 
         <div className="flex flex-col justify-around gap-3 md:gap-8">
-          <MatchCard stage={STAGES[0]} row={rows[0]} teamsMap={teamsMap} />
-          <MatchCard stage={STAGES[1]} row={rows[1]} teamsMap={teamsMap} />
+          <MatchCard
+            stage={STAGES[0]}
+            row={rows[0]}
+            teamsMap={teamsMap}
+            matchesMap={matchesMap}
+            onSetWinner={onSetWinner}
+            onStartGame={onStartGame}
+            onOpenMatch={onOpenMatch}
+          />
+          <MatchCard
+            stage={STAGES[1]}
+            row={rows[1]}
+            teamsMap={teamsMap}
+            matchesMap={matchesMap}
+            onSetWinner={onSetWinner}
+            onStartGame={onStartGame}
+            onOpenMatch={onOpenMatch}
+          />
         </div>
 
         <Connector />
 
         <div className="flex flex-col justify-center">
-          <MatchCard stage={STAGES[2]} row={rows[2]} teamsMap={teamsMap} />
+          <MatchCard
+            stage={STAGES[2]}
+            row={rows[2]}
+            teamsMap={teamsMap}
+            matchesMap={matchesMap}
+            onSetWinner={onSetWinner}
+            onStartGame={onStartGame}
+            onOpenMatch={onOpenMatch}
+          />
         </div>
 
         <Connector />
 
         <div className="flex flex-col justify-center">
-          <MatchCard stage={STAGES[3]} row={rows[3]} teamsMap={teamsMap} crown />
+          <MatchCard
+            stage={STAGES[3]}
+            row={rows[3]}
+            teamsMap={teamsMap}
+            matchesMap={matchesMap}
+            crown
+            onSetWinner={onSetWinner}
+            onStartGame={onStartGame}
+            onOpenMatch={onOpenMatch}
+          />
         </div>
       </div>
     </div>
