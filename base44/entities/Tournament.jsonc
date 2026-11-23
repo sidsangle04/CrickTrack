@@ -49,12 +49,12 @@
         "league_qualifiers"
       ],
       "default": "knockout",
-      "description": "Tournament format: pure knockout; round-robin league then knockout; 4-team league + playoffs (topper straight to final, 2nd vs 3rd semifinal); or 4-team league + qualifiers (Qualifier 1, Eliminator, Qualifier 2, Final)"
+      "description": "Tournament format: pure knockout; round-robin league then a knockout bracket; league then playoffs (topper straight to final, 2nd vs 3rd semifinal); or league then qualifiers (Qualifier 1, Eliminator, Qualifier 2, Final). Playoff and qualifier formats need at least 4 teams."
     },
     "knockout_teams": {
       "type": "number",
       "default": 4,
-      "description": "How many teams qualify from the league stage to the knockout (power of two)"
+      "description": "How many teams qualify from the league stage into the knockout, playoffs or qualifiers"
     },
     "knockout_pairing": {
       "type": "string",

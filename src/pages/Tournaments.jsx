@@ -426,16 +426,16 @@ export default function Tournaments() {
               }
               footerNote={
                 isPlayoffs
-                  ? 'Table topper goes straight to the Final · 2nd vs 3rd in the Semifinal · 4th eliminated · Win = 2 pts'
+                  ? 'Table topper goes straight to the Final · 2nd vs 3rd in the Semifinal · the rest eliminated · Win = 2 pts'
                   : isQualifiers
-                  ? '1st vs 2nd in Qualifier 1 · 3rd vs 4th in the Eliminator · Win = 2 pts'
+                  ? '1st vs 2nd in Qualifier 1 · 3rd vs 4th in the Eliminator · the rest eliminated · Win = 2 pts'
                   : undefined
               }
               onSetWinner={handleSetWinner}
               onStartGame={handleStartGame}
               onOpenMatch={handleOpenMatch}
             />
-            {isPlayoffs && derived.leagueComplete && derived.standings.length === 4 && (
+            {isPlayoffs && derived.leagueComplete && derived.standings.length >= 4 && (
               <div className="mt-6 grid sm:grid-cols-3 gap-2">
                 <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 flex items-center gap-2.5">
                   <Crown className="w-4 h-4 text-amber-400 shrink-0" />
@@ -466,7 +466,7 @@ export default function Tournaments() {
                 </div>
               </div>
             )}
-            {isQualifiers && derived.leagueComplete && derived.standings.length === 4 && (
+            {isQualifiers && derived.leagueComplete && derived.standings.length >= 4 && (
               <div className="mt-6 grid sm:grid-cols-3 gap-2">
                 <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 flex items-center gap-2.5">
                   <Crown className="w-4 h-4 text-emerald-400 shrink-0" />

@@ -18,7 +18,7 @@ export default function CreateTournamentModal({ teams, onClose, onCreated }) {
   const [creationMode, setCreationMode] = useState('direct');
   const [name, setName] = useState('');
   const [format, setFormat] = useState('knockout');
-  const [knockoutTeams, setKnockoutTeams] = useState(4);
+  const [qualifyTeams, setQualifyTeams] = useState(4);
   const [pairing, setPairing] = useState('standard');
   const [autoFixtures, setAutoFixtures] = useState(true);
   const [shuffle, setShuffle] = useState(false);
@@ -30,13 +30,10 @@ export default function CreateTournamentModal({ teams, onClose, onCreated }) {
   const isAuction = creationMode === 'auction';
   const filledNames = teamNames.map((n) => n.trim()).filter(Boolean);
 
-  const toggle = (id) => {
-    const next = selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id];
-    setSelected(next);
-    if ((format === 'league_playoffs' || format === 'league_qualifiers') && next.length !== 4) {
-      setFormat('knockout');
-    }
-  };
+  const toggle = (id) =>
+    setSelected((list) =>
+      list.includes(id) ? list.filter((x) => x !== id) : [...list, id]
+    );
 
   const setTeamName = (i, value) =>
     setTeamNames((list) => list.map((n, idx) => (idx === i ? value : n)));
@@ -49,14 +46,23 @@ export default function CreateTournamentModal({ teams, onClose, onCreated }) {
   const isPlayoffs = format === 'league_playoffs';
   const isQualifiers = format === 'league_qualifiers';
   const isKnockout = format === 'knockout';
-  // Both four-team playoff formats need exactly four teams.
-  const needsFour = isPlayoffs || isQualifiers;
-  // Only offer knockout sizes the selected teams can actually fill.
-  const koOptions = [2, 4, 8].filter((k) => k <= Math.max(2, teamCount));
-  const effectiveKO = koOptions.includes(knockoutTeams)
-    ? knockoutTeams
-    : koOptions[koOptions.length - 1];
-  const canCreate = name.trim() && teamCount >= 2 && (!needsFour || teamCount === 4);
+  const isLeagueStage = !isKnockout;
+  // Any number of teams can enter; the qualifying count is what the user picks.
+  const maxTeams = Math.max(2, teamCount);
+  const qualifyOptions = isLeagueKO
+    ? [2, 4, 8].filter((k) => k <= maxTeams)
+    : isPlayoffs || isQualifiers
+    ? [4].filter((k) => k <= maxTeams)
+    : [];
+  const effectiveQualify = qualifyOptions.includes(qualifyTeams)
+    ? qualifyTeams
+    : qualifyOptions[qualifyOptions.length - 1] || 0;
+  const canCreate = name.trim() && teamCount >= 2 && (isKnockout || effectiveQualify >= 2);
+  const qualifyLabel = isPlayoffs
+    ? 'playoffs'
+    : isQualifiers
+    ? 'qualifiers'
+    : 'knockout';
 
   const createAuctionTournament = async () => {
     const tour = await base44.entities.Tournament.create({
@@ -64,7 +70,7 @@ export default function CreateTournamentModal({ teams, onClose, onCreated }) {
       team_ids: [],
       num_teams: filledNames.length,
       format,
-      knockout_teams: isLeagueKO ? effectiveKO : 4,
+      knockout_teams: isKnockout ? 4 : effectiveQualify,
       knockout_pairing: pairing,
       ground_mode: mode,
       status: 'setup',
@@ -116,7 +122,7 @@ export default function CreateTournamentModal({ teams, onClose, onCreated }) {
         team_ids: ordered,
         num_teams: ordered.length,
         format,
-        knockout_teams: isLeagueKO ? effectiveKO : 4,
+        knockout_teams: isKnockout ? 4 : effectiveQualify,
         knockout_pairing: pairing,
         ground_mode: mode,
         status: autoFixtures ? 'in_progress' : 'setup',
@@ -226,18 +232,18 @@ export default function CreateTournamentModal({ teams, onClose, onCreated }) {
               </button>
               <button
                 onClick={() => setFormat('league_playoffs')}
-                disabled={teamCount !== 4}
+                disabled={teamCount < 4}
                 className={`p-3 rounded-lg text-left border transition-colors ${
                   format === 'league_playoffs'
                     ? 'bg-emerald-500/20 border-emerald-500/50'
-                    : teamCount !== 4
+                    : teamCount < 4
                     ? 'bg-slate-800/60 border-slate-800 cursor-not-allowed'
                     : 'bg-slate-800 border-slate-700 hover:border-slate-600'
                 }`}
               >
                 <div
                   className={`text-sm font-medium ${
-                    teamCount !== 4 && format !== 'league_playoffs'
+                    teamCount < 4 && format !== 'league_playoffs'
                       ? 'text-slate-500'
                       : 'text-white'
                   }`}
@@ -245,23 +251,23 @@ export default function CreateTournamentModal({ teams, onClose, onCreated }) {
                   League + Playoffs
                 </div>
                 <div className="text-[11px] text-slate-400 mt-0.5">
-                  {teamCount !== 4 ? 'Exactly 4 teams' : 'Topper straight to final'}
+                  {teamCount < 4 ? 'Needs 4+ teams' : 'Top 4 to the playoffs'}
                 </div>
               </button>
               <button
                 onClick={() => setFormat('league_qualifiers')}
-                disabled={teamCount !== 4}
+                disabled={teamCount < 4}
                 className={`p-3 rounded-lg text-left border transition-colors ${
                   format === 'league_qualifiers'
                     ? 'bg-emerald-500/20 border-emerald-500/50'
-                    : teamCount !== 4
+                    : teamCount < 4
                     ? 'bg-slate-800/60 border-slate-800 cursor-not-allowed'
                     : 'bg-slate-800 border-slate-700 hover:border-slate-600'
                 }`}
               >
                 <div
                   className={`text-sm font-medium ${
-                    teamCount !== 4 && format !== 'league_qualifiers'
+                    teamCount < 4 && format !== 'league_qualifiers'
                       ? 'text-slate-500'
                       : 'text-white'
                   }`}
@@ -269,30 +275,45 @@ export default function CreateTournamentModal({ teams, onClose, onCreated }) {
                   League + Qualifiers
                 </div>
                 <div className="text-[11px] text-slate-400 mt-0.5">
-                  {teamCount !== 4 ? 'Exactly 4 teams' : 'Q1, Eliminator, Q2, Final'}
+                  {teamCount < 4 ? 'Needs 4+ teams' : 'Top 4: Q1, Eliminator, Q2, Final'}
                 </div>
               </button>
             </div>
           </div>
 
-          {isLeagueKO && (
+          {isLeagueStage && (
             <div>
-              <Label className="text-slate-200">Teams qualifying for knockout</Label>
-              <div className="flex gap-2">
-                {koOptions.map((k) => (
-                  <button
-                    key={k}
-                    onClick={() => setKnockoutTeams(k)}
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                      effectiveKO === k
-                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
-                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-600'
-                    }`}
-                  >
-                    Top {k}
-                  </button>
-                ))}
-              </div>
+              <Label className="text-slate-200">Teams qualifying for the {qualifyLabel}</Label>
+              {qualifyOptions.length ? (
+                <>
+                  <div className="flex gap-2 mt-1.5">
+                    {qualifyOptions.map((k) => (
+                      <button
+                        key={k}
+                        onClick={() => setQualifyTeams(k)}
+                        className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                          effectiveQualify === k
+                            ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                            : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-600'
+                        }`}
+                      >
+                        Top {k}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1.5">
+                    {isLeagueKO
+                      ? `Top ${effectiveQualify} of ${teamCount} reach a seeded knockout bracket.`
+                      : isPlayoffs
+                      ? `Top ${effectiveQualify} of ${teamCount} reach the playoffs — 1st straight to the Final, 2nd vs 3rd in the Semifinal.`
+                      : `Top ${effectiveQualify} of ${teamCount} reach Qualifier 1, the Eliminator and Qualifier 2.`}
+                  </p>
+                </>
+              ) : (
+                <p className="text-[11px] text-amber-400/80 mt-1.5">
+                  Add at least 4 teams to use this format.
+                </p>
+              )}
             </div>
           )}
 
@@ -300,7 +321,7 @@ export default function CreateTournamentModal({ teams, onClose, onCreated }) {
             <KnockoutPairingPicker
               value={pairing}
               onChange={setPairing}
-              teamCount={isLeagueKO ? effectiveKO : Math.max(2, teamCount)}
+              teamCount={isLeagueKO ? effectiveQualify : Math.max(2, teamCount)}
             />
           )}
 
@@ -415,11 +436,11 @@ export default function CreateTournamentModal({ teams, onClose, onCreated }) {
             {isAuction
               ? 'Create the tournament, then run its auction: every player you sell joins that team, and the squads are saved as this tournament\u2019s players. Fixtures can be created once the auction is done.'
               : isPlayoffs
-              ? 'Each team plays every other team once. The table topper goes straight to the Final, 2nd plays 3rd in the Semifinal, and the last team is eliminated.'
+              ? 'Each team plays every other team once. The table topper goes straight to the Final, 2nd plays 3rd in the Semifinal, and the rest are eliminated.'
               : isQualifiers
               ? 'Each team plays every other team once. 1st vs 2nd in Qualifier 1 — the winner goes straight to the Final, the loser gets a second chance in Qualifier 2. 3rd vs 4th in the Eliminator — the winner meets the Qualifier 1 loser in Qualifier 2, the loser is out. The Final is Qualifier 1 winner vs Qualifier 2 winner.'
               : isLeagueKO
-              ? 'Each team plays every other team once. The top teams then advance to a seeded knockout bracket.'
+              ? `Each team plays every other team once. The top ${effectiveQualify} then advance to a seeded knockout bracket.`
               : 'A single-elimination bracket is generated automatically. Teams get byes if the count isn\u2019t a power of 2.'}
             {!isAuction && !autoFixtures &&
               ' You can create the fixture list from the tournament page whenever you are ready.'}
