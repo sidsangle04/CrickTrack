@@ -19,6 +19,10 @@
       "type": "string",
       "description": "Full name"
     },
+    "photo_url": {
+      "type": "string",
+      "description": "Player photograph URL"
+    },
     "jersey_number": {
       "type": "number",
       "description": "Jersey number"
@@ -71,7 +75,6 @@
     }
   },
   "required": [
-    "team_id",
     "name",
     "role"
   ],

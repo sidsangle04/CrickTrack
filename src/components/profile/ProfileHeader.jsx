@@ -15,8 +15,12 @@ export default function ProfileHeader({ player, team, matchCount }) {
   return (
     <div className="mb-6 bg-slate-800/50 rounded-2xl p-5 border border-slate-700/50">
       <div className="flex items-center gap-4 flex-wrap">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/30 to-emerald-600/10 border border-emerald-500/40 flex items-center justify-center text-xl font-bold text-emerald-400 flex-shrink-0">
-          {initials}
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/30 to-emerald-600/10 border border-emerald-500/40 flex items-center justify-center text-xl font-bold text-emerald-400 flex-shrink-0 overflow-hidden">
+          {player?.photo_url ? (
+            <img src={player.photo_url} alt={player?.name} className="w-full h-full object-cover" />
+          ) : (
+            initials
+          )}
         </div>
         <div className="flex-1 min-w-[180px]">
           <div className="flex items-center gap-2 flex-wrap">

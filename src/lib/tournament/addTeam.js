@@ -33,6 +33,7 @@ export default async function addTournamentTeam({
   const roster = [
     ...existingPlayers.map((p) => ({
       name: p.name,
+      photo_url: p.photo_url || '',
       role: p.role || 'batsman',
       batting_style: p.batting_style || 'right_hand',
       bowling_style: p.bowling_style || 'none',

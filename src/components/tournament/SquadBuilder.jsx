@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Check, Plus, Search, Trash2, UserPlus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import PlayerNameInput from '@/components/players/PlayerNameInput';
+import { PlayerAvatar } from '@/components/auction/Shared';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -39,13 +40,23 @@ export default function SquadBuilder({
     queryFn: () => base44.entities.Player.list()
   });
 
+  const { data: teams = [] } = useQuery({
+    queryKey: ['teams-analytics'],
+    queryFn: () => base44.entities.Team.list()
+  });
+
+  const teamNames = useMemo(
+    () => teams.reduce((a, t) => ({ ...a, [t.id]: t.short_name || t.name }), {}),
+    [teams]
+  );
+
   const available = useMemo(() => {
     const q = search.trim().toLowerCase();
     return players
       .filter((p) => (p.ground_mode || 'turf') === mode)
       .filter((p) => p.tournament_id !== tournamentId)
       .filter((p) => !q || (p.name || '').toLowerCase().includes(q))
-      .slice(0, 60);
+      .slice(0, 200);
   }, [players, mode, tournamentId, search]);
 
   const isPicked = (id) => selected.some((s) => s.id === id);
@@ -99,7 +110,13 @@ export default function SquadBuilder({
                 >
                   {isPicked(p.id) && <Check className="w-3 h-3" />}
                 </span>
-                <span className="text-xs text-white truncate flex-1">{p.name}</span>
+                <PlayerAvatar player={p} size="sm" className="!w-7 !h-7 !rounded-md" />
+                <span className="text-xs text-white truncate flex-1">
+                  {p.name}
+                  {teamNames[p.team_id] && (
+                    <span className="text-slate-500"> · {teamNames[p.team_id]}</span>
+                  )}
+                </span>
                 <span className="text-[10px] text-slate-400 shrink-0">
                   {ROLE_LABELS[p.role] || 'Player'}
                 </span>
@@ -108,7 +125,8 @@ export default function SquadBuilder({
           )}
         </div>
         <p className="text-[10px] text-slate-500 mt-1">
-          Picked players are copied into this tournament — your existing teams stay untouched.
+          Everyone in the Players section is listed here. Picked players are copied into this
+          tournament — your existing teams stay untouched.
         </p>
       </div>
 

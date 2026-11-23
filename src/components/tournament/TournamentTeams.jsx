@@ -75,6 +75,7 @@ export default function TournamentTeams({ tournament, teams, onAddTeam }) {
       {openTeam && (
         <TeamSquadDialog
           team={openTeam}
+          tournament={tournament}
           open={!!openTeam}
           onOpenChange={(v) => !v && setOpenTeam(null)}
         />

@@ -71,6 +71,7 @@ export default async function promoteAuctionSquads({ tournamentId, auctionTeams,
     const createdPlayers = await base44.entities.Player.bulkCreate(
       sold.map((p) => ({
         name: p.name,
+        photo_url: p.photo_url || '',
         team_id: teamIdFor[p.sold_to_team_id],
         ground_mode: mode,
         tournament_id: tournamentId,

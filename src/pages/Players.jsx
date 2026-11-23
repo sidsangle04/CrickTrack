@@ -3,9 +3,10 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
-import { Search, Loader2, Users, ChevronRight, ArrowLeftRight } from 'lucide-react';
+import { Search, Loader2, Users, ChevronRight, ArrowLeftRight, Plus, Pencil } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useGroundShape } from '@/lib/GroundShapeContext';
+import PlayerFormModal from '@/components/players/PlayerFormModal';
 
 const ROLES = [
   { key: 'all', label: 'All Roles' },
@@ -23,6 +24,8 @@ export default function Players() {
   const [search, setSearch] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingPlayer, setEditingPlayer] = useState(null);
 
   const { data: allPlayers = [], isLoading } = useQuery({
     queryKey: ['all-players-analytics'],
@@ -83,13 +86,25 @@ export default function Players() {
           <h1 className="text-2xl font-bold text-white mb-1">Players</h1>
           <p className="text-slate-400 text-sm">Search any {modeLabel} player and open their full profile with stats & insights</p>
         </div>
-        <Link
-          to={createPageUrl('PlayerComparison')}
-          className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-sm font-medium hover:bg-slate-700 transition-all"
-        >
-          <ArrowLeftRight className="w-4 h-4" />
-          Compare
-        </Link>
+        <div className="shrink-0 flex items-center gap-2">
+          <Link
+            to={createPageUrl('PlayerComparison')}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-sm font-medium hover:bg-slate-700 transition-all"
+          >
+            <ArrowLeftRight className="w-4 h-4" />
+            <span className="hidden sm:inline">Compare</span>
+          </Link>
+          <button
+            onClick={() => {
+              setEditingPlayer(null);
+              setFormOpen(true);
+            }}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Add player</span>
+          </button>
+        </div>
       </div>
 
       {/* Search & filters */}
@@ -146,7 +161,7 @@ export default function Players() {
           <h3 className="text-lg font-medium text-white mb-2">No players found</h3>
           <p className="text-slate-400 text-sm">
             {modePlayers.length === 0
-              ? `No ${modeLabel} players yet — create teams & players in Team Management`
+              ? `No ${modeLabel} players yet — tap Add player to register one`
               : 'Try a different search or filter'}
           </p>
         </div>
@@ -162,8 +177,12 @@ export default function Players() {
                 to={createPageUrl('PlayerProfile') + `?playerId=${p.id}`}
                 className="group p-4 rounded-2xl bg-slate-800/50 border border-slate-700/50 hover:border-emerald-500/50 transition-all flex items-center gap-3"
               >
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500/30 to-emerald-600/10 border border-emerald-500/30 flex items-center justify-center text-sm font-bold text-emerald-400 flex-shrink-0">
-                  {initials}
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500/30 to-emerald-600/10 border border-emerald-500/30 flex items-center justify-center text-sm font-bold text-emerald-400 flex-shrink-0 overflow-hidden">
+                  {p.photo_url ? (
+                    <img src={p.photo_url} alt={p.name} className="w-full h-full object-cover" />
+                  ) : (
+                    initials
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-white font-semibold truncate">{p.name}</div>
@@ -176,12 +195,31 @@ export default function Players() {
                     <span className="px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 text-[10px] font-semibold">{stats.wickets} wkts</span>
                   </div>
                 </div>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setEditingPlayer(p);
+                    setFormOpen(true);
+                  }}
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-400 hover:bg-slate-700/50 transition-colors flex-shrink-0"
+                  title="Edit player details or photo"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
                 <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-emerald-400 transition-colors flex-shrink-0" />
               </Link>
             );
           })}
         </div>
       )}
+      <PlayerFormModal
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        player={editingPlayer}
+        teams={modeTeams}
+        mode={mode}
+      />
     </div>
   );
 }
