@@ -334,7 +334,7 @@ export const DEMO_STRIKE_LEADERS = [...DEMO_PLAYERS]
 export const DEMO_TOURNAMENT = {
   id: 'demo-tour-1',
   name: 'Summer Slam 2026',
-  format: 'league_playoffs',
+  format: 'league_qualifiers',
   status: 'in_progress',
   team_ids: ['demo-t1', 'demo-t2', 'demo-t3', 'demo-t4'],
   standings: [

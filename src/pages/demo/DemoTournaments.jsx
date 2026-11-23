@@ -1,7 +1,8 @@
 import React from 'react';
-import { Trophy, ChevronRight, CalendarDays } from 'lucide-react';
+import { Trophy, CalendarDays } from 'lucide-react';
 import DemoShell from '@/components/demo/DemoShell';
 import DemoLockedAction from '@/components/demo/DemoLockedAction';
+import RoadToFinal from '@/components/tournament/RoadToFinal';
 import { DEMO_TOURNAMENT, DEMO_TEAMS_MAP } from '@/lib/demoData';
 
 const FORMAT_LABEL = {
@@ -10,26 +11,6 @@ const FORMAT_LABEL = {
   league_playoffs: 'League + Playoffs',
   league_qualifiers: 'League + Qualifiers',
 };
-
-function TeamChip({ teamId, winner }) {
-  const team = DEMO_TEAMS_MAP[teamId];
-  if (!team) {
-    return <span className="text-xs text-slate-500">To be decided</span>;
-  }
-  return (
-    <span
-      className={`inline-flex items-center gap-2 rounded-lg px-2.5 py-1 text-xs font-semibold ${
-        winner ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700/60 text-slate-200'
-      }`}
-    >
-      <span
-        className="w-2.5 h-2.5 rounded-full"
-        style={{ backgroundColor: team.primary_color }}
-      />
-      {team.short_name}
-    </span>
-  );
-}
 
 export default function DemoTournaments() {
   const t = DEMO_TOURNAMENT;
@@ -103,41 +84,25 @@ export default function DemoTournaments() {
           </table>
         </div>
         <p className="mt-3 text-xs text-slate-500">
-          Top 2 qualify for the playoffs. 1st goes straight to the final; 2nd plays 3rd in the eliminator.
+          Top 4 qualify: 1st plays 2nd in Qualifier 1, 3rd plays 4th in the Eliminator.
         </p>
       </div>
 
-      {/* Bracket */}
-      <div className="rounded-2xl bg-slate-800/50 border border-slate-700/50 p-4">
-        <h3 className="font-semibold text-white mb-3">Playoff bracket</h3>
-        <div className="space-y-3">
-          {t.bracket.map((m) => (
-            <div key={m.label} className="rounded-xl bg-slate-900/60 border border-slate-700/40 p-3">
-              <div className="flex items-center justify-between gap-3 mb-2">
-                <span className="text-xs font-semibold text-slate-300">{m.label}</span>
-                <span className="text-[11px] text-slate-500 truncate">{m.detail}</span>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <TeamChip teamId={m.team1_id} winner={m.winner_team_id === m.team1_id} />
-                <span className="text-xs text-slate-600">vs</span>
-                <TeamChip teamId={m.team2_id} winner={m.winner_team_id === m.team2_id} />
-                {m.winner_team_id ? (
-                  <span className="ml-auto text-[11px] text-emerald-400 flex items-center gap-1">
-                    <ChevronRight className="w-3 h-3" />
-                    {DEMO_TEAMS_MAP[m.winner_team_id]?.short_name} through
-                  </span>
-                ) : (
-                  <span className="ml-auto text-[11px] text-slate-500">Not played yet</span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="mt-3 text-xs text-slate-500 flex items-center gap-2">
-          <CalendarDays className="w-3.5 h-3.5" />
-          Winners advance automatically as soon as a fixture is scored.
-        </p>
-      </div>
+      {/* Playoff bracket */}
+      <RoadToFinal
+        teamsMap={DEMO_TEAMS_MAP}
+        seeds={t.standings.map((row) => row.team_id)}
+        matches={[
+          t.bracket[0],
+          t.bracket[1],
+          { team1: t.bracket[0].team2_id, team2: t.bracket[1].winner_team_id, winner: t.bracket[1].winner_team_id },
+          t.bracket[2],
+        ].map((m) => ({ team1: m.team1_id || m.team1, team2: m.team2_id || m.team2, winner: m.winner_team_id || m.winner }))}
+      />
+      <p className="mt-3 text-xs text-slate-500 flex items-center gap-2">
+        <CalendarDays className="w-3.5 h-3.5" />
+        Winners advance automatically as soon as a fixture is scored.
+      </p>
     </DemoShell>
   );
 }

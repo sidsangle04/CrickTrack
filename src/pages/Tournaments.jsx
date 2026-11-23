@@ -24,6 +24,7 @@ import BracketView from '@/components/tournament/BracketView';
 import { deriveBracket, computeStandings, leagueComplete, seedKnockoutRound1, seedPlayoffs, seedQualifierPlayoffs, deriveQualifierBracket, generateTournamentFixtures } from '@/lib/bracket';
 import { computeQualification } from '@/lib/qualification';
 import LeagueView from '@/components/tournament/LeagueView';
+import RoadToFinal from '@/components/tournament/RoadToFinal';
 import TournamentStats from '@/components/tournament/stats/TournamentStats';
 import TournamentTeams from '@/components/tournament/TournamentTeams';
 import AddTeamModal from '@/components/tournament/AddTeamModal';
@@ -466,36 +467,12 @@ export default function Tournaments() {
                 </div>
               </div>
             )}
-            {isQualifiers && derived.leagueComplete && derived.standings.length >= 4 && (
-              <div className="mt-6 grid sm:grid-cols-3 gap-2">
-                <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 flex items-center gap-2.5">
-                  <Crown className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <div className="min-w-0">
-                    <div className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wide">Qualifier 1</div>
-                    <div className="text-sm text-white font-medium truncate">
-                      {teamsMap[derived.standings[0].id]?.name || 'TBD'} vs {teamsMap[derived.standings[1].id]?.name || 'TBD'}
-                    </div>
-                  </div>
-                </div>
-                <div className="rounded-xl border border-blue-500/40 bg-blue-500/10 p-3 flex items-center gap-2.5">
-                  <Trophy className="w-4 h-4 text-blue-400 shrink-0" />
-                  <div className="min-w-0">
-                    <div className="text-[10px] text-blue-400 font-semibold uppercase tracking-wide">Eliminator</div>
-                    <div className="text-sm text-white font-medium truncate">
-                      {teamsMap[derived.standings[2].id]?.name || 'TBD'} vs {teamsMap[derived.standings[3].id]?.name || 'TBD'}
-                    </div>
-                  </div>
-                </div>
-                <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 flex items-center gap-2.5">
-                  <XCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                  <div className="min-w-0">
-                    <div className="text-[10px] text-amber-400 font-semibold uppercase tracking-wide">Second chance</div>
-                    <div className="text-xs text-slate-300 leading-snug">
-                      Qualifier 1 loser meets the Eliminator winner in Qualifier 2
-                    </div>
-                  </div>
-                </div>
-              </div>
+            {isQualifiers && derived.leagueComplete && derived.standings.length >= 4 && derived.knockout && (
+              <RoadToFinal
+                teamsMap={teamsMap}
+                seeds={derived.standings.slice(0, 4).map((s) => s.id)}
+                matches={[1, 2, 3, 4].map((r) => derived.knockout.state[r]?.[0] || {})}
+              />
             )}
             {derived.knockout && (
               <div className="mt-8">
