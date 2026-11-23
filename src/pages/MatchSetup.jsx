@@ -690,8 +690,8 @@ export default function MatchSetup() {
                   }>
 
                     <span className="text-2xl mb-2 block">🎯</span>
-                    <span className="font-medium text-white">Keep Tagging</span>
-                    <span className="block text-xs text-slate-400 mt-1">Detailed ball tracking</span>
+                    <span className="font-medium text-white">Deep Tagging</span>
+                    <span className="block text-xs text-slate-400 mt-1">Detailed Tracking</span>
                   </button>
                 <button
                   onClick={() => setFormData({ ...formData, enable_visual_tagging: false })}
