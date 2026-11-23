@@ -40,6 +40,22 @@ export default function DemoTournaments() {
         </div>
       </div>
 
+      {/* Playoff bracket */}
+      <RoadToFinal
+        teamsMap={DEMO_TEAMS_MAP}
+        seeds={t.standings.map((row) => row.team_id)}
+        matches={[
+          t.bracket[0],
+          t.bracket[1],
+          { team1: t.bracket[0].team2_id, team2: t.bracket[1].winner_team_id, winner: t.bracket[1].winner_team_id },
+          t.bracket[2],
+        ].map((m) => ({ team1: m.team1_id || m.team1, team2: m.team2_id || m.team2, winner: m.winner_team_id || m.winner }))}
+      />
+      <p className="mt-3 mb-6 text-xs text-slate-500 flex items-center gap-2">
+        <CalendarDays className="w-3.5 h-3.5" />
+        Winners advance automatically as soon as a fixture is scored.
+      </p>
+
       {/* Standings */}
       <div className="rounded-2xl bg-slate-800/50 border border-slate-700/50 p-4 mb-6">
         <h3 className="font-semibold text-white mb-3">League standings</h3>
@@ -88,21 +104,6 @@ export default function DemoTournaments() {
         </p>
       </div>
 
-      {/* Playoff bracket */}
-      <RoadToFinal
-        teamsMap={DEMO_TEAMS_MAP}
-        seeds={t.standings.map((row) => row.team_id)}
-        matches={[
-          t.bracket[0],
-          t.bracket[1],
-          { team1: t.bracket[0].team2_id, team2: t.bracket[1].winner_team_id, winner: t.bracket[1].winner_team_id },
-          t.bracket[2],
-        ].map((m) => ({ team1: m.team1_id || m.team1, team2: m.team2_id || m.team2, winner: m.winner_team_id || m.winner }))}
-      />
-      <p className="mt-3 text-xs text-slate-500 flex items-center gap-2">
-        <CalendarDays className="w-3.5 h-3.5" />
-        Winners advance automatically as soon as a fixture is scored.
-      </p>
     </DemoShell>
   );
 }
