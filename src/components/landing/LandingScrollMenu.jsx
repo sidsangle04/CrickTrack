@@ -12,6 +12,7 @@ const SECTIONS = [
   { id: 'top', label: 'Top of page' },
   { id: 'overview', label: 'Overview' },
   { id: 'features', label: 'Features' },
+  { id: 'auction', label: 'Auction' },
   { id: 'insight', label: 'Insight' },
   { id: 'community', label: 'Community' },
 ];

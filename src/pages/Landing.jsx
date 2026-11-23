@@ -7,6 +7,7 @@ import LandingGrassroots from '@/components/landing/LandingGrassroots';
 import LandingOverview from '@/components/landing/LandingOverview';
 import LandingStats from '@/components/landing/LandingStats';
 import LandingFeatures from '@/components/landing/LandingFeatures';
+import LandingAuction from '@/components/landing/LandingAuction';
 import LandingInsights from '@/components/landing/LandingInsights';
 import LandingCommunity from '@/components/landing/LandingCommunity';
 
@@ -25,6 +26,7 @@ export default function Landing() {
       <LandingOverview />
       <LandingStats />
       <LandingFeatures />
+      <LandingAuction />
       <LandingInsights />
       <LandingCommunity />
       <LandingScrollMenu />

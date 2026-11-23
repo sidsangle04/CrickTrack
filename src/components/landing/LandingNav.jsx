@@ -4,6 +4,7 @@ import React from 'react';
 const CHAPTERS = [
   { id: 'overview', label: 'Overview' },
   { id: 'features', label: 'Features' },
+  { id: 'auction', label: 'Auction' },
   { id: 'insight', label: 'Insight' },
   { id: 'community', label: 'Community' },
 ];
