@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Share2, Check } from 'lucide-react';
 import { buildShareUrl } from '@/lib/scorecardText';
+import { base44 } from '@/api/base44Client';
 
 export default function ShareScorecardButton({ matchId, className }) {
   const [copied, setCopied] = useState(false);
@@ -11,12 +12,14 @@ export default function ShareScorecardButton({ matchId, className }) {
     if (navigator.share) {
       try {
         await navigator.share({ title: 'CrickTrack scorecard', url });
+        base44.analytics.track({ eventName: 'scorecard_shared' });
         return;
       } catch {
         // user dismissed the share sheet — fall through to copying the link
       }
     }
     await navigator.clipboard.writeText(url);
+    base44.analytics.track({ eventName: 'scorecard_shared' });
     setCopied(true);
     setTimeout(() => setCopied(false), 2200);
   };

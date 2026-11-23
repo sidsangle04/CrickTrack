@@ -689,6 +689,13 @@ export default function LiveScoring() {
     queueWrites(() => Promise.all(writeThunks.map((thunk) => thunk())), refetchScoring);
   };
 
+  // Every path that finishes a match saves its result through here, so the
+  // `match_scored` marketing KPI fires exactly once per completed match.
+  const completeMatch = async (fields) => {
+    await base44.entities.Match.update(matchId, { status: 'completed', ...fields });
+    base44.analytics.track({ eventName: 'match_scored' });
+  };
+
   const endInnings = async (reason) => {
     await base44.entities.Innings.update(currentInnings.id, {
       status: 'completed',
@@ -739,8 +746,7 @@ export default function LiveScoring() {
         if (so2.total_runs > so1.total_runs) {
           // so2 chased and crossed so1's score
           const winnerName = teamsMap[so2.batting_team_id]?.name || 'Team 2';
-          await base44.entities.Match.update(matchId, {
-            status: 'completed',
+          await completeMatch({
             winner_id: so2.batting_team_id,
             result: `${winnerName} won in Super Over`
           });
@@ -748,8 +754,7 @@ export default function LiveScoring() {
         } else if (so1.total_runs > so2.total_runs) {
           // so2 failed to cross so1's score
           const winnerName = teamsMap[so1.batting_team_id]?.name || 'Team 1';
-          await base44.entities.Match.update(matchId, {
-            status: 'completed',
+          await completeMatch({
             winner_id: so1.batting_team_id,
             result: `${winnerName} won in Super Over`
           });
@@ -773,8 +778,7 @@ export default function LiveScoring() {
         // Team 2 wins - they scored more than team 1
         const winnerName = teamsMap[inn2.batting_team_id]?.name || 'Team 2';
         const margin = maxWickets - inn2.total_wickets;
-        await base44.entities.Match.update(matchId, {
-          status: 'completed',
+        await completeMatch({
           winner_id: inn2.batting_team_id,
           result: `${winnerName} won by ${margin} wickets`
         });
@@ -783,8 +787,7 @@ export default function LiveScoring() {
         // Team 1 wins - team 2 scored less
         const winnerName = teamsMap[inn1.batting_team_id]?.name || 'Team 1';
         const margin = inn1.total_runs - inn2.total_runs;
-        await base44.entities.Match.update(matchId, {
-          status: 'completed',
+        await completeMatch({
           winner_id: inn1.batting_team_id,
           result: `${winnerName} won by ${margin} runs`
         });
@@ -825,14 +828,14 @@ export default function LiveScoring() {
     // 1) Did this innings produce a definitive result?
     const outcome = evaluateTestOutcome(freshMatch, updatedInnings, justEnded, team1Name, team2Name);
     if (outcome) {
-      await base44.entities.Match.update(matchId, { status: 'completed', winner_id: outcome.winner_id || '', result: outcome.result });
+      await completeMatch({ winner_id: outcome.winner_id || '', result: outcome.result });
       navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
       return;
     }
 
     // 2) Match-wide over limit exhausted without a result => draw.
     if (freshMatch?.is_over_limited && oversRemaining(freshMatch, updatedInnings) <= 0) {
-      await base44.entities.Match.update(matchId, { status: 'completed', winner_id: '', result: 'Match Drawn (Overs Limit Reached)' });
+      await completeMatch({ winner_id: '', result: 'Match Drawn (Overs Limit Reached)' });
       navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
       return;
     }
@@ -852,7 +855,7 @@ export default function LiveScoring() {
 
     // 4) No more innings and no result => draw.
     if (justEnded.innings_number >= 4) {
-      await base44.entities.Match.update(matchId, { status: 'completed', winner_id: '', result: 'Match Drawn' });
+      await completeMatch({ winner_id: '', result: 'Match Drawn' });
       navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
       return;
     }
@@ -1746,11 +1749,8 @@ export default function LiveScoring() {
           <DialogFooter className="flex gap-3">
             <Button
               variant="outline"
-              onClick={() => {
-                base44.entities.Match.update(matchId, {
-                  status: 'completed',
-                  result: 'Match Tied'
-                });
+              onClick={async () => {
+                await completeMatch({ result: 'Match Tied' });
                 navigate(createPageUrl('Scorecard') + `?matchId=${matchId}`);
               }}
               className="flex-1 border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200">
