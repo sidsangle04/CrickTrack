@@ -276,7 +276,12 @@ export default function LiveAuction({ auction, teams, players, bids, refresh, to
   if (completed) {
     return (
       <div className="space-y-4">
-        <AuctionResults teams={teams} players={players} settings={auction} />
+        <AuctionResults
+          teams={teams}
+          players={players}
+          settings={auction}
+          tournament={tournament}
+        />
         <p className="text-center text-xs text-slate-500">
           Squads are saved to the tournament — every sold player now belongs to their team and counts
           in your player records.

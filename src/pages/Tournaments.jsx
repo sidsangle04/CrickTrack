@@ -15,7 +15,8 @@ import {
   LayoutGrid,
   BarChart3,
   FileDown,
-  Gavel
+  Gavel,
+  Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CreateTournamentModal from '@/components/tournament/CreateTournamentModal';
@@ -24,6 +25,8 @@ import { deriveBracket, computeStandings, leagueComplete, seedKnockoutRound1, se
 import { computeQualification } from '@/lib/qualification';
 import LeagueView from '@/components/tournament/LeagueView';
 import TournamentStats from '@/components/tournament/stats/TournamentStats';
+import TournamentTeams from '@/components/tournament/TournamentTeams';
+import AddTeamModal from '@/components/tournament/AddTeamModal';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 import PullToRefresh from '@/components/PullToRefresh';
 import { downloadFixtureSheet } from '@/lib/fixtureSheet';
@@ -38,6 +41,7 @@ export default function Tournaments() {
   // Inside a tournament: the bracket/league view or its statistics.
   const [view, setView] = useState('tournament');
   const [creatingFixtures, setCreatingFixtures] = useState(false);
+  const [showAddTeam, setShowAddTeam] = useState(false);
 
   const openTournament = (id) => {
     setSelectedId(id);
@@ -76,6 +80,22 @@ export default function Tournaments() {
   );
 
   const selected = modeTournaments.find((t) => t.id === selectedId);
+
+  // Teams in the open tournament: the ones on its list, plus any added later.
+  const tournamentTeams = useMemo(() => {
+    if (!selected) return [];
+    const ids = selected.team_ids || [];
+    return modeTeams.filter(
+      (t) => ids.includes(t.id) || t.tournament_id === selected.id
+    );
+  }, [modeTeams, selected]);
+
+  const refreshAfterTeamAdded = () => {
+    queryClient.invalidateQueries(['tournaments']);
+    queryClient.invalidateQueries(['teams', mode]);
+    queryClient.invalidateQueries(['tournament-matches', selectedId]);
+    queryClient.invalidateQueries(['players']);
+  };
 
   const { data: tmMatches = [], isLoading: tmLoading } = useQuery({
     queryKey: ['tournament-matches', selectedId],
@@ -301,6 +321,17 @@ export default function Tournaments() {
             {isLeagueStage ? 'League & Bracket' : 'Bracket'}
           </button>
           <button
+            onClick={() => setView('teams')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              view === 'teams'
+                ? 'bg-emerald-500/20 text-emerald-400'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            Teams
+          </button>
+          <button
             onClick={() => setView('stats')}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
               view === 'stats'
@@ -313,7 +344,13 @@ export default function Tournaments() {
           </button>
         </div>
 
-        {view === 'stats' ? (
+        {view === 'teams' ? (
+          <TournamentTeams
+            tournament={selected}
+            teams={tournamentTeams}
+            onAddTeam={() => setShowAddTeam(true)}
+          />
+        ) : view === 'stats' ? (
           <TournamentStats
             tournament={selected}
             tournamentMatches={tmMatches}
@@ -429,6 +466,16 @@ export default function Tournaments() {
             onOpenMatch={handleOpenMatch}
           />
         )}
+
+        <AddTeamModal
+          open={showAddTeam}
+          onOpenChange={setShowAddTeam}
+          tournament={selected}
+          onSaved={() => {
+            refreshAfterTeamAdded();
+            setView('teams');
+          }}
+        />
       </div>
     );
   }

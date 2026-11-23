@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
-import { Trophy } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Plus, Trophy } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import AddTeamModal from '@/components/tournament/AddTeamModal';
 import { Panel, PlayerAvatar, TeamBadge } from '../Shared';
 import SoldCardPhotoButton from './SoldCardPhotoButton';
 import SoldCard3D from './SoldCard3D';
 import { teamFinance } from '@/lib/auction/squad';
 
-export default function AuctionResults({ teams, players, settings }) {
+export default function AuctionResults({ teams, players, settings, tournament }) {
+  const queryClient = useQueryClient();
   // The sold card opened by tapping a player in a squad.
   const [card, setCard] = useState(null);
+  // Team added by hand once the auction was over.
+  const [showAddTeam, setShowAddTeam] = useState(false);
+  const [addedTeam, setAddedTeam] = useState('');
 
   const rows = teams.map((team) => ({
     team,
@@ -27,6 +34,20 @@ export default function AuctionResults({ teams, players, settings }) {
           {teams.length} teams · {players.filter((p) => p.sold_to_team_id).length} players signed
         </p>
         <p className="text-[11px] text-slate-400 mt-1">Tap any player to open their sold card</p>
+        {tournament && (
+          <Button
+            onClick={() => setShowAddTeam(true)}
+            size="sm"
+            className="mt-3 bg-slate-900/70 text-emerald-300 hover:bg-slate-900 border border-emerald-500/40"
+          >
+            <Plus className="w-4 h-4 mr-1.5" /> Add a team
+          </Button>
+        )}
+        {addedTeam && (
+          <p className="text-[11px] text-emerald-300 mt-2">
+            {addedTeam} added to the tournament — open the tournament's Teams tab to see the squad.
+          </p>
+        )}
       </div>
 
       {topBuys.length > 0 && (
@@ -93,6 +114,20 @@ export default function AuctionResults({ teams, players, settings }) {
       </div>
 
       {card && <SoldCard3D sale={card} onDone={() => setCard(null)} />}
+
+      {tournament && (
+        <AddTeamModal
+          open={showAddTeam}
+          onOpenChange={setShowAddTeam}
+          tournament={tournament}
+          onSaved={(result) => {
+            setAddedTeam(result?.team?.name || 'Team');
+            queryClient.invalidateQueries(['tournament', tournament.id]);
+            queryClient.invalidateQueries(['teams']);
+            queryClient.invalidateQueries(['players']);
+          }}
+        />
+      )}
     </div>
   );
 }
