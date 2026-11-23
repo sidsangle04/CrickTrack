@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { useGroundShape } from '@/lib/GroundShapeContext';
+import PlayerNameInput from '@/components/players/PlayerNameInput';
 
 export default function TeamManagement() {
   const queryClient = useQueryClient();
@@ -154,6 +155,19 @@ export default function TeamManagement() {
     }
   };
 
+  // A suggested name is an existing player — copy their known details across.
+  const pickExistingPlayer = (player) => {
+    if (editingPlayer) return;
+    setPlayerForm((f) => ({
+      ...f,
+      name: player.name,
+      role: player.role || f.role,
+      batting_style: player.batting_style || f.batting_style,
+      bowling_style: player.bowling_style || f.bowling_style,
+      is_wicket_keeper: player.is_wicket_keeper || f.is_wicket_keeper
+    }));
+  };
+
   const openEditTeam = (team) => {
     setTeamForm({
       name: team.name,
@@ -272,9 +286,11 @@ export default function TeamManagement() {
             <div className="space-y-4">
               <div>
                 <Label>Name</Label>
-                <Input 
+                <PlayerNameInput
                   value={playerForm.name}
-                  onChange={(e) => setPlayerForm({...playerForm, name: e.target.value})}
+                  onChange={(name) => setPlayerForm({...playerForm, name})}
+                  onPick={pickExistingPlayer}
+                  mode={mode}
                   className="bg-slate-800 border-slate-700"
                   placeholder="Player name"
                 />

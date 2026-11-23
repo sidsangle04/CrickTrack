@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Check, Plus, Search, Trash2, UserPlus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import PlayerNameInput from '@/components/players/PlayerNameInput';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -134,9 +135,15 @@ export default function SquadBuilder({
             {newPlayers.map((p, i) => (
               <div key={i} className="flex items-center gap-2">
                 <UserPlus className="w-4 h-4 text-slate-500 shrink-0" />
-                <Input
+                <PlayerNameInput
                   value={p.name}
-                  onChange={(e) => setNewPlayer(i, { name: e.target.value })}
+                  onChange={(name) => setNewPlayer(i, { name })}
+                  onPick={(player) => {
+                    // Already in the app — add them to the squad instead of a duplicate.
+                    if (!isPicked(player.id)) onSelectedChange([...selected, player]);
+                    setNewPlayer(i, { name: '' });
+                  }}
+                  mode={mode}
                   placeholder="Player name"
                   className="bg-slate-950 border-slate-700 text-white placeholder:text-slate-500 h-9"
                 />

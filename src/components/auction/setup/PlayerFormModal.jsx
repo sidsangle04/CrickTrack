@@ -20,6 +20,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { CATEGORY_LABELS, PlayerAvatar } from '../Shared';
+import PlayerNameInput from '@/components/players/PlayerNameInput';
 
 const EMPTY = {
   name: '',
@@ -188,9 +189,18 @@ export default function PlayerFormModal({ open, onOpenChange, player, tournament
 
           <div>
             <Label className="text-slate-200">Player name *</Label>
-            <Input
+            <PlayerNameInput
               value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              onChange={(name) => setForm({ ...form, name })}
+              onPick={(p) =>
+                setForm((f) => ({
+                  ...f,
+                  name: p.name,
+                  batting_style: f.batting_style || p.batting_style || '',
+                  bowling_style: f.bowling_style || p.bowling_style || '',
+                  primary_role: f.primary_role || p.primary_role || p.role || ''
+                }))
+              }
               placeholder="e.g. Arjun Mehta"
               className="bg-slate-950 border-slate-700 text-white placeholder:text-slate-500"
             />
