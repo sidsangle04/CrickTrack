@@ -68,6 +68,17 @@ export default function LandingAuction() {
           </Reveal>
 
           <Reveal delay={0.1}>
+            <figure className="mx-auto mb-5 max-w-[280px]">
+              <img
+                src="https://base44.app/api/apps/69cd6e7dda99287bd2ab65f2/files/mp/public/69cd6e7dda99287bd2ab65f2/181d20c3009de8be53bb82817cc9a55c_cricktrack-sold-card.png"
+                alt="CrickTrack sold player card showing the winning team and price"
+                className="w-full rounded-2xl border border-emerald-500/25 shadow-2xl"
+                loading="lazy"
+              />
+              <figcaption className="mt-2 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                Sold cards, ready to share
+              </figcaption>
+            </figure>
             <div className="rounded-2xl border border-slate-700/60 bg-slate-900/70 p-5 shadow-2xl">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
