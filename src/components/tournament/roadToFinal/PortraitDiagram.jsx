@@ -3,7 +3,7 @@ import { Frame, MatchCardBody, SeedBoxBody } from './Card';
 
 const LINE = '#10b981';
 const W = 300;
-const H = 548;
+const H = 520;
 
 const SEEDS = [
   { place: '1st', left: 4, top: 0 },
@@ -11,11 +11,13 @@ const SEEDS = [
   { place: '3rd', left: 180, top: 0 },
   { place: '4th', left: 180, top: 36 },
 ];
+// Qualifier 1 sits top-left and its winner runs straight down the left channel
+// into the Final, so Qualifier 2 is pulled in to the centre to keep that path clear.
 const CARD_POS = [
   { left: 4, top: 104, width: 146, height: 96 },
   { left: 150, top: 104, width: 146, height: 96 },
-  { left: 4, top: 268, width: 292, height: 96 },
-  { left: 4, top: 424, width: 292, height: 104 },
+  { left: 77, top: 264, width: 146, height: 96 },
+  { left: 4, top: 404, width: 292, height: 108 },
 ];
 
 function Label({ x, y, children }) {
@@ -72,16 +74,19 @@ export default function PortraitDiagram({
           <path d="M180,14 H166 M180,50 H166 M166,14 V50 M166,50 V90 H223" stroke={LINE} strokeOpacity="0.65" strokeWidth="1.2" />
           <path d="M223,90 V104" stroke={LINE} strokeWidth="1.2" markerEnd="url(#rtf-arrow-v)" />
 
+          {/* Winner of Q1 -> Final, straight down the left channel */}
+          <path d="M30,200 V404" stroke={LINE} strokeWidth="1.2" markerEnd="url(#rtf-arrow-v)" />
+          <Label x={36} y={300}>WINNER Q1</Label>
+
           {/* Loser of Q1 -> Qualifier 2 */}
-          <path d="M77,200 V234 H105 V268" stroke={LINE} strokeWidth="1.2" markerEnd="url(#rtf-arrow-v)" />
-          <Label x={8} y={230}>Q1 LOSER</Label>
+          <path d="M77,200 V232 H120 V264" stroke={LINE} strokeWidth="1.2" markerEnd="url(#rtf-arrow-v)" />
+          <Label x={84} y={226}>Q1 LOSER</Label>
 
           {/* Winner of Eliminator -> Qualifier 2 */}
-          <path d="M223,200 V234 H195 V268" stroke={LINE} strokeWidth="1.2" markerEnd="url(#rtf-arrow-v)" />
-          <Label x={202} y={230}>ELIMINATOR WINNER</Label>
+          <path d="M223,200 V232 H180 V264" stroke={LINE} strokeWidth="1.2" markerEnd="url(#rtf-arrow-v)" />
 
           {/* Winner of Q2 -> Final */}
-          <path d="M150,364 V424" stroke={LINE} strokeWidth="1.2" markerEnd="url(#rtf-arrow-v)" />
+          <path d="M150,360 V404" stroke={LINE} strokeWidth="1.2" markerEnd="url(#rtf-arrow-v)" />
         </svg>
 
         {SEEDS.map((s, i) => (
