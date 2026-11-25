@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeftRight, Check, Loader2, PlayCircle, RefreshCw, Trophy } from 'lucide-react';
+import { ArrowLeftRight, Check, Loader2, PlayCircle, RefreshCw, Trophy, UserPlus } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Panel, PlayerAvatar, TeamBadge } from '../Shared';
 import SpinWheel from './SpinWheel';
+import AssignPlayerDialog from './AssignPlayerDialog';
 import {
   BOWLS,
   assignmentsFor,
@@ -39,6 +40,8 @@ export default function DrawBoard({
   const [reveal, setReveal] = useState(null);
   const [reselection, setReselection] = useState(null);
   const [resetTarget, setResetTarget] = useState(null);
+  const [manualSlot, setManualSlot] = useState(null);
+  const [manualSearch, setManualSearch] = useState('');
   const [error, setError] = useState('');
 
   const order = orderedTeams(teams);
@@ -46,11 +49,47 @@ export default function DrawBoard({
   const assignments = assignmentsFor({ players, teams });
   const drawn = (bowl) => inBowl(players, bowl).filter((p) => p.sold_to_team_id).length;
 
+  // Players still free in the bowl of the slot being filled by hand.
+  const manualOptions = manualSlot
+    ? remainingInBowl(players, manualSlot.bowl).filter(
+        (p) =>
+          !manualSearch.trim() || p.name.toLowerCase().includes(manualSearch.trim().toLowerCase())
+      )
+    : [];
+
   // A bowl is stuck when it is empty but some team still has no player from it.
   const stuckBowls = BOWLS.filter(
     (bowl) =>
       teamsMissingBowl({ players, teams, bowl }).length > 0 && remainingInBowl(players, bowl).length === 0
   );
+
+  // Saves one icon pick — from the wheel or by hand — and moves the draw on.
+  const commit = async (livePlayers, team, bowl, player) => {
+    await base44.entities.AuctionPlayer.update(player.id, {
+      sold_to_team_id: team.id,
+      sold_price: 0,
+      status: 'sold'
+    });
+    await base44.entities.AuctionIconDraw.create({
+      tournament_id: auction.tournament_id,
+      team_id: team.id,
+      team_name: team.name,
+      player_id: player.id,
+      player_name: player.name,
+      bowl,
+      action: 'assigned'
+    });
+    const after = livePlayers.map((p) =>
+      p.id === player.id ? { ...p, sold_to_team_id: team.id } : p
+    );
+    const next = nextDrawTurn({ players: after, teams });
+    await base44.entities.Auction.update(auction.id, {
+      draw_round: next.done ? 3 : next.round,
+      draw_index: next.index
+    });
+    setReveal({ team, player, bowl, at: Date.now() });
+    refresh && refresh();
+  };
 
   // `chosenId` is the player the wheel landed on; without it a random pick is used.
   const draw = async (chosenId) => {
@@ -76,32 +115,44 @@ export default function DrawBoard({
         refresh && refresh();
         return;
       }
-      await base44.entities.AuctionPlayer.update(player.id, {
-        sold_to_team_id: liveTurn.team.id,
-        sold_price: 0,
-        status: 'sold'
-      });
-      await base44.entities.AuctionIconDraw.create({
-        tournament_id: auction.tournament_id,
-        team_id: liveTurn.team.id,
-        team_name: liveTurn.team.name,
-        player_id: player.id,
-        player_name: player.name,
-        bowl: liveTurn.bowl,
-        action: 'assigned'
-      });
-      const after = livePlayers.map((p) =>
-        p.id === player.id ? { ...p, sold_to_team_id: liveTurn.team.id } : p
-      );
-      const next = nextDrawTurn({ players: after, teams });
-      await base44.entities.Auction.update(auction.id, {
-        draw_round: next.done ? 3 : next.round,
-        draw_index: next.index
-      });
-      setReveal({ team: liveTurn.team, player, bowl: liveTurn.bowl, at: Date.now() });
-      refresh && refresh();
+      await commit(livePlayers, liveTurn.team, liveTurn.bowl, player);
     } catch (e) {
       setError(e?.message || 'Could not draw a player.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Hand a specific player to a specific team, without waiting for the wheel.
+  const assignByHand = async (player) => {
+    if (!manualSlot || busy) return;
+    const { team, bowl } = manualSlot;
+    setBusy(true);
+    setError('');
+    try {
+      const livePlayers = await base44.entities.AuctionPlayer.filter({
+        tournament_id: auction.tournament_id
+      });
+      const alreadyPicked = livePlayers.some(
+        (p) => p.category === 'icon' && p.bowl === bowl && p.sold_to_team_id === team.id
+      );
+      if (alreadyPicked) {
+        setError(`${team.name} already has a ${BOWL_LABEL[bowl]} player.`);
+        setManualSlot(null);
+        refresh && refresh();
+        return;
+      }
+      const live = livePlayers.find((p) => p.id === player.id);
+      if (!live || live.sold_to_team_id) {
+        setError('That player has already been assigned.');
+        refresh && refresh();
+        return;
+      }
+      await commit(livePlayers, team, bowl, player);
+      setManualSlot(null);
+      setManualSearch('');
+    } catch (e) {
+      setError(e?.message || 'Could not assign the player.');
     } finally {
       setBusy(false);
     }
@@ -287,6 +338,21 @@ export default function DrawBoard({
               );
             })}
           </div>
+          {remainingInBowl(players, turn.bowl).length > 0 && (
+            <div className="flex justify-center mt-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setManualSlot({ team: turn.team, bowl: turn.bowl });
+                  setManualSearch('');
+                }}
+                className="text-purple-300 hover:text-purple-200"
+              >
+                <UserPlus className="w-3.5 h-3.5 mr-1.5" /> Or pick the player by hand
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
@@ -356,7 +422,19 @@ export default function DrawBoard({
                       </button>
                     </>
                   ) : (
-                    <p className="text-xs text-slate-500 flex-1">Not drawn yet</p>
+                    <>
+                      <p className="text-xs text-slate-500 flex-1">Not drawn yet</p>
+                      <button
+                        onClick={() => {
+                          setManualSlot({ team, bowl });
+                          setManualSearch('');
+                        }}
+                        className="text-[10px] text-purple-300 hover:text-purple-200 shrink-0 inline-flex items-center gap-1"
+                        title="Assign a player by hand"
+                      >
+                        <UserPlus className="w-3 h-3" /> Assign
+                      </button>
+                    </>
                   )}
                 </div>
               ))}
@@ -434,6 +512,19 @@ export default function DrawBoard({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AssignPlayerDialog
+        slot={manualSlot}
+        options={manualOptions}
+        search={manualSearch}
+        onSearch={setManualSearch}
+        busy={busy}
+        onAssign={assignByHand}
+        onClose={() => {
+          setManualSlot(null);
+          setManualSearch('');
+        }}
+      />
 
       <Dialog open={!!resetTarget} onOpenChange={(open) => !open && setResetTarget(null)}>
         <DialogContent className="bg-slate-900 border-slate-700 text-white">
