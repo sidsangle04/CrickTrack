@@ -30,7 +30,7 @@ import { nextBidAmount } from '@/lib/auction/bidding';
 import { liveLotState } from '@/lib/auction/liveState';
 import { celebrateSale } from '@/lib/auction/celebrate';
 import CurrentPlayerCard from './live/CurrentPlayerCard';
-import TeamBidCard from './live/TeamBidCard';
+import TeamBidList from './live/TeamBidList';
 import BidHistory from './live/BidHistory';
 import SquadBoard from './live/SquadBoard';
 import BigScreen from './live/BigScreen';
@@ -306,6 +306,21 @@ export default function LiveAuction({ auction, teams, players, bids, refresh, to
     );
   }
 
+  // Shared by the auctioneer's column and the big screen's bottom row.
+  const bidListProps = {
+    teams,
+    players,
+    settings: auction,
+    nextAmount,
+    bidderTeamId: liveAuction.current_bidder_team_id,
+    actingTeamId,
+    paused,
+    hasPlayer: !!currentPlayer,
+    busy,
+    onBid: placeBid,
+    onJump: setJumpTeamId
+  };
+
   return (
     <div className="space-y-4">
       <div className="rounded-2xl bg-slate-800/50 border border-slate-700/60 p-3 flex flex-wrap items-center gap-2">
@@ -394,34 +409,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh, to
           <p className="text-[11px] uppercase tracking-widest text-slate-500 mb-2">
             Teams · purse & squad
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2">
-            {teams.map((team) => {
-              const finance = teamFinance({ teamId: team.id, players, settings: auction });
-              const blocked = paused
-                ? 'Paused'
-                : !currentPlayer
-                ? 'No player'
-                : actingTeamId && actingTeamId !== team.id
-                ? 'Not bidding'
-                : busy
-                ? 'Saving…'
-                : liveAuction.current_bidder_team_id === team.id
-                ? 'Highest bid'
-                : bidProblem({ amount: nextAmount, finance });
-              return (
-                <TeamBidCard
-                  key={team.id}
-                  team={team}
-                  finance={finance}
-                  nextAmount={nextAmount}
-                  isHighest={liveAuction.current_bidder_team_id === team.id}
-                  blocked={blocked}
-                  onBid={placeBid}
-                  onJump={setJumpTeamId}
-                />
-              );
-            })}
-          </div>
+          <TeamBidList layout="column" {...bidListProps} />
         </div>
 
         <div className="lg:col-span-6 order-1 lg:order-2 space-y-3">
@@ -514,6 +502,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh, to
           players={players}
           teams={teams}
           flash={flash}
+          bidControls={<TeamBidList layout="row" {...bidListProps} />}
           onClose={() => setBigScreen(false)}
         />
       )}
