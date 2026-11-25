@@ -75,6 +75,8 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
   const [dirty, setDirty] = useState(false);
   const [picker, setPicker] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
+  // Bowls the organiser placed by hand while picking the icon players.
+  const [bowlChoice, setBowlChoice] = useState({});
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -133,42 +135,83 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
 
   const openPicker = () => {
     setSelectedIds(iconList.map((p) => p.id));
+    setBowlChoice({});
     setSearch('');
+    setError('');
     setPicker(true);
+  };
+
+  // How the chosen players will be split — the same order the save uses: a bowl you
+  // tapped wins, then the bowl the player already sits in, then the bowls fill up.
+  const preview = useMemo(() => {
+    const counts = { bowl1: 0, bowl2: 0 };
+    const resolved = {};
+    selectedIds.forEach((id) => {
+      const p = players.find((x) => x.id === id);
+      if (!p) return;
+      const explicit = bowlChoice[id];
+      const kept =
+        !explicit && p.category === 'icon' && (p.bowl === 'bowl1' || p.bowl === 'bowl2')
+          ? p.bowl
+          : null;
+      const bowl = explicit || kept;
+      if (bowl) {
+        resolved[id] = bowl;
+        counts[bowl] += 1;
+      }
+    });
+    const nextBowl = () => {
+      if (counts.bowl1 < teams.length) {
+        counts.bowl1 += 1;
+        return 'bowl1';
+      }
+      if (counts.bowl2 < teams.length) {
+        counts.bowl2 += 1;
+        return 'bowl2';
+      }
+      return 'none';
+    };
+    selectedIds.forEach((id) => {
+      if (resolved[id]) return;
+      const bowl = nextBowl();
+      if (bowl !== 'none') resolved[id] = bowl;
+    });
+    return { resolved, counts };
+  }, [selectedIds, bowlChoice, players, teams.length]);
+
+  const togglePlayer = (id) => {
+    setSelectedIds((ids) => {
+      if (ids.includes(id)) {
+        setBowlChoice((c) => {
+          const next = { ...c };
+          delete next[id];
+          return next;
+        });
+        return ids.filter((x) => x !== id);
+      }
+      return [...ids, id];
+    });
   };
 
   const saveSelection = async () => {
     if (selectedIds.length !== teams.length * 2 || saving) return;
+    if (preview.counts.bowl1 !== teams.length || preview.counts.bowl2 !== teams.length) {
+      setError(
+        `Each bowl needs exactly ${teams.length} player${teams.length === 1 ? '' : 's'} — tap B1 or B2 to move someone across.`
+      );
+      return;
+    }
     setSaving(true);
     setError('');
     try {
       const chosen = new Set(selectedIds);
-      // Newly chosen icons are split straight into the two bowls, so the draw is ready
-      // as soon as the selection is saved — the bowls can still be rearranged by hand.
-      const counts = { bowl1: 0, bowl2: 0 };
-      players.forEach((p) => {
-        if (chosen.has(p.id) && p.category === 'icon' && counts[p.bowl] !== undefined)
-          counts[p.bowl] += 1;
-      });
-      const nextBowl = () => {
-        if (counts.bowl1 < teams.length) {
-          counts.bowl1 += 1;
-          return 'bowl1';
-        }
-        if (counts.bowl2 < teams.length) {
-          counts.bowl2 += 1;
-          return 'bowl2';
-        }
-        return 'none';
-      };
       const updates = [];
       players
         .filter((p) => !p.sold_to_team_id)
         .forEach((p) => {
           const isIcon = p.category === 'icon';
           if (chosen.has(p.id)) {
-            const kept = isIcon && (p.bowl === 'bowl1' || p.bowl === 'bowl2');
-            updates.push({ id: p.id, category: 'icon', bowl: kept ? p.bowl : nextBowl() });
+            updates.push({ id: p.id, category: 'icon', bowl: preview.resolved[p.id] || 'none' });
           } else if (isIcon) {
             updates.push({
               id: p.id,
@@ -307,7 +350,8 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
           </DialogHeader>
           <p className="text-xs text-slate-400">
             Select {teams.length * 2} players for {teams.length} team
-            {teams.length === 1 ? '' : 's'} — {teams.length} for each bowl.
+            {teams.length === 1 ? '' : 's'} — {teams.length} for each bowl. Tap B1 or B2 on a
+            player to put them in a different bowl.
           </p>
           <Input
             value={search}
@@ -318,16 +362,20 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
           <div className="max-h-[45vh] overflow-y-auto space-y-1.5 py-1">
             {candidates.map((p) => {
               const checked = selectedIds.includes(p.id);
+              const placed = preview.resolved[p.id];
               return (
-                <button
+                <div
                   key={p.id}
-                  type="button"
-                  onClick={() =>
-                    setSelectedIds((ids) =>
-                      checked ? ids.filter((id) => id !== p.id) : [...ids, p.id]
-                    )
-                  }
-                  className={`w-full flex items-center gap-2 p-2 rounded-lg border text-left ${
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => togglePlayer(p.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      togglePlayer(p.id);
+                    }
+                  }}
+                  className={`w-full flex items-center gap-2 p-2 rounded-lg border text-left cursor-pointer ${
                     checked
                       ? 'bg-purple-500/15 border-purple-500/50'
                       : 'bg-slate-950 border-slate-700 hover:border-slate-600'
@@ -342,10 +390,36 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
                   </span>
                   <PlayerAvatar player={p} size="sm" />
                   <span className="text-sm text-white truncate flex-1">{p.name}</span>
-                  {p.category === 'icon' && (
-                    <span className="text-[10px] uppercase text-purple-300">icon</span>
+                  {checked ? (
+                    <div
+                      className="flex gap-1 shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      {['bowl1', 'bowl2'].map((b) => (
+                        <button
+                          key={b}
+                          type="button"
+                          onClick={() => setBowlChoice((c) => ({ ...c, [p.id]: b }))}
+                          title={b === 'bowl1' ? 'Put in Bowl 1' : 'Put in Bowl 2'}
+                          className={`px-1.5 py-1 rounded text-[10px] font-bold transition-colors ${
+                            placed === b
+                              ? b === 'bowl1'
+                                ? 'bg-blue-500/30 text-blue-200'
+                                : 'bg-pink-500/30 text-pink-200'
+                              : 'bg-slate-800 text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {b === 'bowl1' ? 'B1' : 'B2'}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    p.category === 'icon' && (
+                      <span className="text-[10px] uppercase text-purple-300">icon</span>
+                    )
                   )}
-                </button>
+                </div>
               );
             })}
           </div>
@@ -353,7 +427,7 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
           <DialogFooter className="flex-col-reverse sm:flex-row sm:items-center gap-2">
             <p className="text-[11px] text-slate-400 sm:mr-auto text-center sm:text-left">
               {selectedIds.length === teams.length * 2
-                ? 'Ready — the bowls will be filled for you.'
+                ? `Bowl 1 ${preview.counts.bowl1}/${teams.length} · Bowl 2 ${preview.counts.bowl2}/${teams.length}`
                 : `Select exactly ${teams.length * 2} players (${selectedIds.length} chosen).`}
             </p>
             <Button variant="ghost" onClick={() => setPicker(false)} className="text-slate-300">
