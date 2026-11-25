@@ -49,9 +49,9 @@ export default function DrawBoard({
   const assignments = assignmentsFor({ players, teams });
   const drawn = (bowl) => inBowl(players, bowl).filter((p) => p.sold_to_team_id).length;
 
-  // Players still free in the bowl of the slot being filled by hand.
+  // Every player still free in either bowl can be handed out by hand.
   const manualOptions = manualSlot
-    ? remainingInBowl(players, manualSlot.bowl).filter(
+    ? [...remainingInBowl(players, 'bowl1'), ...remainingInBowl(players, 'bowl2')].filter(
         (p) =>
           !manualSearch.trim() || p.name.toLowerCase().includes(manualSearch.trim().toLowerCase())
       )
@@ -123,28 +123,30 @@ export default function DrawBoard({
     }
   };
 
-  // Hand a specific player to a specific team, without waiting for the wheel.
+  // Hand a specific player to a specific team, from either bowl, without waiting
+  // for the wheel. The player always comes out of their own bowl.
   const assignByHand = async (player) => {
     if (!manualSlot || busy) return;
-    const { team, bowl } = manualSlot;
+    const { team } = manualSlot;
     setBusy(true);
     setError('');
     try {
       const livePlayers = await base44.entities.AuctionPlayer.filter({
         tournament_id: auction.tournament_id
       });
+      const live = livePlayers.find((p) => p.id === player.id);
+      if (!live || live.sold_to_team_id) {
+        setError('That player has already been assigned.');
+        refresh && refresh();
+        return;
+      }
+      const bowl = live.bowl === 'bowl2' ? 'bowl2' : 'bowl1';
       const alreadyPicked = livePlayers.some(
         (p) => p.category === 'icon' && p.bowl === bowl && p.sold_to_team_id === team.id
       );
       if (alreadyPicked) {
         setError(`${team.name} already has a ${BOWL_LABEL[bowl]} player.`);
         setManualSlot(null);
-        refresh && refresh();
-        return;
-      }
-      const live = livePlayers.find((p) => p.id === player.id);
-      if (!live || live.sold_to_team_id) {
-        setError('That player has already been assigned.');
         refresh && refresh();
         return;
       }
@@ -338,7 +340,8 @@ export default function DrawBoard({
               );
             })}
           </div>
-          {remainingInBowl(players, turn.bowl).length > 0 && (
+          {[...remainingInBowl(players, 'bowl1'), ...remainingInBowl(players, 'bowl2')].length >
+            0 && (
             <div className="flex justify-center mt-3">
               <Button
                 variant="ghost"

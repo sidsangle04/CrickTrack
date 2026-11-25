@@ -27,13 +27,14 @@ export default function AssignPlayerDialog({
     <Dialog open={!!slot} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="bg-slate-900 border-slate-700 text-white max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Assign {slot ? BOWL_LABEL[slot.bowl] : ''} player</DialogTitle>
+          <DialogTitle>Assign an icon player</DialogTitle>
         </DialogHeader>
         {slot && (
           <>
             <p className="text-xs text-slate-400">
-              Choose the player <strong className="text-white">{slot.team.name}</strong> should receive
-              from {BOWL_LABEL[slot.bowl]}.
+              Choose the player <strong className="text-white">{slot.team.name}</strong> should
+              receive — every player still left in {BOWL_LABEL.bowl1} and {BOWL_LABEL.bowl2} is
+              listed.
             </p>
             <Input
               value={search}
@@ -52,12 +53,15 @@ export default function AssignPlayerDialog({
                 >
                   <PlayerAvatar player={p} size="sm" />
                   <span className="text-sm text-white truncate flex-1">{p.name}</span>
+                  <span className="text-[10px] uppercase text-slate-500 shrink-0">
+                    {BOWL_LABEL[p.bowl]}
+                  </span>
                   {busy && <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />}
                 </button>
               ))}
               {options.length === 0 && (
                 <p className="text-xs text-slate-500 py-2">
-                  Every player in this bowl has already been assigned.
+                  Every icon player has already been assigned.
                 </p>
               )}
             </div>
