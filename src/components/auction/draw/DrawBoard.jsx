@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeftRight, Check, Loader2, PlayCircle, RefreshCw, Trophy, UserPlus } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  Check,
+  Loader2,
+  PlayCircle,
+  RefreshCw,
+  Trophy,
+  UserPlus,
+  X
+} from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,6 +48,7 @@ export default function DrawBoard({
   const [busy, setBusy] = useState(false);
   const [reveal, setReveal] = useState(null);
   const [reselection, setReselection] = useState(null);
+  const [removal, setRemoval] = useState(null);
   const [resetTarget, setResetTarget] = useState(null);
   const [manualSlot, setManualSlot] = useState(null);
   const [manualSearch, setManualSearch] = useState('');
@@ -236,6 +246,28 @@ export default function DrawBoard({
     }
   };
 
+  // Takes an assigned player back out of a team so they sit in their bowl again
+  // and can be drawn by any team.
+  const confirmRemoval = async () => {
+    if (!removal || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      await base44.entities.AuctionPlayer.update(removal.player.id, {
+        sold_to_team_id: '',
+        sold_price: 0,
+        status: 'available'
+      });
+      setRemoval(null);
+      setReveal(null);
+      refresh && refresh();
+    } catch (e) {
+      setError(e?.message || 'Could not remove the player.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="grid sm:grid-cols-2 gap-3">
@@ -423,6 +455,13 @@ export default function DrawBoard({
                       >
                         <ArrowLeftRight className="w-3 h-3" /> Re-select
                       </button>
+                      <button
+                        onClick={() => setRemoval({ team, bowl, player })}
+                        className="text-[10px] text-red-400 hover:text-red-300 shrink-0 inline-flex items-center gap-1"
+                        title="Remove from team, back into the bowl"
+                      >
+                        <X className="w-3 h-3" /> Remove
+                      </button>
                     </>
                   ) : (
                     <>
@@ -528,6 +567,42 @@ export default function DrawBoard({
           setManualSearch('');
         }}
       />
+
+      <Dialog open={!!removal} onOpenChange={(open) => !open && setRemoval(null)}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Remove this icon player?</DialogTitle>
+          </DialogHeader>
+          {removal && (
+            <div className="text-sm text-slate-300 space-y-2">
+              <p>
+                <strong className="text-white">{removal.player.name}</strong> goes back into{' '}
+                {BOWL_LABEL[removal.bowl]}, and{' '}
+                <strong className="text-white">{removal.team.name}</strong> draws again from that
+                bowl.
+              </p>
+              <p className="text-amber-400">The player can be drawn by any team.</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRemoval(null)} className="text-slate-300">
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmRemoval}
+              disabled={busy}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              {busy ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <X className="w-4 h-4 mr-2" />
+              )}
+              Remove player
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!resetTarget} onOpenChange={(open) => !open && setResetTarget(null)}>
         <DialogContent className="bg-slate-900 border-slate-700 text-white">
