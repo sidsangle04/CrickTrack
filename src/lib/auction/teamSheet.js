@@ -86,6 +86,7 @@ export async function downloadTeamSheets({ tournament, teams = [], players = [],
   const M = 40;
   const inner = W - M * 2;
   const purse = Number(settings?.purse) || 0;
+  const BOTTOM = H - 56;
 
   const clip = (text, width) => {
     let value = String(text ?? '');
@@ -154,10 +155,11 @@ export async function downloadTeamSheets({ tournament, teams = [], players = [],
     const squad = finance.squad;
     const color = team.color || '#10b981';
 
-    const [logoImg, ...photos] = await Promise.all([
+    const [logoImg, ...photoList] = await Promise.all([
       loadImage(team.logo_url),
       ...squad.map((p) => loadImage(p.photo_url)),
     ]);
+    const photoFor = new Map(squad.map((p, idx) => [p.id, photoList[idx]]));
 
     if (i > 0) doc.addPage();
     paintPage();
@@ -185,6 +187,14 @@ export async function downloadTeamSheets({ tournament, teams = [], players = [],
 
     y += 60;
 
+    // The two biggest buys sit at the foot of the page, so their space is
+    // reserved before the player list is measured — one page per team.
+    const buys = squad
+      .filter((p) => p.category !== 'icon' && Number(p.sold_price) > 0)
+      .sort((a, b) => Number(b.sold_price) - Number(a.sold_price))
+      .slice(0, 2);
+    const listBottom = BOTTOM - (buys.length ? 196 : 0);
+
     // ---- column headings ----
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7);
@@ -205,39 +215,102 @@ export async function downloadTeamSheets({ tournament, teams = [], players = [],
       doc.text('No players in this squad yet.', M, y + 12);
     }
 
-    squad.forEach((p, index) => {
-      if (y + ROW > H - 60) {
-        doc.addPage();
-        paintPage();
-        y = masthead();
-      }
+    // Rows shrink to whatever space the biggest-buys block leaves, so a full
+    // squad still fits on this one page.
+    const rowH = squad.length
+      ? Math.min(ROW, Math.max(12, (listBottom - y) / squad.length))
+      : ROW;
+    const avatarSize = Math.min(AVATAR, Math.max(10, rowH - 8));
+    const nameSize = rowH < 18 ? 8.5 : rowH < 24 ? 9.5 : 10;
 
-      const avatar = avatarCanvas(photos[index], p.name, color);
-      doc.addImage(avatar.toDataURL('image/png'), 'PNG', M, y + 4, AVATAR, AVATAR);
+    squad.forEach((p) => {
+      const avatar = avatarCanvas(photoFor.get(p.id), p.name, color);
+      doc.addImage(
+        avatar.toDataURL('image/png'),
+        'PNG',
+        M,
+        y + (rowH - avatarSize) / 2,
+        avatarSize,
+        avatarSize
+      );
+
+      const mid = y + rowH / 2 + 3;
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
+      doc.setFontSize(nameSize);
       doc.setTextColor(...COLORS.white);
-      doc.text(clip(p.name, inner - 190), M + 34, y + 18);
+      doc.text(clip(p.name, inner - 190), M + 34, mid);
 
       const isIcon = p.category === 'icon';
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(...(isIcon ? COLORS.purple : COLORS.muted));
-      doc.text(String(p.category || '—').toUpperCase(), M + inner - 120, y + 18);
+      doc.text(String(p.category || '—').toUpperCase(), M + inner - 120, mid);
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
+      doc.setFontSize(nameSize);
       doc.setTextColor(...COLORS.emeraldLight);
-      doc.text(isIcon ? 'ICON' : String(Number(p.sold_price) || 0), M + inner, y + 18, {
+      doc.text(isIcon ? 'ICON' : String(Number(p.sold_price) || 0), M + inner, mid, {
         align: 'right',
       });
 
-      y += ROW;
+      y += rowH;
       doc.setDrawColor(40, 52, 72);
       doc.setLineWidth(0.4);
-      doc.line(M, y - 6, M + inner, y - 6);
+      doc.line(M, y - 5, M + inner, y - 5);
     });
+
+    // ---- the two biggest buys, big photos ----
+    if (buys.length) {
+      let by = listBottom + 2;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(...COLORS.muted);
+      doc.text('BIGGEST BUYS', M, by + 8);
+
+      doc.setDrawColor(...COLORS.line);
+      doc.setLineWidth(0.6);
+      doc.line(M, by + 14, M + inner, by + 14);
+      by += 22;
+
+      const gap = 16;
+      const cardW = (inner - gap * (buys.length - 1)) / buys.length;
+      const side = Math.min(cardW - 24, 112);
+      const cardH = side + 58;
+
+      buys.forEach((p, idx) => {
+        const x = M + idx * (cardW + gap);
+        const cx = x + cardW / 2;
+
+        doc.setFillColor(...COLORS.card);
+        doc.roundedRect(x, by, cardW, cardH, 8, 8, 'F');
+
+        const photo = avatarCanvas(photoFor.get(p.id), p.name, color);
+        doc.addImage(
+          photo.toDataURL('image/png'),
+          'PNG',
+          x + (cardW - side) / 2,
+          by + 12,
+          side,
+          side
+        );
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(...COLORS.white);
+        doc.text(clip(p.name, cardW - 20), cx, by + side + 28, { align: 'center' });
+
+        doc.setFontSize(14);
+        doc.setTextColor(...COLORS.emeraldLight);
+        doc.text(String(Number(p.sold_price) || 0), cx, by + side + 46, { align: 'center' });
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.5);
+        doc.setTextColor(...COLORS.muted);
+        doc.text('COINS', cx, by + side + 56, { align: 'center' });
+      });
+    }
   }
 
   footer();
