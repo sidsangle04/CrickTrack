@@ -40,6 +40,7 @@ import SoldCard3D from './live/SoldCard3D';
 import JumpBidDialog from './live/JumpBidDialog';
 import promoteAuctionSquads from '@/lib/auction/promote';
 import AuctionPdfButton from './live/AuctionPdfButton';
+import TeamSheetButton from './live/TeamSheetButton';
 import SettingsPanel from './setup/SettingsPanel';
 
 export default function LiveAuction({ auction, teams, players, bids, refresh, tournament }) {
@@ -295,6 +296,12 @@ export default function LiveAuction({ auction, teams, players, bids, refresh, to
             teams={teams}
             players={players}
             label="Download auction PDF"
+          />
+          <TeamSheetButton
+            tournament={tournament}
+            teams={teams}
+            players={players}
+            settings={auction}
           />
           <Button
             variant="outline"
