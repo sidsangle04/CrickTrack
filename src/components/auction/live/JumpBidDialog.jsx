@@ -49,7 +49,10 @@ export default function JumpBidDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-900 border-slate-700 text-white sm:max-w-sm">
+      <DialogContent
+        overlayClassName="z-[200]"
+        className="z-[210] bg-slate-900 border-slate-700 text-white sm:max-w-sm"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-white">
             <Zap className="w-4 h-4 text-amber-400" /> Jump bid

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { CategoryBadge, PlayerAvatar, TeamBadge } from '../Shared';
 
-export default function BigScreen({ auction, players, teams, flash, bidControls, onClose }) {
+export default function BigScreen({ auction, players, teams, flash, bidControls, actions, onClose }) {
   const player = players.find((p) => p.id === auction.current_player_id) || null;
   const bidder = teams.find((t) => t.id === auction.current_bidder_team_id) || null;
   const bid = auction.current_bid || 0;
@@ -81,6 +81,7 @@ export default function BigScreen({ auction, players, teams, flash, bidControls,
               Teams · purse &amp; squad
             </p>
             {bidControls}
+            {actions && <div className="mt-2 flex gap-2">{actions}</div>}
           </div>
         )}
       </div>

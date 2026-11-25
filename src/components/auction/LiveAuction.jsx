@@ -233,6 +233,8 @@ export default function LiveAuction({ auction, teams, players, bids, refresh, to
         current_bidder_team_id: ''
       });
       showFlash({ type: 'unsold', player: currentPlayer });
+      // An unsold player needs no card — the display closes straight away.
+      if (bigScreen) setBigScreen(false);
     }, ['state', 'players']);
 
   const reopenUnsold = () =>
@@ -305,6 +307,27 @@ export default function LiveAuction({ auction, teams, players, bids, refresh, to
       </div>
     );
   }
+
+  // Sold / unsold, shared by the auctioneer's grid and the big screen.
+  const actionButtons = (
+    <>
+      <Button
+        onClick={markSold}
+        disabled={paused || busy || !bidderTeam}
+        className="bg-emerald-500 hover:bg-emerald-600 font-bold"
+      >
+        <Gavel className="w-4 h-4 mr-1.5" /> Sold
+      </Button>
+      <Button
+        onClick={markUnsold}
+        disabled={paused || busy || !currentPlayer}
+        variant="outline"
+        className="border-slate-700 bg-slate-950 text-red-300 hover:bg-slate-800"
+      >
+        Unsold
+      </Button>
+    </>
+  );
 
   // Shared by the auctioneer's column and the big screen's bottom row.
   const bidListProps = {
@@ -426,21 +449,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh, to
           />
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            <Button
-              onClick={markSold}
-              disabled={paused || busy || !bidderTeam}
-              className="bg-emerald-500 hover:bg-emerald-600 font-bold"
-            >
-              <Gavel className="w-4 h-4 mr-1.5" /> Sold
-            </Button>
-            <Button
-              onClick={markUnsold}
-              disabled={paused || busy || !currentPlayer}
-              variant="outline"
-              className="border-slate-700 bg-slate-950 text-red-300 hover:bg-slate-800"
-            >
-              Unsold
-            </Button>
+            {actionButtons}
             <Button
               onClick={reopenUnsold}
               disabled={paused || busy || !unsoldCount}
@@ -480,7 +489,17 @@ export default function LiveAuction({ auction, teams, players, bids, refresh, to
         </div>
       </div>
 
-      {soldCard && <SoldCard3D sale={soldCard} onDone={() => setSoldCard(null)} />}
+      {soldCard && (
+        <SoldCard3D
+          sale={soldCard}
+          onDone={() => {
+            setSoldCard(null);
+            // On the big screen the card is the last thing the room sees, so
+            // dismissing it also closes the display.
+            if (bigScreen) setBigScreen(false);
+          }}
+        />
+      )}
 
       <JumpBidDialog
         open={!!jumpTeam}
@@ -503,6 +522,7 @@ export default function LiveAuction({ auction, teams, players, bids, refresh, to
           teams={teams}
           flash={flash}
           bidControls={<TeamBidList layout="row" {...bidListProps} />}
+          actions={actionButtons}
           onClose={() => setBigScreen(false)}
         />
       )}
