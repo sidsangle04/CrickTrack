@@ -332,7 +332,7 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
       <div className="mt-3 space-y-1">
         {validation.ready ? (
           <p className="text-xs text-emerald-400 flex items-center gap-1.5">
-            <Check className="w-3.5 h-3.5" /> Both bowls are ready. Confirm them to start the draw.
+            <Check className="w-3.5 h-3.5" /> Both bowls are ready.
           </p>
         ) : (
           validation.errors.map((e) => (

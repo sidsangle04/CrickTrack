@@ -382,7 +382,7 @@ export default function DrawBoard({
       <Panel
         title="Assignments"
         action={
-          canEditBowls && !turn.done ? (
+          canEditBowls ? (
             <Button
               variant="outline"
               size="sm"

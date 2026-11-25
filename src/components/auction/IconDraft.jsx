@@ -29,7 +29,6 @@ export default function IconDraft({
           teams={teams}
           players={players}
           refresh={refresh}
-          canEdit={!started}
         />
         {validation.ready && (
           <div className="flex justify-center">
@@ -68,7 +67,7 @@ export default function IconDraft({
         players={players}
         draws={draws}
         refresh={refresh}
-        canEditBowls={!started}
+        canEditBowls
         onChangeBowls={() => setEditingBowls(true)}
         onStartAuction={onStartAuction}
       />
