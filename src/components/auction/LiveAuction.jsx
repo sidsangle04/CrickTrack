@@ -42,8 +42,9 @@ import promoteAuctionSquads from '@/lib/auction/promote';
 import AuctionPdfButton from './live/AuctionPdfButton';
 import TeamSheetButton from './live/TeamSheetButton';
 import SettingsPanel from './setup/SettingsPanel';
+import usePlayerPhotoMap from '@/hooks/usePlayerPhotoMap';
 
-export default function LiveAuction({ auction, teams, players, bids, refresh, tournament }) {
+export default function LiveAuction({ auction, teams, players: poolPlayers, bids, refresh, tournament }) {
   const [actingTeamId, setActingTeamId] = useState('');
   const [bigScreen, setBigScreen] = useState(false);
   const [flash, setFlash] = useState(null);
@@ -57,6 +58,14 @@ export default function LiveAuction({ auction, teams, players, bids, refresh, to
   const [soldCard, setSoldCard] = useState(null);
   // Team whose jump-bid dialog is open (empty = closed).
   const [jumpTeamId, setJumpTeamId] = useState('');
+
+  // A player added to the pool by name only still shows their profile photo.
+  const photoMap = usePlayerPhotoMap(tournament?.ground_mode);
+  const players = poolPlayers.map((p) => {
+    if (p.photo_url) return p;
+    const photo = photoMap[(p.name || '').trim().toLowerCase()];
+    return photo ? { ...p, photo_url: photo } : p;
+  });
 
   const completed = auction.status === 'completed';
   const paused = auction.status === 'paused';

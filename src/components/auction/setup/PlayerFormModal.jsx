@@ -196,6 +196,7 @@ export default function PlayerFormModal({ open, onOpenChange, player, tournament
                 setForm((f) => ({
                   ...f,
                   name: p.name,
+                  photo_url: f.photo_url || p.photo_url || '',
                   batting_style: f.batting_style || p.batting_style || '',
                   bowling_style: f.bowling_style || p.bowling_style || '',
                   primary_role: f.primary_role || p.primary_role || p.role || ''

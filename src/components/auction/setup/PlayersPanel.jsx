@@ -49,6 +49,7 @@ export default function PlayersPanel({ auction, players, teams, tournament, refr
         picks.push({
           tournament_id: auction.tournament_id,
           name,
+          photo_url: p.photo_url || '',
           primary_role: p.role,
           batting_style: p.batting_style,
           bowling_style: p.bowling_style,
