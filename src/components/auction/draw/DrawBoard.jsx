@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowLeftRight,
@@ -38,7 +38,7 @@ const BOWL_LABEL = { bowl1: 'Bowl 1', bowl2: 'Bowl 2' };
 export default function DrawBoard({
   auction,
   teams,
-  players,
+  players: playersProp,
   draws,
   refresh,
   canEditBowls,
@@ -53,6 +53,14 @@ export default function DrawBoard({
   const [manualSlot, setManualSlot] = useState(null);
   const [manualSearch, setManualSearch] = useState('');
   const [error, setError] = useState('');
+  // Bowls read straight back from the database after every change, so the wheels
+  // show the new pool at once instead of waiting for the screen to refresh.
+  const [fresh, setFresh] = useState(null);
+  const players = fresh || playersProp;
+
+  useEffect(() => {
+    setFresh(null);
+  }, [playersProp]);
 
   const order = orderedTeams(teams);
   const turn = nextDrawTurn({ players, teams });
@@ -97,6 +105,7 @@ export default function DrawBoard({
       draw_round: next.done ? 3 : next.round,
       draw_index: next.index
     });
+    setFresh(await base44.entities.AuctionPlayer.filter({ tournament_id: auction.tournament_id }));
     setReveal({ team, player, bowl, at: Date.now() });
     refresh && refresh();
   };
@@ -186,6 +195,7 @@ export default function DrawBoard({
         draw_round: resetTarget === 'bowl1' ? 1 : 2,
         draw_index: 0
       });
+      setFresh(await base44.entities.AuctionPlayer.filter({ tournament_id: auction.tournament_id }));
       setResetTarget(null);
       setReveal(null);
       refresh && refresh();
@@ -236,6 +246,7 @@ export default function DrawBoard({
         replaced_player_id: player.id,
         replaced_player_name: player.name
       });
+      setFresh(await base44.entities.AuctionPlayer.filter({ tournament_id: auction.tournament_id }));
       setReveal({ team, player: replacement, bowl, at: Date.now() });
       setReselection(null);
       refresh && refresh();
@@ -258,6 +269,7 @@ export default function DrawBoard({
         sold_price: 0,
         status: 'available'
       });
+      setFresh(await base44.entities.AuctionPlayer.filter({ tournament_id: auction.tournament_id }));
       setRemoval(null);
       setReveal(null);
       refresh && refresh();
