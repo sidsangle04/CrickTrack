@@ -7,6 +7,7 @@ import { Search, Loader2, Users, ChevronRight, ArrowLeftRight, Plus, Pencil, Tra
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 import PlayerFormModal from '@/components/players/PlayerFormModal';
+import { normPlayerName } from '@/lib/playerLookup';
 
 const ROLES = [
   { key: 'all', label: 'All Roles' },
@@ -73,14 +74,54 @@ export default function Players() {
     return m;
   }, [batterInnings, bowlerInnings, modeMatchIds]);
 
-  const handleDeletePlayer = async (player) => {
-    if (!window.confirm(`Delete ${player.name}? Their past scorecards stay as they are.`)) return;
-    await base44.entities.Player.delete(player.id);
+  // A player in a tournament squad has its own record per squad, so the same
+  // person can exist several times in the table. The directory lists people,
+  // not records: one card per name, with every record's stats added up.
+  const people = useMemo(() => {
+    const groups = new Map();
+    modePlayers.forEach(p => {
+      const key = normPlayerName(p.name) || p.id;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(p);
+    });
+    return [...groups.values()].map(group => {
+      const rep =
+        group.find(p => p.team_id && teamsMap[p.team_id]) ||
+        group.find(p => p.team_id) ||
+        group[0];
+      const ids = group.map(p => p.id);
+      const stats = ids.reduce(
+        (a, id) => {
+          const s = statsByPlayer[id];
+          if (s) {
+            a.runs += s.runs;
+            a.wickets += s.wickets;
+          }
+          return a;
+        },
+        { runs: 0, wickets: 0 }
+      );
+      return {
+        key: normPlayerName(rep.name) || rep.id,
+        rep,
+        ids,
+        stats,
+        name: rep.name,
+        team_id: rep.team_id,
+        role: rep.role,
+        photo_url: group.find(p => p.photo_url)?.photo_url || '',
+      };
+    });
+  }, [modePlayers, teamsMap, statsByPlayer]);
+
+  const handleDeletePlayer = async (person) => {
+    if (!window.confirm(`Delete ${person.name}? Their past scorecards stay as they are.`)) return;
+    await base44.entities.Player.deleteMany({ id: { $in: person.ids } });
     queryClient.invalidateQueries({ queryKey: ['all-players-analytics'] });
     queryClient.invalidateQueries({ queryKey: ['free-players'] });
   };
 
-  const filtered = modePlayers.filter(p => {
+  const filtered = people.filter(p => {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (teamFilter !== 'all' && p.team_id !== teamFilter) return false;
     if (roleFilter !== 'all' && p.role !== roleFilter) return false;
@@ -177,12 +218,12 @@ export default function Players() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filtered.map(p => {
             const team = teamsMap[p.team_id];
-            const stats = statsByPlayer[p.id] || { runs: 0, wickets: 0 };
+            const stats = p.stats;
             const initials = (p.name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
             return (
               <Link
-                key={p.id}
-                to={createPageUrl('PlayerProfile') + `?playerId=${p.id}`}
+                key={p.key}
+                to={createPageUrl('PlayerProfile') + `?playerId=${p.rep.id}`}
                 className="group p-4 rounded-2xl bg-slate-800/50 border border-slate-700/50 hover:border-emerald-500/50 transition-all flex items-center gap-3"
               >
                 <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500/30 to-emerald-600/10 border border-emerald-500/30 flex items-center justify-center text-sm font-bold text-emerald-400 flex-shrink-0 overflow-hidden">
@@ -207,7 +248,7 @@ export default function Players() {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    setEditingPlayer(p);
+                    setEditingPlayer(p.rep);
                     setFormOpen(true);
                   }}
                   className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-400 hover:bg-slate-700/50 transition-colors flex-shrink-0"

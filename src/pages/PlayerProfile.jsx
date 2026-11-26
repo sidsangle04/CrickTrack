@@ -10,6 +10,7 @@ import ProfileHeader from '@/components/profile/ProfileHeader';
 import OverviewTab from '@/components/profile/OverviewTab';
 import BattingTab from '@/components/profile/BattingTab';
 import BowlingTab from '@/components/profile/BowlingTab';
+import { normPlayerName } from '@/lib/playerLookup';
 
 export default function PlayerProfile() {
   const { mode, groundShape } = useGroundShape();
@@ -28,34 +29,44 @@ export default function PlayerProfile() {
     queryKey: ['all-players-analytics'],
     queryFn: () => base44.entities.Player.list(),
   });
+  // One person can hold a record per tournament squad — their profile covers
+  // every record that shares their name.
+  const personIds = useMemo(() => {
+    const key = normPlayerName(player?.name);
+    const ids = new Set(playerId ? [playerId] : []);
+    if (key) allPlayers.forEach(p => { if (normPlayerName(p.name) === key) ids.add(p.id); });
+    return [...ids];
+  }, [player?.name, allPlayers, playerId]);
+  const personKey = personIds.join('|');
+
   const { data: matches = [] } = useQuery({
     queryKey: ['matches-analytics', mode],
     queryFn: () => base44.entities.Match.list('-created_date', 500),
   });
   const { data: batterInnings = [] } = useQuery({
-    queryKey: ['batter-innings-profile', playerId],
-    queryFn: () => base44.entities.BatterInnings.filter({ player_id: playerId }),
-    enabled: !!playerId,
+    queryKey: ['batter-innings-profile', personKey],
+    queryFn: () => base44.entities.BatterInnings.filter({ player_id: { $in: personIds } }),
+    enabled: personIds.length > 0,
   });
   const { data: bowlerInnings = [] } = useQuery({
-    queryKey: ['bowler-innings-profile', playerId],
-    queryFn: () => base44.entities.BowlerInnings.filter({ player_id: playerId }),
-    enabled: !!playerId,
+    queryKey: ['bowler-innings-profile', personKey],
+    queryFn: () => base44.entities.BowlerInnings.filter({ player_id: { $in: personIds } }),
+    enabled: personIds.length > 0,
   });
   const { data: strikerDeliveries = [] } = useQuery({
-    queryKey: ['striker-deliveries-profile', playerId],
-    queryFn: () => base44.entities.Delivery.filter({ striker_id: playerId }, '-created_date', 500),
-    enabled: !!playerId,
+    queryKey: ['striker-deliveries-profile', personKey],
+    queryFn: () => base44.entities.Delivery.filter({ striker_id: { $in: personIds } }, '-created_date', 500),
+    enabled: personIds.length > 0,
   });
   const { data: bowlerDeliveries = [] } = useQuery({
-    queryKey: ['bowler-deliveries-profile', playerId],
-    queryFn: () => base44.entities.Delivery.filter({ bowler_id: playerId }, '-created_date', 500),
-    enabled: !!playerId,
+    queryKey: ['bowler-deliveries-profile', personKey],
+    queryFn: () => base44.entities.Delivery.filter({ bowler_id: { $in: personIds } }, '-created_date', 500),
+    enabled: personIds.length > 0,
   });
   const { data: partnerships = [] } = useQuery({
-    queryKey: ['partnerships-profile', playerId],
+    queryKey: ['partnerships-profile', personKey],
     queryFn: () => base44.entities.Partnership.list(),
-    enabled: !!playerId,
+    enabled: personIds.length > 0,
   });
 
   // Strict mode isolation: only data from matches in the active ground mode.
@@ -71,10 +82,10 @@ export default function PlayerProfile() {
   const scopedBowlerDeliveries = useMemo(() => bowlerDeliveries.filter(d => modeMatchIds.has(d.match_id)), [bowlerDeliveries, modeMatchIds]);
   const scopedPartnerships = useMemo(
     () => partnerships
-      .filter(p => modeMatchIds.has(p.match_id) && (p.batter1_id === playerId || p.batter2_id === playerId))
+      .filter(p => modeMatchIds.has(p.match_id) && (personIds.includes(p.batter1_id) || personIds.includes(p.batter2_id)))
       .sort((a, b) => b.runs - a.runs)
       .slice(0, 5),
-    [partnerships, modeMatchIds, playerId]
+    [partnerships, modeMatchIds, personKey]
   );
 
   const matchIds = useMemo(() => {
