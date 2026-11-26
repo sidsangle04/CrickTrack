@@ -32,3 +32,32 @@ export async function findPlayerByName({ name, mode, teamId, tournamentId }) {
     matches[0]
   );
 }
+
+// Everyone entered in an auction or a tournament squad also gets a profile in
+// the Players directory, so no one is missing from that list. The same person is
+// never registered twice.
+export async function ensurePlayerProfile({
+  name,
+  mode,
+  tournamentId,
+  role,
+  photo_url,
+  batting_style,
+  bowling_style
+}) {
+  const clean = (name || '').trim();
+  if (!clean) return null;
+
+  const existing = await findPlayerByName({ name: clean, mode });
+  if (existing) return existing;
+
+  return await base44.entities.Player.create({
+    name: clean,
+    role: role || 'batsman',
+    ground_mode: mode || 'turf',
+    tournament_id: tournamentId || '',
+    photo_url: photo_url || '',
+    batting_style: batting_style || 'right_hand',
+    bowling_style: bowling_style || 'none'
+  });
+}

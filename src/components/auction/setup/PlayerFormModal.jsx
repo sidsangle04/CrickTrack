@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { CATEGORY_LABELS, PlayerAvatar } from '../Shared';
 import PlayerNameInput from '@/components/players/PlayerNameInput';
+import { ensurePlayerProfile } from '@/lib/playerLookup';
 
 const EMPTY = {
   name: '',
@@ -101,7 +102,7 @@ function UploadRow({ label, value, field, onUpload, uploading, onClear }) {
   );
 }
 
-export default function PlayerFormModal({ open, onOpenChange, player, tournamentId, onSaved }) {
+export default function PlayerFormModal({ open, onOpenChange, player, tournamentId, mode, onSaved }) {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState('');
@@ -163,6 +164,16 @@ export default function PlayerFormModal({ open, onOpenChange, player, tournament
           status: 'available',
           bowl: 'none'
         });
+      // Also a profile in the Players directory — sold or not.
+      await ensurePlayerProfile({
+        name: payload.name,
+        mode,
+        tournamentId,
+        role: payload.primary_role,
+        photo_url: payload.photo_url,
+        batting_style: payload.batting_style,
+        bowling_style: payload.bowling_style
+      });
       onSaved && onSaved();
       onOpenChange(false);
     } catch (e) {

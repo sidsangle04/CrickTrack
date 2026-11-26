@@ -212,6 +212,7 @@ export default function PlayersPanel({ auction, players, teams, tournament, refr
         onOpenChange={(open) => setModal({ open, player: open ? modal.player : null })}
         player={modal.player}
         tournamentId={auction.tournament_id}
+        mode={tournament?.ground_mode || 'turf'}
         onSaved={refresh}
       />
       <PlayerProfileDialog
