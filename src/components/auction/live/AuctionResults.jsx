@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { findPlayerByName } from '@/lib/playerLookup';
 import { ArrowLeftRight, Plus, Trophy, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AddTeamModal from '@/components/tournament/AddTeamModal';
@@ -66,11 +67,21 @@ export default function AuctionResults({ teams, players, settings, tournament })
     if (!teamId) return;
 
     // An existing profile is attached to this team; a new name creates one.
+    const mode = tournament?.ground_mode || 'turf';
     let linkedId = playerId || '';
+    let photo = photo_url || '';
+    if (!linkedId) {
+      // Same person already registered? Reuse that profile, never copy it.
+      const existing = await findPlayerByName({ name, mode, teamId });
+      if (existing) {
+        linkedId = existing.id;
+        photo = photo || existing.photo_url || '';
+      }
+    }
     if (linkedId) {
       await base44.entities.Player.update(linkedId, {
         team_id: teamId,
-        ground_mode: tournament?.ground_mode || 'turf',
+        ground_mode: mode,
         tournament_id: tournament?.id || '',
         is_extra: true
       });
@@ -79,17 +90,18 @@ export default function AuctionResults({ teams, players, settings, tournament })
         name,
         role,
         team_id: teamId,
-        ground_mode: tournament?.ground_mode || 'turf',
+        ground_mode: mode,
         tournament_id: tournament?.id || '',
         is_extra: true
       });
       linkedId = player.id;
+      photo = photo || player.photo_url || '';
     }
     await base44.entities.AuctionPlayer.create({
       tournament_id: tournament?.id || '',
       name,
       player_id: linkedId,
-      photo_url: photo_url || '',
+      photo_url: photo,
       primary_role: role,
       category: 'gold',
       bowl: 'none',

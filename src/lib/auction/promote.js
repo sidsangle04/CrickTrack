@@ -1,4 +1,5 @@
 import { base44 } from '@/api/base44Client';
+import { normPlayerName } from '@/lib/playerLookup';
 
 // When the auction closes, the squads become the tournament's real teams:
 // every auction team is backed by a Team record for that tournament, and every
@@ -68,23 +69,51 @@ export default async function promoteAuctionSquads({ tournamentId, auctionTeams,
   // tournament player, linked back so this can safely run twice.
   const sold = auctionPlayers.filter((p) => !p.player_id && teamIdFor[p.sold_to_team_id]);
   if (sold.length) {
-    const createdPlayers = await base44.entities.Player.bulkCreate(
-      sold.map((p) => ({
-        name: p.name,
-        photo_url: p.photo_url || '',
-        team_id: teamIdFor[p.sold_to_team_id],
-        ground_mode: mode,
-        tournament_id: tournamentId,
-        role: p.primary_role || 'batsman',
-        batting_style: p.batting_style || 'right_hand',
-        bowling_style: p.bowling_style || 'none',
-        is_wicket_keeper: p.primary_role === 'wicket_keeper'
-      }))
-    );
-    const links = [];
-    createdPlayers.forEach((created, i) => {
-      if (sold[i]) links.push({ id: sold[i].id, player_id: created.id });
+    // This tournament's players by name — someone already registered here is
+    // reused instead of saved as a second copy of the same person.
+    const existing = await base44.entities.Player.filter({ tournament_id: tournamentId });
+    const byName = new Map();
+    (Array.isArray(existing) ? existing : []).forEach((p) => {
+      const key = normPlayerName(p.name);
+      if (key && !byName.has(key)) byName.set(key, p);
     });
+
+    const links = [];
+    const teamless = [];
+    const toCreate = [];
+
+    sold.forEach((p) => {
+      const teamId = teamIdFor[p.sold_to_team_id];
+      const match = byName.get(normPlayerName(p.name));
+      if (match && (!match.team_id || match.team_id === teamId)) {
+        links.push({ id: p.id, player_id: match.id });
+        if (!match.team_id) teamless.push({ id: match.id, team_id: teamId });
+        return;
+      }
+      toCreate.push(p);
+    });
+
+    if (teamless.length) await base44.entities.Player.bulkUpdate(teamless);
+
+    if (toCreate.length) {
+      const createdPlayers = await base44.entities.Player.bulkCreate(
+        toCreate.map((p) => ({
+          name: p.name,
+          photo_url: p.photo_url || '',
+          team_id: teamIdFor[p.sold_to_team_id],
+          ground_mode: mode,
+          tournament_id: tournamentId,
+          role: p.primary_role || 'batsman',
+          batting_style: p.batting_style || 'right_hand',
+          bowling_style: p.bowling_style || 'none',
+          is_wicket_keeper: p.primary_role === 'wicket_keeper'
+        }))
+      );
+      createdPlayers.forEach((created, i) => {
+        if (toCreate[i]) links.push({ id: toCreate[i].id, player_id: created.id });
+      });
+    }
+
     if (links.length) await base44.entities.AuctionPlayer.bulkUpdate(links);
   }
 

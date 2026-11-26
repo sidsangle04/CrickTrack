@@ -1,4 +1,5 @@
 import { base44 } from '@/api/base44Client';
+import { findPlayerByName } from '@/lib/playerLookup';
 
 // Swaps one squad member for another after the auction. Both sides are kept in
 // step: the auction record (so team sheets and purses stay right) and the
@@ -49,15 +50,25 @@ export default async function swapSquadPlayer({ tournamentId, mode, team, outgoi
   if (incoming?.playerId) {
     player = await base44.entities.Player.update(incoming.playerId, teamFields);
   } else {
-    player = await base44.entities.Player.create({
-      name: incoming?.name || '',
-      photo_url: incoming?.photo_url || '',
-      role: incoming?.role || 'batsman',
-      batting_style: incoming?.batting_style || 'right_hand',
-      bowling_style: incoming?.bowling_style || 'none',
-      is_wicket_keeper: incoming?.role === 'wicket_keeper',
-      ...teamFields
+    // Same person already registered in this tournament? Reuse, never copy.
+    const found = await findPlayerByName({
+      name: incoming?.name,
+      mode,
+      teamId: team?.id,
+      tournamentId
     });
+    const reusable = found && (!found.team_id || found.team_id === team?.id) ? found : null;
+    player = reusable
+      ? await base44.entities.Player.update(reusable.id, teamFields)
+      : await base44.entities.Player.create({
+          name: incoming?.name || '',
+          photo_url: incoming?.photo_url || '',
+          role: incoming?.role || 'batsman',
+          batting_style: incoming?.batting_style || 'right_hand',
+          bowling_style: incoming?.bowling_style || 'none',
+          is_wicket_keeper: incoming?.role === 'wicket_keeper',
+          ...teamFields
+        });
   }
 
   if (auctionTeamId) {
