@@ -53,7 +53,7 @@ export default function AuctionResults({ teams, players, settings, tournament })
     queryClient.invalidateQueries({ queryKey: ['team-players'] });
   };
 
-  const addExtraPlayer = async ({ name, role }) => {
+  const addExtraPlayer = async ({ name, role, playerId, photo_url }) => {
     const { team } = addingExtra;
     let teamId = team.team_id || '';
     if (!teamId && tournament?.id) {
@@ -65,18 +65,31 @@ export default function AuctionResults({ teams, players, settings, tournament })
     }
     if (!teamId) return;
 
-    const player = await base44.entities.Player.create({
-      name,
-      role,
-      team_id: teamId,
-      ground_mode: tournament?.ground_mode || 'turf',
-      tournament_id: tournament?.id || '',
-      is_extra: true
-    });
+    // An existing profile is attached to this team; a new name creates one.
+    let linkedId = playerId || '';
+    if (linkedId) {
+      await base44.entities.Player.update(linkedId, {
+        team_id: teamId,
+        ground_mode: tournament?.ground_mode || 'turf',
+        tournament_id: tournament?.id || '',
+        is_extra: true
+      });
+    } else {
+      const player = await base44.entities.Player.create({
+        name,
+        role,
+        team_id: teamId,
+        ground_mode: tournament?.ground_mode || 'turf',
+        tournament_id: tournament?.id || '',
+        is_extra: true
+      });
+      linkedId = player.id;
+    }
     await base44.entities.AuctionPlayer.create({
       tournament_id: tournament?.id || '',
       name,
-      player_id: player.id,
+      player_id: linkedId,
+      photo_url: photo_url || '',
       primary_role: role,
       category: 'gold',
       bowl: 'none',
@@ -89,6 +102,11 @@ export default function AuctionResults({ teams, players, settings, tournament })
     queryClient.invalidateQueries({ queryKey: ['players'] });
     queryClient.invalidateQueries({ queryKey: ['team-players'] });
   };
+
+  // Squad already on the team — left out of the extra-player picker.
+  const extraSquad = addingExtra
+    ? players.filter((p) => p.sold_to_team_id === addingExtra.team.id)
+    : [];
 
   return (
     <div className="space-y-4">
@@ -232,6 +250,9 @@ export default function AuctionResults({ teams, players, settings, tournament })
         open={!!addingExtra}
         onOpenChange={(v) => !v && setAddingExtra(null)}
         teamName={addingExtra?.team?.name}
+        mode={tournament?.ground_mode || 'turf'}
+        excludeIds={extraSquad.map((p) => p.player_id).filter(Boolean)}
+        excludeNames={extraSquad.map((p) => p.name).filter(Boolean)}
         onConfirm={addExtraPlayer}
       />
 

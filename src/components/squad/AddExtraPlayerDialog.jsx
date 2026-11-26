@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { Loader2, UserPlus } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Check, Loader2, Search, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,18 +17,80 @@ import { ROLE_LABELS } from '@/components/auction/Shared';
 
 // Adds a backup player to a finished auction squad. Extras sit outside the
 // squad size and the purse, but they are in the squad for tournament matches.
-export default function AddExtraPlayerDialog({ open, onOpenChange, teamName, onConfirm }) {
+// Typing a name suggests players already on the Players page so an existing
+// profile is reused instead of registered twice.
+export default function AddExtraPlayerDialog({
+  open,
+  onOpenChange,
+  teamName,
+  mode,
+  excludeIds = [],
+  excludeNames = [],
+  onConfirm
+}) {
   const [name, setName] = useState('');
   const [role, setRole] = useState('batsman');
+  const [picked, setPicked] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  const { data: players = [] } = useQuery({
+    queryKey: ['players', mode || 'all'],
+    queryFn: () => base44.entities.Player.list(),
+    staleTime: 60000,
+    enabled: open
+  });
+
+  // Fresh form every time the dialog opens for a different team.
+  useEffect(() => {
+    if (!open) {
+      setName('');
+      setRole('batsman');
+      setPicked(null);
+    }
+  }, [open]);
+
+  const matches = useMemo(() => {
+    const q = name.trim().toLowerCase();
+    const ids = new Set(excludeIds);
+    const names = new Set(excludeNames.map((n) => (n || '').trim().toLowerCase()));
+    return (Array.isArray(players) ? players : [])
+      .filter((p) => p.name && p.id)
+      .filter((p) => (mode ? (p.ground_mode || 'turf') === mode : true))
+      .filter((p) => !ids.has(p.id))
+      .filter((p) => !names.has(p.name.trim().toLowerCase()))
+      .filter((p) => !q || p.name.toLowerCase().includes(q))
+      .sort((a, b) => {
+        const ap = q && a.name.toLowerCase().startsWith(q) ? 0 : 1;
+        const bp = q && b.name.toLowerCase().startsWith(q) ? 0 : 1;
+        return ap - bp || a.name.localeCompare(b.name);
+      })
+      .slice(0, 40);
+  }, [players, name, mode, excludeIds, excludeNames]);
+
+  const pick = (player) => {
+    if (picked?.id === player.id) {
+      setPicked(null);
+      setName('');
+      return;
+    }
+    setPicked(player);
+    setName(player.name);
+    if (player.role) setRole(player.role);
+  };
 
   const submit = async () => {
     if (!name.trim() || saving) return;
     setSaving(true);
     try {
-      await onConfirm({ name: name.trim(), role });
+      await onConfirm({
+        name: name.trim(),
+        role,
+        playerId: picked?.id || '',
+        photo_url: picked?.photo_url || ''
+      });
       setName('');
       setRole('batsman');
+      setPicked(null);
       onOpenChange(false);
     } finally {
       setSaving(false);
@@ -50,13 +114,58 @@ export default function AddExtraPlayerDialog({ open, onOpenChange, teamName, onC
           </p>
           <div>
             <Label className="text-slate-200">Player name *</Label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Arjun Mehta"
-              className="bg-slate-950 border-slate-700 text-white placeholder:text-slate-500"
-            />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <Input
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (picked && picked.name !== e.target.value) setPicked(null);
+                }}
+                placeholder="Search a player or type a new name"
+                autoComplete="off"
+                className="bg-slate-950 border-slate-700 text-white placeholder:text-slate-500 pl-9"
+              />
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1">
+              {picked
+                ? 'Existing profile selected — their record is reused.'
+                : 'Pick someone already on the Players page, or type a new name to create their profile.'}
+            </p>
           </div>
+
+          <div className="rounded-xl border border-slate-700 bg-slate-950/60 overflow-hidden">
+            <div className="px-3 py-1.5 border-b border-slate-700/60 flex items-center justify-between">
+              <span className="text-[10px] uppercase tracking-wide text-slate-400">
+                Players
+              </span>
+              <span className="text-[10px] text-slate-500">{matches.length}</span>
+            </div>
+            <div className="max-h-44 overflow-y-auto divide-y divide-slate-800">
+              {matches.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => pick(p)}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors ${
+                    picked?.id === p.id ? 'bg-emerald-500/15' : 'hover:bg-slate-800/70'
+                  }`}
+                >
+                  <span className="text-sm text-white truncate flex-1">{p.name}</span>
+                  <span className="text-[10px] text-slate-400 shrink-0">
+                    {ROLE_LABELS[p.role] || 'Player'}
+                  </span>
+                  {picked?.id === p.id && <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                </button>
+              ))}
+              {matches.length === 0 && (
+                <p className="px-3 py-3 text-xs text-slate-500">
+                  No saved player matches — this name will create a new profile.
+                </p>
+              )}
+            </div>
+          </div>
+
           <div>
             <Label className="text-slate-200">Role</Label>
             <Select value={role} onValueChange={setRole}>
