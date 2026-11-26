@@ -8,6 +8,7 @@ import AuctionSetup from '@/components/auction/AuctionSetup';
 import IconDraft from '@/components/auction/IconDraft';
 import LiveAuction from '@/components/auction/LiveAuction';
 import { createPageUrl } from '../utils';
+import { iconCountFor } from '@/lib/auction/draw';
 
 const STATUS_STYLES = {
   setup: 'bg-slate-500/20 text-slate-300',
@@ -52,7 +53,10 @@ export default function Auction() {
   }
 
   const running = ['auction', 'paused', 'completed'].includes(auction.status);
-  const stage = running ? auction.status : view || auction.status;
+  const icons = iconCountFor(auction);
+  const rawStage = running ? auction.status : view || auction.status;
+  // A tournament with no icon players goes straight to the bidding.
+  const stage = rawStage === 'draft' && !icons ? 'setup' : rawStage;
 
   const startStage = async (status) => {
     await base44.entities.Auction.update(auction.id, {
@@ -105,16 +109,18 @@ export default function Auction() {
           >
             <Settings className="w-3.5 h-3.5" /> Setup
           </button>
-          <button
-            onClick={() => setView('draft')}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-              stage === 'draft'
-                ? 'bg-emerald-500/20 text-emerald-400'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" /> Icon draft
-          </button>
+          {icons > 0 && (
+            <button
+              onClick={() => setView('draft')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                stage === 'draft'
+                  ? 'bg-emerald-500/20 text-emerald-400'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" /> Icon draft
+            </button>
+          )}
         </div>
       )}
 

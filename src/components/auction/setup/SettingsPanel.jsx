@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Panel } from '../Shared';
 import { bidLadder, sortedTiers } from '@/lib/auction/bidding';
+import { iconCountFor } from '@/lib/auction/draw';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,7 @@ export default function SettingsPanel({ auction, refresh }) {
   useEffect(() => {
     if (!auction) return;
     setForm({
+      icons_per_team: iconCountFor(auction),
       required_squad_size: auction.required_squad_size ?? 8,
       purse: auction.purse ?? 2000,
       starting_bid: auction.starting_bid ?? 50,
@@ -42,6 +44,7 @@ export default function SettingsPanel({ auction, refresh }) {
     setError('');
     try {
       await base44.entities.Auction.update(auction.id, {
+        icons_per_team: iconCountFor(form),
         required_squad_size: Number(form.required_squad_size) || 8,
         purse: Number(form.purse) || 2000,
         starting_bid: Number(form.starting_bid) || 50,
@@ -87,6 +90,35 @@ export default function SettingsPanel({ auction, refresh }) {
     >
       <div className="grid lg:grid-cols-2 gap-5">
         <div className="space-y-4">
+          <div>
+            <Label className="text-slate-200">Icon players per team</Label>
+            <p className="text-[11px] text-slate-500 mb-2">
+              Each team draws its icon players before the bidding. Choose none to run a straight
+              auction with no draft.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: 0, label: 'None' },
+                { value: 1, label: '1 icon' },
+                { value: 2, label: '2 icons' }
+              ].map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  disabled={locked}
+                  onClick={() => setForm({ ...form, icons_per_team: o.value })}
+                  className={`px-3 py-2 rounded-lg text-sm font-semibold border transition-colors disabled:opacity-50 ${
+                    Number(form.icons_per_team) === o.value
+                      ? 'bg-purple-500/20 border-purple-500/50 text-purple-300'
+                      : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-slate-600'
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div>
             <Label className="text-slate-200">Required squad size per team</Label>
             <p className="text-[11px] text-slate-500 mb-2">
@@ -245,9 +277,9 @@ export default function SettingsPanel({ auction, refresh }) {
             <DialogTitle>Change the rules mid-auction?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-slate-300">
-            The auction has already started. Changing squad size, purse or bidding increments affects
-            every team and every remaining bid. Purse balances and squads already recorded stay as they
-            are.
+            The auction has already started. Changing icon players, squad size, purse or bidding
+            increments affects every team and every remaining bid. Purse balances and squads already
+            recorded stay as they are.
           </p>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setConfirming(false)} className="text-slate-300">

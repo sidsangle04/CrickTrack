@@ -10,6 +10,7 @@ export const DEFAULT_TIERS = [
 ];
 
 export const DEFAULT_SETTINGS = {
+  icons_per_team: 2,
   required_squad_size: 8,
   purse: 2000,
   starting_bid: DEFAULT_STARTING_BID,

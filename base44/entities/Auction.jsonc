@@ -25,6 +25,11 @@
       "default": "setup",
       "description": "setup = configure, draft = icon player draw, auction = live bidding, paused, completed"
     },
+    "icons_per_team": {
+      "type": "number",
+      "default": 2,
+      "description": "Icon players each team gets before the auction: 0 = straight to bidding, 1 = one icon each, 2 = two icons each (one from each bowl)"
+    },
     "required_squad_size": {
       "type": "number",
       "default": 8,

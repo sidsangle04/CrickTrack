@@ -33,8 +33,7 @@ export default function AssignPlayerDialog({
           <>
             <p className="text-xs text-slate-400">
               Choose the player <strong className="text-white">{slot.team.name}</strong> should
-              receive — every player still left in {BOWL_LABEL.bowl1} and {BOWL_LABEL.bowl2} is
-              listed.
+              receive — every icon player still left in the bowls is listed.
             </p>
             <Input
               value={search}

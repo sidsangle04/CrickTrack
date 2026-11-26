@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 import SettingsPanel from './setup/SettingsPanel';
 import TeamsPanel from './setup/TeamsPanel';
 import PlayersPanel from './setup/PlayersPanel';
+import { iconCountFor } from '@/lib/auction/draw';
 
 export default function AuctionSetup({ auction, teams, players, tournament, refresh, onStart }) {
   const canStart = teams.length >= 2;
+  const icons = iconCountFor(auction);
 
   return (
     <div className="space-y-4">
@@ -19,6 +21,11 @@ export default function AuctionSetup({ auction, teams, players, tournament, refr
               {players.length === 1 ? '' : 's'} registered · squad size{' '}
               {auction.required_squad_size || 8} · purse {auction.purse || 2000}
             </p>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              {icons
+                ? `${icons} icon player${icons === 1 ? '' : 's'} per team, drawn before the bidding.`
+                : 'No icon players — every player goes under the hammer.'}
+            </p>
             {!canStart && (
               <p className="text-xs text-amber-400 mt-1">
                 Add at least two teams before starting.
@@ -26,20 +33,27 @@ export default function AuctionSetup({ auction, teams, players, tournament, refr
             )}
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
-            <Button
-              onClick={() => onStart('draft')}
-              disabled={!canStart}
-              className="bg-purple-500 hover:bg-purple-600 text-white"
-            >
-              <Sparkles className="w-4 h-4 mr-2" /> Icon player draft
-            </Button>
+            {icons > 0 && (
+              <Button
+                onClick={() => onStart('draft')}
+                disabled={!canStart}
+                className="bg-purple-500 hover:bg-purple-600 text-white"
+              >
+                <Sparkles className="w-4 h-4 mr-2" /> Icon draft · {icons} per team
+              </Button>
+            )}
             <Button
               onClick={() => onStart('auction')}
               disabled={!canStart}
-              variant="outline"
-              className="border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800"
+              variant={icons > 0 ? 'outline' : 'default'}
+              className={
+                icons > 0
+                  ? 'border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800'
+                  : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+              }
             >
-              <PlayCircle className="w-4 h-4 mr-2" /> Skip to auction
+              <PlayCircle className="w-4 h-4 mr-2" />
+              {icons > 0 ? 'Skip to auction' : 'Start the auction'}
             </Button>
           </div>
         </div>
@@ -63,8 +77,10 @@ export default function AuctionSetup({ auction, teams, players, tournament, refr
 
       <p className="text-[11px] text-slate-500 flex items-center gap-1.5">
         <CalendarPlus className="w-3.5 h-3.5" />
-        Every team needs {auction.required_squad_size || 8} players in total. Icon players are free but
-        still fill a squad slot.
+        Every team needs {auction.required_squad_size || 8} players in total.{' '}
+        {icons
+          ? 'Icon players are free but still fill a squad slot.'
+          : 'There are no icon players, so every squad slot is bid for.'}
       </p>
     </div>
   );

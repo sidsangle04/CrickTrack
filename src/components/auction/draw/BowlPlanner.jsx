@@ -12,15 +12,12 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import { PlayerAvatar } from '../Shared';
-import { bowlsReady } from '@/lib/auction/draw';
+import { activeBowls, bowlsReady, iconCountFor } from '@/lib/auction/draw';
 
-const BOWL_IDS = ['pool', 'bowl1', 'bowl2'];
-
-function BowlPill({ value, onChange }) {
+function BowlPill({ value, onChange, bowls }) {
   const options = [
     { id: 'none', label: 'Pool' },
-    { id: 'bowl1', label: 'B1' },
-    { id: 'bowl2', label: 'B2' }
+    ...bowls.map((b, i) => ({ id: b, label: `B${i + 1}` }))
   ];
   return (
     <div className="flex gap-1">
@@ -81,6 +78,9 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  const icons = iconCountFor(auction);
+  const bowls = activeBowls(icons);
+
   const iconList = useMemo(() => players.filter((p) => p.category === 'icon'), [players]);
 
   useEffect(() => {
@@ -98,9 +98,8 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
   );
 
   const pool = effective.filter((p) => p.bowl === 'none');
-  const bowl1 = effective.filter((p) => p.bowl === 'bowl1');
-  const bowl2 = effective.filter((p) => p.bowl === 'bowl2');
-  const validation = bowlsReady({ players: effective, teams });
+  const inColumn = (bowl) => effective.filter((p) => p.bowl === bowl);
+  const validation = bowlsReady({ players: effective, teams, icons });
 
   const move = (playerId, target) => {
     setAssign((a) => ({ ...a, [playerId]: target }));
@@ -144,40 +143,34 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
   // How the chosen players will be split — the same order the save uses: a bowl you
   // tapped wins, then the bowl the player already sits in, then the bowls fill up.
   const preview = useMemo(() => {
-    const counts = { bowl1: 0, bowl2: 0 };
+    const open = activeBowls(icons);
+    const counts = {};
+    open.forEach((b) => {
+      counts[b] = 0;
+    });
     const resolved = {};
     selectedIds.forEach((id) => {
       const p = players.find((x) => x.id === id);
       if (!p) return;
       const explicit = bowlChoice[id];
-      const kept =
-        !explicit && p.category === 'icon' && (p.bowl === 'bowl1' || p.bowl === 'bowl2')
-          ? p.bowl
-          : null;
+      const kept = !explicit && p.category === 'icon' && open.includes(p.bowl) ? p.bowl : null;
       const bowl = explicit || kept;
       if (bowl) {
         resolved[id] = bowl;
         counts[bowl] += 1;
       }
     });
-    const nextBowl = () => {
-      if (counts.bowl1 < teams.length) {
-        counts.bowl1 += 1;
-        return 'bowl1';
-      }
-      if (counts.bowl2 < teams.length) {
-        counts.bowl2 += 1;
-        return 'bowl2';
-      }
-      return 'none';
-    };
+    const nextBowl = () => open.find((b) => counts[b] < teams.length) || null;
     selectedIds.forEach((id) => {
       if (resolved[id]) return;
       const bowl = nextBowl();
-      if (bowl !== 'none') resolved[id] = bowl;
+      if (bowl) {
+        resolved[id] = bowl;
+        counts[bowl] += 1;
+      }
     });
     return { resolved, counts };
-  }, [selectedIds, bowlChoice, players, teams.length]);
+  }, [selectedIds, bowlChoice, players, teams.length, icons]);
 
   const togglePlayer = (id) => {
     setSelectedIds((ids) => {
@@ -194,8 +187,8 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
   };
 
   const saveSelection = async () => {
-    if (selectedIds.length !== teams.length * 2 || saving) return;
-    if (preview.counts.bowl1 !== teams.length || preview.counts.bowl2 !== teams.length) {
+    if (selectedIds.length !== teams.length * icons || saving) return;
+    if (bowls.some((b) => preview.counts[b] !== teams.length)) {
       setError(
         `Each bowl needs exactly ${teams.length} player${teams.length === 1 ? '' : 's'} — tap B1 or B2 to move someone across.`
       );
@@ -245,7 +238,9 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
           <GripVertical className="w-3.5 h-3.5 text-slate-500 shrink-0" />
           <PlayerAvatar player={player} size="sm" />
           <p className="text-xs font-medium text-white truncate flex-1">{player.name}</p>
-          {canEdit && <BowlPill value={player.bowl} onChange={(v) => move(player.id, v)} />}
+          {canEdit && (
+            <BowlPill value={player.bowl} onChange={(v) => move(player.id, v)} bowls={bowls} />
+          )}
         </div>
       )}
     </Draggable>
@@ -262,8 +257,8 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
         <div>
           <h2 className="text-base font-semibold text-white">Icon player bowls</h2>
           <p className="text-xs text-slate-400">
-            Pick {teams.length * 2} icon players, then drag them so each bowl holds exactly{' '}
-            {teams.length} — one per team.
+            Pick {teams.length * icons} icon player{teams.length * icons === 1 ? '' : 's'}, then
+            drag them so each bowl holds exactly {teams.length} — one per team.
           </p>
         </div>
         <div className="flex gap-2">
@@ -308,31 +303,25 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
           >
             {pool.map((p, i) => renderRow(p, i))}
           </Column>
-          <Column
-            id="bowl1"
-            title="Bowl 1"
-            subtitle={`Needs ${teams.length}`}
-            count={bowl1.length}
-            tone="text-blue-300"
-          >
-            {bowl1.map((p, i) => renderRow(p, i))}
-          </Column>
-          <Column
-            id="bowl2"
-            title="Bowl 2"
-            subtitle={`Needs ${teams.length}`}
-            count={bowl2.length}
-            tone="text-pink-300"
-          >
-            {bowl2.map((p, i) => renderRow(p, i))}
-          </Column>
+          {bowls.map((bowl, i) => (
+            <Column
+              key={bowl}
+              id={bowl}
+              title={`Bowl ${i + 1}`}
+              subtitle={`Needs ${teams.length}`}
+              count={inColumn(bowl).length}
+              tone={i === 0 ? 'text-blue-300' : 'text-pink-300'}
+            >
+              {inColumn(bowl).map((p, x) => renderRow(p, x))}
+            </Column>
+          ))}
         </div>
       </DragDropContext>
 
       <div className="mt-3 space-y-1">
         {validation.ready ? (
           <p className="text-xs text-emerald-400 flex items-center gap-1.5">
-            <Check className="w-3.5 h-3.5" /> Both bowls are ready.
+            <Check className="w-3.5 h-3.5" /> The bowls are ready.
           </p>
         ) : (
           validation.errors.map((e) => (
@@ -349,7 +338,7 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
             <DialogTitle>Choose icon players</DialogTitle>
           </DialogHeader>
           <p className="text-xs text-slate-400">
-            Select {teams.length * 2} players for {teams.length} team
+            Select {teams.length * icons} players for {teams.length} team
             {teams.length === 1 ? '' : 's'} — {teams.length} for each bowl. Tap B1 or B2 on a
             player to put them in a different bowl.
           </p>
@@ -396,21 +385,21 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.stopPropagation()}
                     >
-                      {['bowl1', 'bowl2'].map((b) => (
+                      {bowls.map((b, i) => (
                         <button
                           key={b}
                           type="button"
                           onClick={() => setBowlChoice((c) => ({ ...c, [p.id]: b }))}
-                          title={b === 'bowl1' ? 'Put in Bowl 1' : 'Put in Bowl 2'}
+                          title={`Put in Bowl ${i + 1}`}
                           className={`px-1.5 py-1 rounded text-[10px] font-bold transition-colors ${
                             placed === b
-                              ? b === 'bowl1'
+                              ? i === 0
                                 ? 'bg-blue-500/30 text-blue-200'
                                 : 'bg-pink-500/30 text-pink-200'
                               : 'bg-slate-800 text-slate-400 hover:text-white'
                           }`}
                         >
-                          {b === 'bowl1' ? 'B1' : 'B2'}
+                          B{i + 1}
                         </button>
                       ))}
                     </div>
@@ -426,9 +415,11 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
           {error && <p className="text-xs text-red-400">{error}</p>}
           <DialogFooter className="flex-col-reverse sm:flex-row sm:items-center gap-2">
             <p className="text-[11px] text-slate-400 sm:mr-auto text-center sm:text-left">
-              {selectedIds.length === teams.length * 2
-                ? `Bowl 1 ${preview.counts.bowl1}/${teams.length} · Bowl 2 ${preview.counts.bowl2}/${teams.length}`
-                : `Select exactly ${teams.length * 2} players (${selectedIds.length} chosen).`}
+              {selectedIds.length === teams.length * icons
+                ? bowls
+                    .map((b, i) => `Bowl ${i + 1} ${preview.counts[b]}/${teams.length}`)
+                    .join(' · ')
+                : `Select exactly ${teams.length * icons} players (${selectedIds.length} chosen).`}
             </p>
             <Button variant="ghost" onClick={() => setPicker(false)} className="text-slate-300">
               Cancel
@@ -436,7 +427,7 @@ export default function BowlPlanner({ auction, teams, players, refresh, canEdit 
             <Button
               onClick={saveSelection}
               className="bg-emerald-500 hover:bg-emerald-600"
-              disabled={saving || selectedIds.length !== teams.length * 2}
+              disabled={saving || selectedIds.length !== teams.length * icons}
             >
               {saving && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
               Use {selectedIds.length} players

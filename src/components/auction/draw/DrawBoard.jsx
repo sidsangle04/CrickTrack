@@ -23,8 +23,10 @@ import { Panel, PlayerAvatar, TeamBadge } from '../Shared';
 import SpinWheel from './SpinWheel';
 import AssignPlayerDialog from './AssignPlayerDialog';
 import {
-  BOWLS,
+  activeBowls,
   assignmentsFor,
+  bowlLabel as BOWL_LABEL,
+  iconCountFor,
   inBowl,
   nextDrawTurn,
   orderedTeams,
@@ -32,8 +34,6 @@ import {
   remainingInBowl,
   teamsMissingBowl
 } from '@/lib/auction/draw';
-
-const BOWL_LABEL = { bowl1: 'Bowl 1', bowl2: 'Bowl 2' };
 
 export default function DrawBoard({
   auction,
@@ -62,21 +62,24 @@ export default function DrawBoard({
     setFresh(null);
   }, [playersProp]);
 
+  const icons = iconCountFor(auction);
+  const bowls = activeBowls(icons);
   const order = orderedTeams(teams);
-  const turn = nextDrawTurn({ players, teams });
-  const assignments = assignmentsFor({ players, teams });
+  const turn = nextDrawTurn({ players, teams, icons });
+  const assignments = assignmentsFor({ players, teams, icons });
   const drawn = (bowl) => inBowl(players, bowl).filter((p) => p.sold_to_team_id).length;
+  const freeEverywhere = bowls.flatMap((bowl) => remainingInBowl(players, bowl));
 
-  // Every player still free in either bowl can be handed out by hand.
+  // Every player still free in any bowl can be handed out by hand.
   const manualOptions = manualSlot
-    ? [...remainingInBowl(players, 'bowl1'), ...remainingInBowl(players, 'bowl2')].filter(
+    ? freeEverywhere.filter(
         (p) =>
           !manualSearch.trim() || p.name.toLowerCase().includes(manualSearch.trim().toLowerCase())
       )
     : [];
 
   // A bowl is stuck when it is empty but some team still has no player from it.
-  const stuckBowls = BOWLS.filter(
+  const stuckBowls = bowls.filter(
     (bowl) =>
       teamsMissingBowl({ players, teams, bowl }).length > 0 && remainingInBowl(players, bowl).length === 0
   );
@@ -100,9 +103,9 @@ export default function DrawBoard({
     const after = livePlayers.map((p) =>
       p.id === player.id ? { ...p, sold_to_team_id: team.id } : p
     );
-    const next = nextDrawTurn({ players: after, teams });
+    const next = nextDrawTurn({ players: after, teams, icons });
     await base44.entities.Auction.update(auction.id, {
-      draw_round: next.done ? 3 : next.round,
+      draw_round: next.done ? bowls.length + 1 : next.round,
       draw_index: next.index
     });
     setFresh(await base44.entities.AuctionPlayer.filter({ tournament_id: auction.tournament_id }));
@@ -121,9 +124,11 @@ export default function DrawBoard({
       const livePlayers = await base44.entities.AuctionPlayer.filter({
         tournament_id: auction.tournament_id
       });
-      const liveTurn = nextDrawTurn({ players: livePlayers, teams });
+      const liveTurn = nextDrawTurn({ players: livePlayers, teams, icons });
       if (liveTurn.done || !liveTurn.team) {
-        setError('Every team already has one player from each bowl.');
+        setError(
+          `Every team already has ${icons} icon player${icons === 1 ? '' : 's'}.`
+        );
         refresh && refresh();
         return;
       }
@@ -159,7 +164,7 @@ export default function DrawBoard({
         refresh && refresh();
         return;
       }
-      const bowl = live.bowl === 'bowl2' ? 'bowl2' : 'bowl1';
+      const bowl = bowls.includes(live.bowl) ? live.bowl : bowls[0];
       const alreadyPicked = livePlayers.some(
         (p) => p.category === 'icon' && p.bowl === bowl && p.sold_to_team_id === team.id
       );
@@ -192,7 +197,7 @@ export default function DrawBoard({
         );
       }
       await base44.entities.Auction.update(auction.id, {
-        draw_round: resetTarget === 'bowl1' ? 1 : 2,
+        draw_round: Math.max(1, bowls.indexOf(resetTarget) + 1),
         draw_index: 0
       });
       setFresh(await base44.entities.AuctionPlayer.filter({ tournament_id: auction.tournament_id }));
@@ -283,7 +288,7 @@ export default function DrawBoard({
   return (
     <div className="space-y-4">
       <div className="grid sm:grid-cols-2 gap-3">
-        {['bowl1', 'bowl2'].map((bowl) => (
+        {bowls.map((bowl) => (
           <div
             key={bowl}
             className="rounded-2xl border border-slate-700/70 bg-slate-800/50 p-4"
@@ -338,9 +343,10 @@ export default function DrawBoard({
             <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-emerald-500/20 flex items-center justify-center">
               <Trophy className="w-7 h-7 text-emerald-400" />
             </div>
-            <h3 className="text-base font-semibold text-white mb-1">Both bowls are drawn</h3>
+            <h3 className="text-base font-semibold text-white mb-1">Icon players are drawn</h3>
             <p className="text-sm text-slate-400 mb-4">
-              Every team has one icon player from each bowl. Start the auction when you are ready.
+              Every team has {icons} icon player{icons === 1 ? '' : 's'}. Start the auction when you
+              are ready.
             </p>
             <Button onClick={onStartAuction} className="bg-emerald-500 hover:bg-emerald-600">
               <PlayCircle className="w-4 h-4 mr-2" /> Continue to the auction
@@ -362,7 +368,7 @@ export default function DrawBoard({
             </div>
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
-            {BOWLS.map((bowl) => {
+            {bowls.map((bowl) => {
               const left = remainingInBowl(players, bowl);
               const isTurn = turn.bowl === bowl && left.length > 0;
               return (
@@ -384,8 +390,7 @@ export default function DrawBoard({
               );
             })}
           </div>
-          {[...remainingInBowl(players, 'bowl1'), ...remainingInBowl(players, 'bowl2')].length >
-            0 && (
+          {freeEverywhere.length > 0 && (
             <div className="flex justify-center mt-3">
               <Button
                 variant="ghost"
@@ -439,7 +444,7 @@ export default function DrawBoard({
         }
       >
         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
-          {assignments.map(({ team, bowl1, bowl2 }) => (
+          {assignments.map(({ team, picks }) => (
             <div
               key={team.id}
               className="rounded-xl border border-slate-700/70 bg-slate-900/60 p-3"
@@ -449,13 +454,10 @@ export default function DrawBoard({
                 <TeamBadge team={team} size="sm" />
                 <p className="text-sm font-semibold text-white truncate">{team.name}</p>
               </div>
-              {[
-                { bowl: 'bowl1', player: bowl1 },
-                { bowl: 'bowl2', player: bowl2 }
-              ].map(({ bowl, player }) => (
+              {picks.map(({ bowl, player }) => (
                 <div key={bowl} className="flex items-center gap-2 py-1">
                   <span className="text-[10px] uppercase text-slate-500 w-9 shrink-0">
-                    {bowl === 'bowl1' ? 'B1' : 'B2'}
+                    {(BOWL_LABEL[bowl] || bowl).replace('Bowl ', 'B')}
                   </span>
                   {player ? (
                     <>

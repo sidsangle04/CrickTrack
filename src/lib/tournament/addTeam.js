@@ -22,10 +22,14 @@ export default async function addTournamentTeam({
   existingPlayers = [],
   unsoldPlayers = [],
   newPlayers = [],
+  iconNames = [],
   iconName = ''
 }) {
   const mode = tournament.ground_mode || 'turf';
-  const iconKey = normPlayerName(iconName);
+  // Every squad member named as an icon (older callers may pass a single name).
+  const iconKeys = new Set(
+    (iconNames.length ? iconNames : [iconName]).filter(Boolean).map(normPlayerName)
+  );
 
   const team = await base44.entities.Team.create({
     name: name.trim(),
@@ -106,7 +110,7 @@ export default async function addTournamentTeam({
   const updates = [];
   const creates = [];
   squad.forEach((p, i) => {
-    const isIcon = !!iconKey && normPlayerName(p.name) === iconKey;
+    const isIcon = iconKeys.has(normPlayerName(p.name));
     const sale = {
       player_id: playerIds[i] || '',
       status: 'sold',

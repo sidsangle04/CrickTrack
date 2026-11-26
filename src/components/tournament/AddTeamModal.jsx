@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Check, Loader2 } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,10 +15,12 @@ import { PlayerAvatar, TeamBadge, contrastText } from '@/components/auction/Shar
 import { TEAM_COLOURS } from '@/components/auction/setup/TeamFormModal';
 import SquadBuilder from './SquadBuilder';
 import addTournamentTeam from '@/lib/tournament/addTeam';
+import { iconCountFor } from '@/lib/auction/draw';
 
 // Adds a team to a tournament after the auction is done — team details plus a
 // squad picked from unsold players, existing players, new names, or all three.
-// The second step asks who the team's ICON player is.
+// The second step asks which squad members are the ICON players, using the same
+// number the tournament's auction uses.
 export default function AddTeamModal({ open, onOpenChange, tournament, onSaved }) {
   const [step, setStep] = useState('squad');
   const [name, setName] = useState('');
@@ -25,7 +28,8 @@ export default function AddTeamModal({ open, onOpenChange, tournament, onSaved }
   const [selected, setSelected] = useState([]);
   const [pickedUnsold, setPickedUnsold] = useState([]);
   const [newPlayers, setNewPlayers] = useState([]);
-  const [iconName, setIconName] = useState('');
+  const [iconNames, setIconNames] = useState([]);
+  const [iconsNeeded, setIconsNeeded] = useState(2);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -37,9 +41,17 @@ export default function AddTeamModal({ open, onOpenChange, tournament, onSaved }
     setSelected([]);
     setPickedUnsold([]);
     setNewPlayers([]);
-    setIconName('');
+    setIconNames([]);
+    setIconsNeeded(2);
     setError('');
-  }, [open]);
+    if (!tournament?.id) return;
+    base44.entities.Auction.filter({ tournament_id: tournament.id }, '-created_date', 1)
+      .then((list) => {
+        const auction = list[0];
+        setIconsNeeded(auction ? iconCountFor(auction) : 2);
+      })
+      .catch(() => setIconsNeeded(2));
+  }, [open, tournament?.id]);
 
   const squadNames = [
     ...selected.map((p) => p.name),
@@ -47,9 +59,22 @@ export default function AddTeamModal({ open, onOpenChange, tournament, onSaved }
     ...newPlayers.filter((p) => (p.name || '').trim()).map((p) => p.name.trim())
   ].filter(Boolean);
 
+  // Never ask for more icons than the squad actually holds.
+  const iconTarget = Math.min(iconsNeeded, squadNames.length);
+
+  const toggleIcon = (playerName) => {
+    setIconNames((names) => {
+      if (names.includes(playerName)) return names.filter((n) => n !== playerName);
+      if (names.length >= iconTarget) return names;
+      return [...names, playerName];
+    });
+  };
+
   const save = async () => {
-    if (squadNames.length && !iconName) {
-      setError('Pick the ICON player.');
+    if (iconTarget && iconNames.length !== iconTarget) {
+      setError(
+        `Pick ${iconTarget} ICON player${iconTarget === 1 ? '' : 's'} (${iconNames.length} chosen).`
+      );
       return;
     }
     setSaving(true);
@@ -62,7 +87,7 @@ export default function AddTeamModal({ open, onOpenChange, tournament, onSaved }
         existingPlayers: selected,
         unsoldPlayers: pickedUnsold,
         newPlayers,
-        iconName
+        iconNames
       });
       onSaved && onSaved(result);
       onOpenChange(false);
@@ -79,8 +104,8 @@ export default function AddTeamModal({ open, onOpenChange, tournament, onSaved }
       return;
     }
     setError('');
-    // No squad means there is no one to pick as ICON.
-    if (!squadNames.length) {
+    // No squad, or a tournament with no icons, means there is nothing to pick.
+    if (!squadNames.length || !iconTarget) {
       save();
       return;
     }
@@ -91,7 +116,11 @@ export default function AddTeamModal({ open, onOpenChange, tournament, onSaved }
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-slate-900 border-slate-700 text-white max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{step === 'icon' ? 'Who is the ICON player?' : 'Add a team'}</DialogTitle>
+          <DialogTitle>
+            {step === 'icon'
+              ? `Who are the ICON players? (${iconTarget})`
+              : 'Add a team'}
+          </DialogTitle>
         </DialogHeader>
 
         {step === 'icon' ? (
@@ -106,33 +135,41 @@ export default function AddTeamModal({ open, onOpenChange, tournament, onSaved }
               </div>
             </div>
 
+            <p className="text-xs text-slate-400">
+              Pick {iconTarget} player{iconTarget === 1 ? '' : 's'} from the squad —{' '}
+              {iconNames.length} chosen.
+            </p>
+
             <div className="rounded-lg border border-slate-700/60 divide-y divide-slate-700/40 max-h-72 overflow-y-auto">
-              {squadNames.map((playerName) => (
-                <button
-                  key={playerName}
-                  type="button"
-                  onClick={() => setIconName(playerName)}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-800/60 transition-colors"
-                >
-                  <span
-                    className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                      iconName === playerName
-                        ? 'bg-purple-500 border-purple-500 text-slate-900'
-                        : 'border-slate-600'
-                    }`}
+              {squadNames.map((playerName) => {
+                const picked = iconNames.includes(playerName);
+                return (
+                  <button
+                    key={playerName}
+                    type="button"
+                    onClick={() => toggleIcon(playerName)}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-800/60 transition-colors"
                   >
-                    {iconName === playerName && <Check className="w-3 h-3" />}
-                  </span>
-                  <PlayerAvatar player={{ name: playerName }} size="sm" className="!w-7 !h-7 !rounded-md" />
-                  <span className="text-xs text-white truncate flex-1">{playerName}</span>
-                  {iconName === playerName && (
-                    <span className="text-[9px] uppercase text-purple-300">icon</span>
-                  )}
-                </button>
-              ))}
+                    <span
+                      className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                        picked ? 'bg-purple-500 border-purple-500 text-slate-900' : 'border-slate-600'
+                      }`}
+                    >
+                      {picked && <Check className="w-3 h-3" />}
+                    </span>
+                    <PlayerAvatar
+                      player={{ name: playerName }}
+                      size="sm"
+                      className="!w-7 !h-7 !rounded-md"
+                    />
+                    <span className="text-xs text-white truncate flex-1">{playerName}</span>
+                    {picked && <span className="text-[9px] uppercase text-purple-300">icon</span>}
+                  </button>
+                );
+              })}
             </div>
             <p className="text-[10px] text-slate-500">
-              The ICON player is shown in the squad like the auction's icon picks.
+              ICON players are shown in the squad like the auction's icon picks.
             </p>
 
             {error && <p className="text-xs text-red-400">{error}</p>}
@@ -219,7 +256,7 @@ export default function AddTeamModal({ open, onOpenChange, tournament, onSaved }
               </Button>
               <Button onClick={next} disabled={saving} className="bg-emerald-500 hover:bg-emerald-600">
                 {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {squadNames.length ? 'Continue' : 'Add team'}
+                {squadNames.length && iconTarget ? 'Continue' : 'Add team'}
               </Button>
             </>
           )}
