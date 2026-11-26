@@ -129,6 +129,16 @@ export default function AuctionResults({ teams, players, settings, tournament })
         ...sale
       });
     }
+
+    // A second unsold record for the same person is stale now they are in a
+    // squad — clear it so they cannot reappear on the unsold list.
+    const key = normPlayerName(name);
+    const stale = players
+      .filter((p) => p.id !== unsold?.id && !p.sold_to_team_id && normPlayerName(p.name) === key)
+      .map((p) => p.id);
+    if (stale.length) {
+      await base44.entities.AuctionPlayer.deleteMany({ id: { $in: stale } });
+    }
     queryClient.invalidateQueries({ queryKey: ['auction', tournament?.id] });
     queryClient.invalidateQueries({ queryKey: ['auction-players-extra'] });
     queryClient.invalidateQueries({ queryKey: ['players'] });

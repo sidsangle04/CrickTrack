@@ -2,6 +2,7 @@
 // auction is closed, so the organiser always has a document to share.
 import { jsPDF } from 'jspdf';
 import { teamFinance } from './squad';
+import { normPlayerName } from '@/lib/playerLookup';
 
 const COLORS = {
   page: [15, 23, 42],
@@ -91,7 +92,18 @@ export function downloadAuctionSheet({ tournament, auction, teams = [], players 
   };
 
   const sold = players.filter((p) => p.status === 'sold');
-  const unsold = players.filter((p) => p.status === 'unsold');
+  // Anyone who ended up in a squad — including a backup added after the auction —
+  // is never listed as unsold, even if an old unsold record for them lingers.
+  const squadNames = new Set(
+    players.filter((p) => p.sold_to_team_id).map((p) => normPlayerName(p.name))
+  );
+  const unsold = players.filter(
+    (p) =>
+      p.status === 'unsold' &&
+      !p.sold_to_team_id &&
+      !p.is_extra &&
+      !squadNames.has(normPlayerName(p.name))
+  );
   const target = Number(settings.required_squad_size) || 8;
   const purse = Number(settings.purse) || 2000;
   const spend = sold
