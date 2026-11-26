@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Check, Loader2 } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Check, Loader2, Upload, X } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,8 @@ export default function AddTeamModal({ open, onOpenChange, tournament, onSaved }
   const [step, setStep] = useState('squad');
   const [name, setName] = useState('');
   const [color, setColor] = useState('#10b981');
+  const [logo, setLogo] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [selected, setSelected] = useState([]);
   const [pickedUnsold, setPickedUnsold] = useState([]);
   const [newPlayers, setNewPlayers] = useState([]);
@@ -32,12 +34,15 @@ export default function AddTeamModal({ open, onOpenChange, tournament, onSaved }
   const [iconsNeeded, setIconsNeeded] = useState(2);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const fileRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
     setStep('squad');
     setName('');
     setColor('#10b981');
+    setLogo('');
+    setUploading(false);
     setSelected([]);
     setPickedUnsold([]);
     setNewPlayers([]);
@@ -70,6 +75,17 @@ export default function AddTeamModal({ open, onOpenChange, tournament, onSaved }
     });
   };
 
+  const uploadLogo = async (file) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
+      setLogo(file_url);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const save = async () => {
     if (iconTarget && iconNames.length !== iconTarget) {
       setError(
@@ -84,6 +100,7 @@ export default function AddTeamModal({ open, onOpenChange, tournament, onSaved }
         tournament,
         name,
         color,
+        logoUrl: logo,
         existingPlayers: selected,
         unsoldPlayers: pickedUnsold,
         newPlayers,
@@ -126,7 +143,7 @@ export default function AddTeamModal({ open, onOpenChange, tournament, onSaved }
         {step === 'icon' ? (
           <div className="space-y-4 py-2">
             <div className="flex items-center gap-3">
-              <TeamBadge team={{ name, color }} size="lg" />
+              <TeamBadge team={{ name, color, logo_url: logo }} size="lg" />
               <div className="min-w-0">
                 <p className="text-sm font-medium text-white truncate">{name}</p>
                 <p className="text-xs text-slate-400">
@@ -177,7 +194,7 @@ export default function AddTeamModal({ open, onOpenChange, tournament, onSaved }
         ) : (
           <div className="space-y-4 py-2">
             <div className="flex items-center gap-3">
-              <TeamBadge team={{ name, color }} size="lg" />
+              <TeamBadge team={{ name, color, logo_url: logo }} size="lg" />
               <div className="min-w-0">
                 <p className="text-sm font-medium text-white truncate">
                   {name || 'New team'}
@@ -220,6 +237,42 @@ export default function AddTeamModal({ open, onOpenChange, tournament, onSaved }
                 style={{ backgroundColor: color, color: contrastText(color) }}
               >
                 {color}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-slate-200">Team logo (optional)</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => uploadLogo(e.target.files?.[0])}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800"
+                >
+                  {uploading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4 mr-2" />
+                  )}
+                  {logo ? 'Replace logo' : 'Upload logo'}
+                </Button>
+                {logo && (
+                  <button
+                    type="button"
+                    onClick={() => setLogo('')}
+                    className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-red-400"
+                  >
+                    <X className="w-3.5 h-3.5" /> Remove
+                  </button>
+                )}
               </div>
             </div>
 

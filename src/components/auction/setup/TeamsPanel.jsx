@@ -131,6 +131,7 @@ export default function TeamsPanel({ auction, teams, players, tournament, refres
         onOpenChange={(open) => setModal({ open, team: open ? modal.team : null })}
         team={modal.team}
         tournamentId={auction.tournament_id}
+        mode={tournament?.ground_mode || 'turf'}
         orderIndex={teams.length}
         onSaved={refresh}
       />

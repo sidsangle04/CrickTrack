@@ -1,15 +1,7 @@
 import { base44 } from '@/api/base44Client';
 import { generateTournamentFixtures } from '@/lib/bracket';
 import { normPlayerName } from '@/lib/playerLookup';
-
-const shortNameFor = (name) =>
-  (name || '')
-    .trim()
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 3)
-    .toUpperCase();
+import { shortNameFor } from '@/lib/tournament/teamRecord';
 
 // A team added by hand after (or instead of) the auction. It lives inside this
 // tournament only, and its squad is built from unsold auction players, players
@@ -19,6 +11,7 @@ export default async function addTournamentTeam({
   tournament,
   name,
   color,
+  logoUrl = '',
   existingPlayers = [],
   unsoldPlayers = [],
   newPlayers = [],
@@ -34,6 +27,7 @@ export default async function addTournamentTeam({
   const team = await base44.entities.Team.create({
     name: name.trim(),
     short_name: shortNameFor(name) || 'TEAM',
+    logo_url: logoUrl || '',
     primary_color: color || '#10b981',
     ground_mode: mode,
     tournament_id: tournament.id
@@ -89,6 +83,7 @@ export default async function addTournamentTeam({
     tournament_id: tournament.id,
     team_id: team.id,
     name: name.trim(),
+    logo_url: logoUrl || '',
     color: color || '#10b981',
     order_index: auctionTeams.length,
     post_auction: true

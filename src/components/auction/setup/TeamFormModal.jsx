@@ -12,6 +12,7 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import { TeamBadge, contrastText } from '../Shared';
+import { ensureTeamRecord } from '@/lib/tournament/teamRecord';
 
 export const TEAM_COLOURS = [
   { name: 'Red', hex: '#dc2626' },
@@ -31,6 +32,7 @@ export default function TeamFormModal({
   onOpenChange,
   team,
   tournamentId,
+  mode = 'turf',
   orderIndex = 0,
   onSaved
 }) {
@@ -84,10 +86,25 @@ export default function TeamFormModal({
         logo_url: form.logo_url || '',
         owner_name: form.owner_name.trim()
       };
-      if (team) await base44.entities.AuctionTeam.update(team.id, payload);
+      // The tournament's own Team record carries the same name, colour and logo,
+      // so the team appears in the tournament's Teams section straight away.
+      const teamRecordId = await ensureTeamRecord({
+        tournamentId,
+        mode,
+        teamId: team?.team_id || '',
+        name: payload.name,
+        color: payload.color,
+        logoUrl: payload.logo_url
+      });
+      if (team)
+        await base44.entities.AuctionTeam.update(team.id, {
+          ...payload,
+          team_id: teamRecordId
+        });
       else
         await base44.entities.AuctionTeam.create({
           ...payload,
+          team_id: teamRecordId,
           tournament_id: tournamentId,
           order_index: orderIndex
         });

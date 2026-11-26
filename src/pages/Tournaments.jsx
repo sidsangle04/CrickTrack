@@ -371,6 +371,7 @@ export default function Tournaments() {
             tournament={selected}
             teams={tournamentTeams}
             onAddTeam={() => setShowAddTeam(true)}
+            onTeamUpdated={refreshAfterTeamAdded}
           />
         ) : view === 'stats' ? (
           <TournamentStats

@@ -17,10 +17,25 @@ export default async function promoteAuctionSquads({ tournamentId, auctionTeams,
 
   const teamIdFor = {};
   const pending = [];
+  const sync = [];
 
   auctionTeams.forEach((team) => {
     if (team.team_id && knownIds.has(team.team_id)) {
       teamIdFor[team.id] = team.team_id;
+      // A team edited in the auction keeps its name, colour and logo there, so
+      // the tournament's own record is brought back in step with it.
+      const linked = knownTeams.find((t) => t.id === team.team_id);
+      if (
+        linked &&
+        ((team.logo_url && linked.logo_url !== team.logo_url) ||
+          (team.color && linked.primary_color !== team.color))
+      ) {
+        sync.push({
+          id: linked.id,
+          logo_url: team.logo_url || linked.logo_url || '',
+          primary_color: team.color || linked.primary_color || ''
+        });
+      }
       return;
     }
     const sameName = knownTeams.find(
@@ -55,6 +70,8 @@ export default async function promoteAuctionSquads({ tournamentId, auctionTeams,
     });
     if (relink.length) await base44.entities.AuctionTeam.bulkUpdate(relink);
   }
+
+  if (sync.length) await base44.entities.Team.bulkUpdate(sync);
 
   // Every auction team now has a tournament team — keep the tournament in step.
   const teamIds = auctionTeams.map((team) => teamIdFor[team.id]).filter(Boolean);
