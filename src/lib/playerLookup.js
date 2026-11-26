@@ -1,6 +1,13 @@
 import { base44 } from '@/api/base44Client';
 
-export const normPlayerName = (name) => (name || '').trim().toLowerCase();
+// A bracketed nickname is not a different person: "Nikhil Choughule (Tinku)"
+// and "Nikhil Choughule" match.
+export const normPlayerName = (name) =>
+  (name || '')
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 // Finds an existing player record for a name so the same person is never
 // registered twice. A record already in the team wins, then one that belongs to

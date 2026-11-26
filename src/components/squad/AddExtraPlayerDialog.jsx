@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ROLE_LABELS } from '@/components/auction/Shared';
+import { normPlayerName } from '@/lib/playerLookup';
 
 // Adds a backup player to a finished auction squad. Extras sit outside the
 // squad size and the purse, but they are in the squad for tournament matches.
@@ -62,27 +63,73 @@ export default function AddExtraPlayerDialog({
   const matches = useMemo(() => {
     const q = name.trim().toLowerCase();
     const ids = new Set(excludeIds);
-    const names = new Set(excludeNames.map((n) => (n || '').trim().toLowerCase()));
+    const names = new Set(excludeNames.map(normPlayerName));
+
+    const rows = Array.isArray(auctionPlayers) ? auctionPlayers : [];
 
     // Already picked up in this auction (any team) — not an extra.
-    (Array.isArray(auctionPlayers) ? auctionPlayers : [])
+    rows
       .filter((p) => p.status === 'sold' || p.sold_to_team_id)
-      .forEach((p) => names.add((p.name || '').trim().toLowerCase()));
+      .forEach((p) => names.add(normPlayerName(p.name)));
 
-    // The same person can exist as several records — show one row per name,
-    // preferring the record that already carries a photo.
-    const byName = new Map();
+    const candidates = [];
+
+    // Unsold auction players: picking one turns that record into this extra, so
+    // they stop being listed as unsold.
+    rows
+      .filter((p) => p.name && !p.is_extra && !p.sold_to_team_id && p.status !== 'sold')
+      .forEach((p) =>
+        candidates.push({
+          id: `auction:${p.id}`,
+          name: p.name,
+          role: p.primary_role || 'batsman',
+          photo_url: p.photo_url || '',
+          playerId: p.player_id || '',
+          auctionPlayerId: p.id
+        })
+      );
+
     (Array.isArray(players) ? players : [])
       .filter((p) => p.name && p.id)
       .filter((p) => (mode ? (p.ground_mode || 'turf') === mode : true))
-      .filter((p) => !ids.has(p.id))
       .filter((p) => !p.team_id)
-      .filter((p) => !names.has(p.name.trim().toLowerCase()))
-      .filter((p) => !q || p.name.toLowerCase().includes(q))
-      .forEach((p) => {
-        const key = p.name.trim().toLowerCase();
+      .forEach((p) =>
+        candidates.push({
+          id: p.id,
+          name: p.name,
+          role: p.role || 'batsman',
+          photo_url: p.photo_url || '',
+          playerId: p.id,
+          auctionPlayerId: ''
+        })
+      );
+
+    // One row per person, even when the name exists in several records.
+    const byName = new Map();
+    candidates
+      .filter((c) => !ids.has(c.playerId))
+      .filter((c) => !names.has(normPlayerName(c.name)))
+      .filter((c) => !q || c.name.toLowerCase().includes(q))
+      .forEach((c) => {
+        const key = normPlayerName(c.name);
         const prev = byName.get(key);
-        if (!prev || (!prev.photo_url && p.photo_url)) byName.set(key, p);
+        if (!prev) {
+          byName.set(key, c);
+        } else if (prev.auctionPlayerId && !c.auctionPlayerId) {
+          byName.set(key, {
+            ...prev,
+            playerId: prev.playerId || c.playerId,
+            photo_url: prev.photo_url || c.photo_url
+          });
+        } else if (!prev.auctionPlayerId && c.auctionPlayerId) {
+          byName.set(key, {
+            ...c,
+            playerId: c.playerId || prev.playerId,
+            photo_url: c.photo_url || prev.photo_url
+          });
+        } else if (!prev.photo_url && c.photo_url) {
+          byName.set(key, { ...prev, photo_url: c.photo_url });
+        }
       });
 
     return [...byName.values()]
@@ -112,7 +159,8 @@ export default function AddExtraPlayerDialog({
       await onConfirm({
         name: name.trim(),
         role,
-        playerId: picked?.id || '',
+        playerId: picked?.playerId || '',
+        auctionPlayerId: picked?.auctionPlayerId || '',
         photo_url: picked?.photo_url || ''
       });
       setName('');

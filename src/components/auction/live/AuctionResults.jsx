@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { findPlayerByName } from '@/lib/playerLookup';
+import { findPlayerByName, normPlayerName } from '@/lib/playerLookup';
 import { ArrowLeftRight, Plus, Trophy, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AddTeamModal from '@/components/tournament/AddTeamModal';
@@ -54,7 +54,7 @@ export default function AuctionResults({ teams, players, settings, tournament })
     queryClient.invalidateQueries({ queryKey: ['team-players'] });
   };
 
-  const addExtraPlayer = async ({ name, role, playerId, photo_url }) => {
+  const addExtraPlayer = async ({ name, role, playerId, auctionPlayerId, photo_url }) => {
     const { team } = addingExtra;
     let teamId = team.team_id || '';
     if (!teamId && tournament?.id) {
@@ -97,20 +97,40 @@ export default function AuctionResults({ teams, players, settings, tournament })
       linkedId = player.id;
       photo = photo || player.photo_url || '';
     }
-    await base44.entities.AuctionPlayer.create({
-      tournament_id: tournament?.id || '',
-      name,
+    // An unsold record for this person becomes the extra's record, so they stop
+    // appearing as unsold anywhere (team sheets, PDFs, lists).
+    const unsold = auctionPlayerId
+      ? players.find((p) => p.id === auctionPlayerId)
+      : players.find(
+          (p) =>
+            !p.sold_to_team_id &&
+            !p.is_extra &&
+            normPlayerName(p.name) === normPlayerName(name)
+        );
+
+    const sale = {
       player_id: linkedId,
-      photo_url: photo,
-      primary_role: role,
-      category: 'gold',
-      bowl: 'none',
       is_extra: true,
       status: 'sold',
       sold_to_team_id: team.id,
       sold_price: 0
-    });
+    };
+
+    if (unsold) {
+      await base44.entities.AuctionPlayer.update(unsold.id, sale);
+    } else {
+      await base44.entities.AuctionPlayer.create({
+        tournament_id: tournament?.id || '',
+        name,
+        photo_url: photo,
+        primary_role: role,
+        category: 'gold',
+        bowl: 'none',
+        ...sale
+      });
+    }
     queryClient.invalidateQueries({ queryKey: ['auction', tournament?.id] });
+    queryClient.invalidateQueries({ queryKey: ['auction-players-extra'] });
     queryClient.invalidateQueries({ queryKey: ['players'] });
     queryClient.invalidateQueries({ queryKey: ['team-players'] });
   };
