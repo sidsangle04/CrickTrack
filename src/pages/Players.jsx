@@ -57,9 +57,9 @@ export default function Players() {
     () => teams.filter(t => (t.ground_mode || 'turf') === mode && !t.tournament_id),
     [teams, mode]
   );
-  // Auction players stay with their tournament; their records still feed the stats.
+  // Tournament and auction squads are real player profiles too — list them here.
   const modePlayers = useMemo(
-    () => allPlayers.filter(p => (p.ground_mode || 'turf') === mode && !p.tournament_id),
+    () => allPlayers.filter(p => (p.ground_mode || 'turf') === mode),
     [allPlayers, mode]
   );
   const teamsMap = useMemo(() => teams.reduce((a, t) => ({ ...a, [t.id]: t }), {}), [teams]);
