@@ -18,16 +18,27 @@ export default function TournamentTeams({ tournament, teams, onAddTeam, onTeamUp
     queryFn: () => base44.entities.Player.list()
   });
 
+  // Every player of a team counts, backup (extra) players included — they are
+  // part of the squad and can be picked for this tournament's matches.
   const counts = useMemo(
     () =>
       players
         .filter((p) => (p.ground_mode || 'turf') === (tournament.ground_mode || 'turf'))
         .reduce((a, p) => {
-          a[p.team_id] = (a[p.team_id] || 0) + 1;
+          const row = a[p.team_id] || { total: 0, extras: 0 };
+          row.total += 1;
+          if (p.is_extra) row.extras += 1;
+          a[p.team_id] = row;
           return a;
         }, {}),
     [players, tournament.ground_mode]
   );
+
+  const squadLine = (teamId) => {
+    const row = counts[teamId] || { total: 0, extras: 0 };
+    const squad = row.total - row.extras;
+    return row.extras ? `${squad} players + ${row.extras} extra` : `${squad} players`;
+  };
 
   return (
     <div>
@@ -68,9 +79,7 @@ export default function TournamentTeams({ tournament, teams, onAddTeam, onTeamUp
                 />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-white truncate">{team.name}</p>
-                  <p className="text-[11px] text-slate-400">
-                    {counts[team.id] || 0} players
-                  </p>
+                  <p className="text-[11px] text-slate-400">{squadLine(team.id)}</p>
                 </div>
               </button>
               <button

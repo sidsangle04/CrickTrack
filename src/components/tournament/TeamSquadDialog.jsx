@@ -29,6 +29,12 @@ export default function TeamSquadDialog({ team, tournament, open, onOpenChange }
     enabled: !!open && !!team?.id
   });
 
+  // Backup players sit in the same squad as everyone else — they are simply
+  // listed after the signed squad so the two groups stay easy to read.
+  const signed = players.filter((p) => !p.is_extra);
+  const extras = players.filter((p) => p.is_extra);
+  const ordered = [...signed, ...extras];
+
   const { data: freePlayers = [] } = useQuery({
     queryKey: ['free-players', mode],
     queryFn: () => base44.entities.Player.list('-created_date', 500),
@@ -106,13 +112,19 @@ export default function TeamSquadDialog({ team, tournament, open, onOpenChange }
             </DialogTitle>
           </DialogHeader>
 
-          <Button
-            onClick={() => setPickerOpen(true)}
-            size="sm"
-            className="bg-emerald-500 hover:bg-emerald-600 self-start"
-          >
-            <UserPlus className="w-4 h-4 mr-1.5" /> Add players
-          </Button>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <Button
+              onClick={() => setPickerOpen(true)}
+              size="sm"
+              className="bg-emerald-500 hover:bg-emerald-600 self-start"
+            >
+              <UserPlus className="w-4 h-4 mr-1.5" /> Add players
+            </Button>
+            <span className="text-[11px] text-slate-400">
+              {signed.length} in squad
+              {extras.length ? ` · ${extras.length} extra` : ''}
+            </span>
+          </div>
 
           {isLoading ? (
             <div className="flex justify-center py-8">
@@ -124,11 +136,16 @@ export default function TeamSquadDialog({ team, tournament, open, onOpenChange }
             </p>
           ) : (
             <div className="divide-y divide-slate-700/40">
-              {players.map((p, i) => (
+              {ordered.map((p, i) => (
                 <div key={p.id} className="flex items-center gap-3 py-2">
                   <span className="text-[11px] text-slate-500 w-5 tabular-nums">{i + 1}</span>
                   <PlayerAvatar player={p} size="sm" className="!w-8 !h-8" />
-                  <span className="text-sm text-white truncate flex-1">{p.name}</span>
+                  <span className="text-sm text-white truncate flex-1">
+                    {p.name}
+                    {p.is_extra && (
+                      <span className="text-[9px] uppercase text-sky-300 ml-1">extra</span>
+                    )}
+                  </span>
                   <span className="text-[11px] text-slate-400 shrink-0">
                     {ROLE_LABELS[p.role] || 'Player'}
                   </span>

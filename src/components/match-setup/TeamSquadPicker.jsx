@@ -6,20 +6,28 @@ import { Button } from '@/components/ui/button';
 export default function TeamSquadPicker({ name, players = [], selected = [], limit, onToggle, onChange }) {
   const cap = Math.min(players.length, limit);
   const allChosen = selected.length >= cap && cap > 0;
+  // Backup (extra) players are in the squad like everyone else — they simply
+  // sit at the bottom of the list, so filling the XI takes the signed squad first.
+  const ordered = [...players.filter((p) => !p.is_extra), ...players.filter((p) => p.is_extra)];
 
   return (
     <div>
-      <h3 className="font-medium text-white mb-3 flex items-center justify-between">
+      <h3 className="font-medium text-white mb-1 flex items-center justify-between">
         {name}
         <span className="text-sm text-slate-400">
-          {selected.length}/{limit}
+          {selected.length}/{cap}
         </span>
       </h3>
+      <p className="text-[11px] text-slate-400 mb-3">
+        {players.length > cap
+          ? `Squad of ${players.length} — pick ${cap}, the rest stay on the bench.`
+          : `Squad of ${players.length} — pick up to ${cap}.`}
+      </p>
       <div className="space-y-2 max-h-64 overflow-y-auto">
         {players.length === 0 ? (
           <p className="text-sm text-slate-400">No players in this team</p>
         ) : (
-          players.map((p) => {
+          ordered.map((p) => {
             const on = selected.includes(p.id);
             return (
               <button
@@ -53,7 +61,7 @@ export default function TeamSquadPicker({ name, players = [], selected = [], lim
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onChange(allChosen ? [] : players.slice(0, cap).map((p) => p.id))}
+          onClick={() => onChange(allChosen ? [] : ordered.slice(0, cap).map((p) => p.id))}
           className="mt-3 w-full border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-300"
         >
           {allChosen ? 'Deselect All' : 'Select All'}
