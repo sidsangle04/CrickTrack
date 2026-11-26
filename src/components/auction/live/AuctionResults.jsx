@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Plus, Trophy } from 'lucide-react';
+import { ArrowLeftRight, Plus, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AddTeamModal from '@/components/tournament/AddTeamModal';
 import { Panel, PlayerAvatar, TeamBadge } from '../Shared';
 import SoldCardPhotoButton from './SoldCardPhotoButton';
 import SoldCard3D from './SoldCard3D';
 import { teamFinance } from '@/lib/auction/squad';
+import swapSquadPlayer from '@/lib/squadSwap';
+import ReplacePlayerDialog from '@/components/squad/ReplacePlayerDialog';
 
 export default function AuctionResults({ teams, players, settings, tournament }) {
   const queryClient = useQueryClient();
@@ -15,6 +17,8 @@ export default function AuctionResults({ teams, players, settings, tournament })
   // Team added by hand once the auction was over.
   const [showAddTeam, setShowAddTeam] = useState(false);
   const [addedTeam, setAddedTeam] = useState('');
+  // Player being swapped out of a squad after the auction.
+  const [replacing, setReplacing] = useState(null);
 
   const rows = teams.map((team) => ({
     team,
@@ -25,6 +29,26 @@ export default function AuctionResults({ teams, players, settings, tournament })
     .sort((a, b) => (b.sold_price || 0) - (a.sold_price || 0))
     .slice(0, 5);
 
+  const replacePlayer = async (choice) => {
+    const { team, player } = replacing;
+    await swapSquadPlayer({
+      tournamentId: tournament?.id,
+      mode: tournament?.ground_mode || 'turf',
+      team: { id: team.team_id || '', auctionTeamId: team.id },
+      outgoing: {
+        playerId: player.player_id,
+        auctionPlayerId: player.id,
+        sold_price: player.sold_price,
+        category: player.category
+      },
+      incoming: choice
+    });
+    setReplacing(null);
+    queryClient.invalidateQueries({ queryKey: ['auction', tournament?.id] });
+    queryClient.invalidateQueries({ queryKey: ['players'] });
+    queryClient.invalidateQueries({ queryKey: ['team-players'] });
+  };
+
   return (
     <div className="space-y-4">
       <div className="rounded-2xl bg-gradient-to-br from-emerald-600/20 to-slate-900 border border-emerald-500/40 p-5 text-center">
@@ -33,7 +57,9 @@ export default function AuctionResults({ teams, players, settings, tournament })
         <p className="text-sm text-slate-300">
           {teams.length} teams · {players.filter((p) => p.sold_to_team_id).length} players signed
         </p>
-        <p className="text-[11px] text-slate-400 mt-1">Tap any player to open their sold card</p>
+        <p className="text-[11px] text-slate-400 mt-1">
+          Tap any player to open their sold card — use ⇄ to replace them
+        </p>
         {tournament && (
           <Button
             onClick={() => setShowAddTeam(true)}
@@ -101,6 +127,17 @@ export default function AuctionResults({ teams, players, settings, tournament })
                     <span className="text-slate-400 tabular-nums shrink-0 w-16 text-right">
                       {p.category === 'icon' ? 'ICON' : p.sold_price || 0}
                     </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setReplacing({ team, player: p });
+                      }}
+                      title="Replace this player"
+                      className="shrink-0 p-1 rounded text-slate-400 hover:text-emerald-300 hover:bg-slate-700/50"
+                    >
+                      <ArrowLeftRight className="w-3.5 h-3.5" />
+                    </button>
                     <SoldCardPhotoButton sale={sale} />
                   </div>
                 );
@@ -114,6 +151,29 @@ export default function AuctionResults({ teams, players, settings, tournament })
       </div>
 
       {card && <SoldCard3D sale={card} onDone={() => setCard(null)} />}
+
+      <ReplacePlayerDialog
+        open={!!replacing}
+        onOpenChange={(v) => !v && setReplacing(null)}
+        teamName={replacing?.team?.name}
+        outgoing={replacing?.player}
+        candidates={
+          replacing
+            ? players
+                .filter((p) => !p.sold_to_team_id && p.id !== replacing.player.id)
+                .map((p) => ({
+                  key: p.id,
+                  name: p.name,
+                  photo_url: p.photo_url,
+                  role: p.primary_role,
+                  playerId: p.player_id,
+                  auctionPlayerId: p.id,
+                  note: p.status === 'unsold' ? 'Unsold' : 'Free'
+                }))
+            : []
+        }
+        onConfirm={replacePlayer}
+      />
 
       {tournament && (
         <AddTeamModal

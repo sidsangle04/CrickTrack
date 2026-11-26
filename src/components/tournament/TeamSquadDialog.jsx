@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Loader2, UserPlus } from 'lucide-react';
+import { ArrowLeftRight, Loader2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,12 +11,16 @@ import {
 } from '@/components/ui/dialog';
 import { PlayerAvatar, TeamBadge, ROLE_LABELS } from '@/components/auction/Shared';
 import PlayerPicker from '@/components/players/PlayerPicker';
+import ReplacePlayerDialog from '@/components/squad/ReplacePlayerDialog';
+import swapSquadPlayer from '@/lib/squadSwap';
 
 // The players in one tournament team — and the place to pull more in from the
 // Players section.
 export default function TeamSquadDialog({ team, tournament, open, onOpenChange }) {
   const queryClient = useQueryClient();
   const [pickerOpen, setPickerOpen] = useState(false);
+  // The player being swapped out of this squad.
+  const [replacing, setReplacing] = useState(null);
   const mode = tournament?.ground_mode || team?.ground_mode || 'turf';
 
   const { data: players = [], isLoading } = useQuery({
@@ -24,6 +28,45 @@ export default function TeamSquadDialog({ team, tournament, open, onOpenChange }
     queryFn: () => base44.entities.Player.filter({ team_id: team.id }),
     enabled: !!open && !!team?.id
   });
+
+  const { data: freePlayers = [] } = useQuery({
+    queryKey: ['free-players', mode],
+    queryFn: () => base44.entities.Player.list('-created_date', 500),
+    enabled: !!open
+  });
+
+  const candidates = useMemo(
+    () =>
+      freePlayers
+        .filter((p) => (p.ground_mode || 'turf') === mode)
+        .filter((p) => !p.team_id)
+        .filter((p) => !p.tournament_id || p.tournament_id === tournament?.id)
+        .map((p) => ({
+          key: p.id,
+          name: p.name,
+          photo_url: p.photo_url,
+          role: p.role,
+          playerId: p.id,
+          auctionPlayerId: '',
+          note: 'Free'
+        })),
+    [freePlayers, mode, tournament?.id]
+  );
+
+  const replacePlayer = async (choice) => {
+    await swapSquadPlayer({
+      tournamentId: tournament?.id,
+      mode,
+      team: { id: team.id },
+      outgoing: { playerId: replacing.id },
+      incoming: choice
+    });
+    setReplacing(null);
+    queryClient.invalidateQueries({ queryKey: ['team-players', team.id] });
+    queryClient.invalidateQueries({ queryKey: ['free-players', mode] });
+    queryClient.invalidateQueries({ queryKey: ['players'] });
+    queryClient.invalidateQueries({ queryKey: ['auction', tournament?.id] });
+  };
 
   const addPlayers = async (chosen) => {
     if (!chosen.length) return;
@@ -89,6 +132,14 @@ export default function TeamSquadDialog({ team, tournament, open, onOpenChange }
                   <span className="text-[11px] text-slate-400 shrink-0">
                     {ROLE_LABELS[p.role] || 'Player'}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => setReplacing(p)}
+                    title="Replace this player"
+                    className="shrink-0 p-1.5 rounded text-slate-400 hover:text-emerald-300 hover:bg-slate-700/50"
+                  >
+                    <ArrowLeftRight className="w-4 h-4" />
+                  </button>
                 </div>
               ))}
             </div>
@@ -104,6 +155,15 @@ export default function TeamSquadDialog({ team, tournament, open, onOpenChange }
         excludeIds={players.map((p) => p.id)}
         title={`Add players to ${team?.name || 'this team'}`}
         onConfirm={addPlayers}
+      />
+
+      <ReplacePlayerDialog
+        open={!!replacing}
+        onOpenChange={(v) => !v && setReplacing(null)}
+        teamName={team?.name}
+        outgoing={replacing}
+        candidates={candidates}
+        onConfirm={replacePlayer}
       />
     </>
   );
