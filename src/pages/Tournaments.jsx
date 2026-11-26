@@ -564,10 +564,18 @@ export default function Tournaments() {
           {modeTournaments.map((t) => {
             const champ = teamsMap[t.champion_team_id];
             return (
-              <button
+              <div
                 key={t.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => openTournament(t.id)}
-                className="text-left p-5 rounded-2xl bg-slate-800/50 border border-slate-700/50 hover:border-emerald-500/50 transition-all"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openTournament(t.id);
+                  }
+                }}
+                className="text-left p-5 rounded-2xl bg-slate-800/50 border border-slate-700/50 hover:border-emerald-500/50 transition-all cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-3">
                   <span
@@ -585,9 +593,21 @@ export default function Tournaments() {
                       ? 'In Progress'
                       : 'Setup'}
                   </span>
-                  {t.status === 'completed' && champ && (
-                    <Crown className="w-4 h-4 text-amber-400" />
-                  )}
+                  <div className="flex items-center gap-1">
+                    {t.status === 'completed' && champ && (
+                      <Crown className="w-4 h-4 text-amber-400" />
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteTournament(t.id);
+                      }}
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-400/10"
+                      title="Delete tournament"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
                 <h3 className="font-semibold text-white mb-1">{t.name}</h3>
                 <p className="text-sm text-slate-400">
@@ -604,7 +624,7 @@ export default function Tournaments() {
                 {champ && (
                   <p className="text-sm text-amber-400 mt-2">🏆 {champ.name}</p>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>

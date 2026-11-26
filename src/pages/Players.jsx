@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
-import { Search, Loader2, Users, ChevronRight, ArrowLeftRight, Plus, Pencil } from 'lucide-react';
+import { Search, Loader2, Users, ChevronRight, ArrowLeftRight, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useGroundShape } from '@/lib/GroundShapeContext';
 import PlayerFormModal from '@/components/players/PlayerFormModal';
@@ -20,6 +20,7 @@ const ROLE_LABEL = { batsman: 'Batsman', bowler: 'Bowler', all_rounder: 'All-Rou
 
 export default function Players() {
   const { mode } = useGroundShape();
+  const queryClient = useQueryClient();
   const modeLabel = mode === 'circular' ? 'Standard' : 'TURF';
   const [search, setSearch] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
@@ -71,6 +72,13 @@ export default function Players() {
     bowlerInnings.filter(b => modeMatchIds.has(b.match_id)).forEach(b => { ensure(b.player_id).wickets += b.wickets || 0; });
     return m;
   }, [batterInnings, bowlerInnings, modeMatchIds]);
+
+  const handleDeletePlayer = async (player) => {
+    if (!window.confirm(`Delete ${player.name}? Their past scorecards stay as they are.`)) return;
+    await base44.entities.Player.delete(player.id);
+    queryClient.invalidateQueries({ queryKey: ['all-players-analytics'] });
+    queryClient.invalidateQueries({ queryKey: ['free-players'] });
+  };
 
   const filtered = modePlayers.filter(p => {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
@@ -206,6 +214,17 @@ export default function Players() {
                   title="Edit player details or photo"
                 >
                   <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDeletePlayer(p);
+                  }}
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-400/10 transition-colors flex-shrink-0"
+                  title="Delete player"
+                >
+                  <Trash2 className="w-4 h-4" />
                 </button>
                 <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-emerald-400 transition-colors flex-shrink-0" />
               </Link>
