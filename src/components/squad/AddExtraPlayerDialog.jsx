@@ -53,12 +53,23 @@ export default function AddExtraPlayerDialog({
     const q = name.trim().toLowerCase();
     const ids = new Set(excludeIds);
     const names = new Set(excludeNames.map((n) => (n || '').trim().toLowerCase()));
-    return (Array.isArray(players) ? players : [])
+
+    // The same person can exist as several records — show one row per name,
+    // preferring the record that already carries a photo.
+    const byName = new Map();
+    (Array.isArray(players) ? players : [])
       .filter((p) => p.name && p.id)
       .filter((p) => (mode ? (p.ground_mode || 'turf') === mode : true))
       .filter((p) => !ids.has(p.id))
       .filter((p) => !names.has(p.name.trim().toLowerCase()))
       .filter((p) => !q || p.name.toLowerCase().includes(q))
+      .forEach((p) => {
+        const key = p.name.trim().toLowerCase();
+        const prev = byName.get(key);
+        if (!prev || (!prev.photo_url && p.photo_url)) byName.set(key, p);
+      });
+
+    return [...byName.values()]
       .sort((a, b) => {
         const ap = q && a.name.toLowerCase().startsWith(q) ? 0 : 1;
         const bp = q && b.name.toLowerCase().startsWith(q) ? 0 : 1;
