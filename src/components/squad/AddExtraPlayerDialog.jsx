@@ -24,6 +24,7 @@ export default function AddExtraPlayerDialog({
   onOpenChange,
   teamName,
   mode,
+  tournamentId,
   excludeIds = [],
   excludeNames = [],
   onConfirm
@@ -40,6 +41,15 @@ export default function AddExtraPlayerDialog({
     enabled: open
   });
 
+  // Who was sold in this tournament — they are already in a squad, so they are
+  // never offered as an extra.
+  const { data: auctionPlayers = [] } = useQuery({
+    queryKey: ['auction-players-extra', tournamentId],
+    queryFn: () => base44.entities.AuctionPlayer.filter({ tournament_id: tournamentId }),
+    staleTime: 30000,
+    enabled: open && !!tournamentId
+  });
+
   // Fresh form every time the dialog opens for a different team.
   useEffect(() => {
     if (!open) {
@@ -54,6 +64,11 @@ export default function AddExtraPlayerDialog({
     const ids = new Set(excludeIds);
     const names = new Set(excludeNames.map((n) => (n || '').trim().toLowerCase()));
 
+    // Already picked up in this auction (any team) — not an extra.
+    (Array.isArray(auctionPlayers) ? auctionPlayers : [])
+      .filter((p) => p.status === 'sold' || p.sold_to_team_id)
+      .forEach((p) => names.add((p.name || '').trim().toLowerCase()));
+
     // The same person can exist as several records — show one row per name,
     // preferring the record that already carries a photo.
     const byName = new Map();
@@ -61,6 +76,7 @@ export default function AddExtraPlayerDialog({
       .filter((p) => p.name && p.id)
       .filter((p) => (mode ? (p.ground_mode || 'turf') === mode : true))
       .filter((p) => !ids.has(p.id))
+      .filter((p) => !p.team_id)
       .filter((p) => !names.has(p.name.trim().toLowerCase()))
       .filter((p) => !q || p.name.toLowerCase().includes(q))
       .forEach((p) => {
@@ -76,7 +92,7 @@ export default function AddExtraPlayerDialog({
         return ap - bp || a.name.localeCompare(b.name);
       })
       .slice(0, 40);
-  }, [players, name, mode, excludeIds, excludeNames]);
+  }, [players, auctionPlayers, name, mode, excludeIds, excludeNames]);
 
   const pick = (player) => {
     if (picked?.id === player.id) {
@@ -141,14 +157,14 @@ export default function AddExtraPlayerDialog({
             <p className="text-[11px] text-slate-500 mt-1">
               {picked
                 ? 'Existing profile selected — their record is reused.'
-                : 'Pick someone already on the Players page, or type a new name to create their profile.'}
+                : 'Only unsold players and players in no squad are listed — or type a new name.'}
             </p>
           </div>
 
           <div className="rounded-xl border border-slate-700 bg-slate-950/60 overflow-hidden">
             <div className="px-3 py-1.5 border-b border-slate-700/60 flex items-center justify-between">
               <span className="text-[10px] uppercase tracking-wide text-slate-400">
-                Players
+                Unsold or new
               </span>
               <span className="text-[10px] text-slate-500">{matches.length}</span>
             </div>

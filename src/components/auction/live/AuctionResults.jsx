@@ -263,6 +263,7 @@ export default function AuctionResults({ teams, players, settings, tournament })
         onOpenChange={(v) => !v && setAddingExtra(null)}
         teamName={addingExtra?.team?.name}
         mode={tournament?.ground_mode || 'turf'}
+        tournamentId={tournament?.id}
         excludeIds={extraSquad.map((p) => p.player_id).filter(Boolean)}
         excludeNames={extraSquad.map((p) => p.name).filter(Boolean)}
         onConfirm={addExtraPlayer}
