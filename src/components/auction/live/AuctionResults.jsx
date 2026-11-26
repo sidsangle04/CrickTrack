@@ -71,8 +71,14 @@ export default function AuctionResults({ teams, players, settings, tournament })
     let linkedId = playerId || '';
     let photo = photo_url || '';
     if (!linkedId) {
-      // Same person already registered? Reuse that profile, never copy it.
-      const existing = await findPlayerByName({ name, mode, teamId });
+      // Same person already in THIS tournament? Reuse that profile. A profile
+      // from another tournament is left alone — its squad there stays intact.
+      const existing = await findPlayerByName({
+        name,
+        mode,
+        teamId,
+        tournamentId: tournament?.id
+      });
       if (existing) {
         linkedId = existing.id;
         photo = photo || existing.photo_url || '';
