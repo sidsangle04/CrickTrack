@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeftRight, Plus, Trophy } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
+import { ArrowLeftRight, Plus, Trophy, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AddTeamModal from '@/components/tournament/AddTeamModal';
 import { Panel, PlayerAvatar, TeamBadge } from '../Shared';
@@ -9,6 +10,7 @@ import SoldCard3D from './SoldCard3D';
 import { teamFinance } from '@/lib/auction/squad';
 import swapSquadPlayer from '@/lib/squadSwap';
 import ReplacePlayerDialog from '@/components/squad/ReplacePlayerDialog';
+import AddExtraPlayerDialog from '@/components/squad/AddExtraPlayerDialog';
 
 export default function AuctionResults({ teams, players, settings, tournament }) {
   const queryClient = useQueryClient();
@@ -19,13 +21,15 @@ export default function AuctionResults({ teams, players, settings, tournament })
   const [addedTeam, setAddedTeam] = useState('');
   // Player being swapped out of a squad after the auction.
   const [replacing, setReplacing] = useState(null);
+  // Team taking on a backup player — no squad slot, no purse.
+  const [addingExtra, setAddingExtra] = useState(null);
 
   const rows = teams.map((team) => ({
     team,
     finance: teamFinance({ teamId: team.id, players, settings })
   }));
   const topBuys = players
-    .filter((p) => p.status === 'sold' && p.category !== 'icon')
+    .filter((p) => p.status === 'sold' && p.category !== 'icon' && !p.is_extra)
     .sort((a, b) => (b.sold_price || 0) - (a.sold_price || 0))
     .slice(0, 5);
 
@@ -49,16 +53,54 @@ export default function AuctionResults({ teams, players, settings, tournament })
     queryClient.invalidateQueries({ queryKey: ['team-players'] });
   };
 
+  const addExtraPlayer = async ({ name, role }) => {
+    const { team } = addingExtra;
+    let teamId = team.team_id || '';
+    if (!teamId && tournament?.id) {
+      const rows = await base44.entities.Team.filter({
+        tournament_id: tournament.id,
+        name: team.name
+      });
+      teamId = rows[0]?.id || '';
+    }
+    if (!teamId) return;
+
+    const player = await base44.entities.Player.create({
+      name,
+      role,
+      team_id: teamId,
+      ground_mode: tournament?.ground_mode || 'turf',
+      tournament_id: tournament?.id || '',
+      is_extra: true
+    });
+    await base44.entities.AuctionPlayer.create({
+      tournament_id: tournament?.id || '',
+      name,
+      player_id: player.id,
+      primary_role: role,
+      category: 'gold',
+      bowl: 'none',
+      is_extra: true,
+      status: 'sold',
+      sold_to_team_id: team.id,
+      sold_price: 0
+    });
+    queryClient.invalidateQueries({ queryKey: ['auction', tournament?.id] });
+    queryClient.invalidateQueries({ queryKey: ['players'] });
+    queryClient.invalidateQueries({ queryKey: ['team-players'] });
+  };
+
   return (
     <div className="space-y-4">
       <div className="rounded-2xl bg-gradient-to-br from-emerald-600/20 to-slate-900 border border-emerald-500/40 p-5 text-center">
         <Trophy className="w-8 h-8 text-amber-400 mx-auto mb-2" />
         <h2 className="text-xl font-bold text-white">Auction complete</h2>
         <p className="text-sm text-slate-300">
-          {teams.length} teams · {players.filter((p) => p.sold_to_team_id).length} players signed
+          {teams.length} teams ·{' '}
+          {players.filter((p) => p.sold_to_team_id && !p.is_extra).length} players signed
         </p>
         <p className="text-[11px] text-slate-400 mt-1">
-          Tap any player to open their sold card — use ⇄ to replace them
+          Tap any player to open their sold card — use ⇄ to replace them, + to add a backup
         </p>
         {tournament && (
           <Button
@@ -100,10 +142,18 @@ export default function AuctionResults({ teams, players, settings, tournament })
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold text-white truncate">{team.name}</p>
                 <p className="text-[11px] text-slate-400">
-                  {finance.squad.length}/{finance.target} players · spent {finance.spent} · left{' '}
+                  {finance.counted.length}/{finance.target} players · spent {finance.spent} · left{' '}
                   {finance.purseLeft}
                 </p>
               </div>
+              <button
+                type="button"
+                onClick={() => setAddingExtra({ team })}
+                title="Add an extra backup player — no squad slot, no purse"
+                className="shrink-0 p-1.5 rounded-lg text-slate-400 hover:text-emerald-300 hover:bg-slate-700/50"
+              >
+                <UserPlus className="w-4 h-4" />
+              </button>
             </div>
             <div className="space-y-1">
               {finance.squad.map((p) => {
@@ -123,9 +173,12 @@ export default function AuctionResults({ teams, players, settings, tournament })
                       {p.category === 'icon' && (
                         <span className="text-[9px] uppercase text-purple-300 ml-1">icon</span>
                       )}
+                      {p.is_extra && (
+                        <span className="text-[9px] uppercase text-sky-300 ml-1">extra</span>
+                      )}
                     </span>
                     <span className="text-slate-400 tabular-nums shrink-0 w-16 text-right">
-                      {p.category === 'icon' ? 'ICON' : p.sold_price || 0}
+                      {p.is_extra ? 'EXTRA' : p.category === 'icon' ? 'ICON' : p.sold_price || 0}
                     </span>
                     <button
                       type="button"
@@ -173,6 +226,13 @@ export default function AuctionResults({ teams, players, settings, tournament })
             : []
         }
         onConfirm={replacePlayer}
+      />
+
+      <AddExtraPlayerDialog
+        open={!!addingExtra}
+        onOpenChange={(v) => !v && setAddingExtra(null)}
+        teamName={addingExtra?.team?.name}
+        onConfirm={addExtraPlayer}
       />
 
       {tournament && (

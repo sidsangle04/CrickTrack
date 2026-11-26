@@ -39,6 +39,11 @@ export default function TeamSquadPicker({ name, players = [], selected = [], lim
                   {on && <CheckCircle2 className="w-3 h-3 text-white" />}
                 </div>
                 <span className="text-sm font-medium text-white">{p.name}</span>
+                {p.is_extra && (
+                  <span className="ml-auto text-[10px] uppercase tracking-wide text-sky-300">
+                    extra
+                  </span>
+                )}
               </button>
             );
           })

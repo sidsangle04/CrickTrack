@@ -68,6 +68,11 @@
       "type": "boolean",
       "default": false
     },
+    "is_extra": {
+      "type": "boolean",
+      "default": false,
+      "description": "Backup player added to an auction squad after the auction - in the squad for matches but outside the squad size and purse"
+    },
     "tournament_id": {
       "type": "string",
       "default": "",

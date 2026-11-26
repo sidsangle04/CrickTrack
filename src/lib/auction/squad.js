@@ -9,13 +9,15 @@ export function squadOf(players, teamId) {
 
 export function teamFinance({ teamId, players, settings = {} }) {
   const squad = squadOf(players, teamId);
-  const icons = squad.filter((p) => p.category === 'icon');
-  const bought = squad.filter((p) => p.category !== 'icon');
+  // Backup players added after the auction fill no slot and cost nothing.
+  const counted = squad.filter((p) => !p.is_extra);
+  const icons = counted.filter((p) => p.category === 'icon');
+  const bought = counted.filter((p) => p.category !== 'icon');
   const spent = bought.reduce((sum, p) => sum + (Number(p.sold_price) || 0), 0);
   const purse = Number(settings.purse) || 2000;
   const purseLeft = purse - spent;
   const target = Number(settings.required_squad_size) || 8;
-  const slotsLeft = Math.max(0, target - squad.length);
+  const slotsLeft = Math.max(0, target - counted.length);
   const minBid = Number(settings.starting_bid) || DEFAULT_STARTING_BID;
   // Money that must stay behind for the other players still needed.
   const reserved = Math.max(0, slotsLeft - 1) * minBid;
@@ -23,6 +25,7 @@ export function teamFinance({ teamId, players, settings = {} }) {
 
   return {
     squad,
+    counted,
     icons,
     bought,
     spent,
@@ -33,7 +36,7 @@ export function teamFinance({ teamId, players, settings = {} }) {
     minBid,
     reserved,
     maxBid,
-    complete: squad.length >= target
+    complete: counted.length >= target
   };
 }
 
@@ -54,7 +57,7 @@ export function auctionTotals({ teams, players, settings }) {
   const target = Number(settings.required_squad_size) || 8;
   return {
     rows,
-    allComplete: rows.length > 0 && rows.every((r) => r.finance.squad.length >= target),
-    shortfall: rows.filter((r) => r.finance.squad.length < target)
+    allComplete: rows.length > 0 && rows.every((r) => r.finance.counted.length >= target),
+    shortfall: rows.filter((r) => r.finance.counted.length < target)
   };
 }

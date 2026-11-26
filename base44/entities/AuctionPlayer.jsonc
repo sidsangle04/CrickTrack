@@ -113,6 +113,11 @@
     "sold_price": {
       "type": "number",
       "default": 0
+    },
+    "is_extra": {
+      "type": "boolean",
+      "default": false,
+      "description": "Backup player added to the squad after the auction - fills no squad slot and costs no purse"
     }
   },
   "required": [
