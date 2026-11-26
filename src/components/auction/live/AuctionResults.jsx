@@ -202,8 +202,9 @@ export default function AuctionResults({ teams, players, settings, tournament })
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold text-white truncate">{team.name}</p>
                 <p className="text-[11px] text-slate-400">
-                  {finance.counted.length}/{finance.target} players · spent {finance.spent} · left{' '}
-                  {finance.purseLeft}
+                  {team.post_auction
+                    ? `${finance.counted.length} players · added after the auction`
+                    : `${finance.counted.length}/${finance.target} players · spent ${finance.spent} · left ${finance.purseLeft}`}
                 </p>
               </div>
               <button
@@ -238,7 +239,13 @@ export default function AuctionResults({ teams, players, settings, tournament })
                       )}
                     </span>
                     <span className="text-slate-400 tabular-nums shrink-0 w-16 text-right">
-                      {p.is_extra ? 'EXTRA' : p.category === 'icon' ? 'ICON' : p.sold_price || 0}
+                      {p.is_extra
+                        ? 'EXTRA'
+                        : p.category === 'icon'
+                          ? 'ICON'
+                          : team.post_auction
+                            ? ''
+                            : p.sold_price || 0}
                     </span>
                     <button
                       type="button"
@@ -306,9 +313,11 @@ export default function AuctionResults({ teams, players, settings, tournament })
           tournament={tournament}
           onSaved={(result) => {
             setAddedTeam(result?.team?.name || 'Team');
-            queryClient.invalidateQueries(['tournament', tournament.id]);
-            queryClient.invalidateQueries(['teams']);
-            queryClient.invalidateQueries(['players']);
+            queryClient.invalidateQueries({ queryKey: ['auction', tournament.id] });
+            queryClient.invalidateQueries({ queryKey: ['tournament', tournament.id] });
+            queryClient.invalidateQueries({ queryKey: ['teams'] });
+            queryClient.invalidateQueries({ queryKey: ['team-players'] });
+            queryClient.invalidateQueries({ queryKey: ['players'] });
           }}
         />
       )}

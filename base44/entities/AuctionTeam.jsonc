@@ -30,6 +30,11 @@
       "type": "number",
       "default": 0,
       "description": "Display and draw order"
+    },
+    "post_auction": {
+      "type": "boolean",
+      "default": false,
+      "description": "Team added by hand after the auction - its players were never bid on, so winning bids stay empty"
     }
   },
   "required": [

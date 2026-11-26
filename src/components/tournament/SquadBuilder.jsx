@@ -30,6 +30,8 @@ export default function SquadBuilder({
   tournamentId,
   selected,
   onSelectedChange,
+  pickedUnsold = [],
+  onPickedUnsoldChange,
   newPlayers,
   onNewPlayersChange
 }) {
@@ -59,10 +61,38 @@ export default function SquadBuilder({
       .slice(0, 200);
   }, [players, mode, tournamentId, search]);
 
+  // Players who went unsold in this tournament's auction — the natural source
+  // for a team added after the auction.
+  const { data: auctionPlayers = [] } = useQuery({
+    queryKey: ['auction-players-unsold', tournamentId],
+    queryFn: () => base44.entities.AuctionPlayer.filter({ tournament_id: tournamentId }),
+    enabled: !!tournamentId
+  });
+
+  const unsoldAll = useMemo(
+    () => auctionPlayers.filter((p) => !p.sold_to_team_id && p.status !== 'sold'),
+    [auctionPlayers]
+  );
+
+  const unsold = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return unsoldAll
+      .filter((p) => !q || (p.name || '').toLowerCase().includes(q))
+      .slice(0, 200);
+  }, [unsoldAll, search]);
+
   const isPicked = (id) => selected.some((s) => s.id === id);
 
   const toggle = (p) => {
     onSelectedChange(isPicked(p.id) ? selected.filter((s) => s.id !== p.id) : [...selected, p]);
+  };
+
+  const isUnsoldPicked = (id) => pickedUnsold.some((s) => s.id === id);
+
+  const toggleUnsold = (p) => {
+    onPickedUnsoldChange(
+      isUnsoldPicked(p.id) ? pickedUnsold.filter((s) => s.id !== p.id) : [...pickedUnsold, p]
+    );
   };
 
   const setNewPlayer = (index, patch) => {
@@ -70,7 +100,9 @@ export default function SquadBuilder({
   };
 
   const total =
-    selected.length + newPlayers.filter((p) => (p.name || '').trim()).length;
+    selected.length +
+    pickedUnsold.length +
+    newPlayers.filter((p) => (p.name || '').trim()).length;
 
   return (
     <div className="space-y-4">
@@ -129,6 +161,47 @@ export default function SquadBuilder({
           tournament — your existing teams stay untouched.
         </p>
       </div>
+
+      {unsoldAll.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-semibold text-white">Unsold in this auction</p>
+            <p className="text-[11px] text-slate-400">{pickedUnsold.length} picked</p>
+          </div>
+
+          <div className="max-h-52 overflow-y-auto rounded-lg border border-slate-700/60 divide-y divide-slate-700/40">
+            {unsold.length === 0 && (
+              <p className="text-xs text-slate-500 p-3">No unsold player matches your search.</p>
+            )}
+            {unsold.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => toggleUnsold(p)}
+                className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-800/60 transition-colors"
+              >
+                <span
+                  className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                    isUnsoldPicked(p.id)
+                      ? 'bg-emerald-500 border-emerald-500 text-slate-900'
+                      : 'border-slate-600'
+                  }`}
+                >
+                  {isUnsoldPicked(p.id) && <Check className="w-3 h-3" />}
+                </span>
+                <PlayerAvatar player={p} size="sm" className="!w-7 !h-7 !rounded-md" />
+                <span className="text-xs text-white truncate flex-1">{p.name}</span>
+                <span className="text-[10px] text-slate-400 shrink-0">
+                  {ROLE_LABELS[p.primary_role] || 'Player'}
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-500 mt-1">
+            Picked players leave the unsold list and join this team — no coins, no winning bid.
+          </p>
+        </div>
+      )}
 
       <div>
         <div className="flex items-center justify-between mb-2">

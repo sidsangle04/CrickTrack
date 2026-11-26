@@ -250,9 +250,13 @@ export async function downloadTeamSheets({ tournament, teams = [], players = [],
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(nameSize);
       doc.setTextColor(...COLORS.emeraldLight);
-      doc.text(isIcon ? 'ICON' : String(Number(p.sold_price) || 0), M + inner, mid, {
-        align: 'right',
-      });
+      // A team added after the auction never bid, so its coins column stays empty.
+      doc.text(
+        isIcon ? 'ICON' : team.post_auction ? '' : String(Number(p.sold_price) || 0),
+        M + inner,
+        mid,
+        { align: 'right' }
+      );
 
       y += rowH;
       doc.setDrawColor(40, 52, 72);
