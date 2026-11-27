@@ -180,9 +180,19 @@ export function downloadAuctionSheet({ tournament, auction, teams = [], players 
       const label = p.category === 'icon' ? `${p.name} (icon)` : p.name;
       doc.text(clip(label, width - 70), x + 10, ry);
       doc.setTextColor(...COLORS.emeraldLight);
-      doc.text(p.category === 'icon' ? 'ICON' : String(Number(p.sold_price) || 0), x + width - 10, ry, {
-        align: 'right',
-      });
+      // A backup player cost no coins, so the price column names it instead of 0.
+      doc.text(
+        p.category === 'icon'
+          ? 'ICON'
+          : p.is_extra
+            ? 'EXTRA'
+            : String(Number(p.sold_price) || 0),
+        x + width - 10,
+        ry,
+        {
+          align: 'right',
+        }
+      );
       ry += 13;
     });
 

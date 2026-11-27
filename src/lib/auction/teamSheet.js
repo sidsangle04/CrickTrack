@@ -250,9 +250,16 @@ export async function downloadTeamSheets({ tournament, teams = [], players = [],
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(nameSize);
       doc.setTextColor(...COLORS.emeraldLight);
-      // A team added after the auction never bid, so its coins column stays empty.
+      // A team added after the auction never bid, so its coins column stays empty;
+      // a backup player filled no slot and cost nothing, so it reads EXTRA.
       doc.text(
-        isIcon ? 'ICON' : team.post_auction ? '' : String(Number(p.sold_price) || 0),
+        isIcon
+          ? 'ICON'
+          : p.is_extra
+            ? 'EXTRA'
+            : team.post_auction
+              ? ''
+              : String(Number(p.sold_price) || 0),
         M + inner,
         mid,
         { align: 'right' }
