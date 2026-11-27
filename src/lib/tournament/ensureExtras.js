@@ -5,6 +5,14 @@ import { base44 } from '@/api/base44Client';
 // under the app's row rules, so the team would look one player short. This
 // re-creates just the missing profiles, inside this tournament only, and links
 // them back to the auction record so it happens once.
+const plainName = (name) =>
+  (name || '')
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/[^a-z\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
 export async function ensureExtraProfiles(tournament) {
   const players = await base44.entities.Player.list('-created_date', 600);
   if (!tournament?.id) return players;
@@ -23,6 +31,17 @@ export async function ensureExtraProfiles(tournament) {
   for (const extra of missing) {
     const auctionTeam = auctionTeams.find((t) => t.id === extra.sold_to_team_id);
     if (!auctionTeam?.team_id) continue;
+
+    // A profile of the same player may already be in this tournament (nickname
+    // in brackets is not part of the name) — link that one instead of adding a
+    // second copy to the squad.
+    const twin = players.find(
+      (p) => p.tournament_id === tournament.id && plainName(p.name) === plainName(extra.name)
+    );
+    if (twin) {
+      await base44.entities.AuctionPlayer.update(extra.id, { player_id: twin.id });
+      continue;
+    }
 
     const player = await base44.entities.Player.create({
       name: extra.name,
