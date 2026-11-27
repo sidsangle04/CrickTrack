@@ -5,6 +5,7 @@ import { ChevronRight, Pencil, Plus, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TeamBadge } from '@/components/auction/Shared';
 import TeamSquadDialog from './TeamSquadDialog';
+import { ensureExtraProfiles } from '@/lib/tournament/ensureExtras';
 import TeamEditDialog from './TeamEditDialog';
 
 // Every team in the tournament — tap one to see its players, or edit its name,
@@ -15,7 +16,7 @@ export default function TournamentTeams({ tournament, teams, onAddTeam, onTeamUp
 
   const { data: players = [] } = useQuery({
     queryKey: ['players', tournament.ground_mode || 'turf'],
-    queryFn: () => base44.entities.Player.list()
+    queryFn: () => ensureExtraProfiles(tournament)
   });
 
   // Every player of a team counts, backup (extra) players included — they are
